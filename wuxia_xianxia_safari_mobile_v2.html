@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="theme-color" content="#070912"><title>Путь Небесного Дракона</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#070912;color:#eee;font-family:system-ui,-apple-system,Segoe UI,sans-serif;overflow:hidden}
+button{font:inherit;color:inherit;border:0;cursor:pointer}
+#app{height:100%;display:flex;align-items:center;justify-content:center}
+.screen{width:min(1100px,100vw);height:min(760px,100vh);position:relative;overflow:hidden;background:radial-gradient(circle at 50% 20%,#27335c 0,#10162b 35%,#060810 80%);box-shadow:0 0 80px #000}
+.hidden{display:none!important}
+.top{height:70px;padding:12px 18px;display:flex;align-items:center;justify-content:space-between;background:#0b1020cc;border-bottom:1px solid #ffffff18;position:relative;z-index:5}
+.brand{font-weight:900;letter-spacing:.08em;color:#f5d58a}.sub{font-size:12px;color:#9da8c4}
+.stats{display:flex;gap:10px}.pill{background:#ffffff0d;border:1px solid #ffffff15;padding:8px 12px;border-radius:999px;font-size:13px}
+main{height:calc(100% - 70px);position:relative}
+#menu{height:100%;display:grid;place-items:center;text-align:center}
+.hero{max-width:760px;padding:30px}.hero h1{font-size:clamp(42px,8vw,82px);margin:0;background:linear-gradient(#fff1b1,#c77b45);-webkit-background-clip:text;color:transparent;text-shadow:0 10px 40px #000}
+.hero p{color:#aeb7ce;max-width:650px;margin:10px auto 28px;line-height:1.6}
+.cards{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+.mode{width:300px;min-height:180px;padding:22px;border-radius:22px;text-align:left;background:linear-gradient(145deg,#151d39,#0b1021);border:1px solid #ffffff18;transition:.2s}
+.mode:hover{transform:translateY(-4px);border-color:#d8a55b66;box-shadow:0 15px 40px #0008}
+.mode h2{margin:0 0 8px}.mode p{font-size:14px;margin:0 0 15px}.mode b{color:#f0c979}
+.btn{padding:11px 16px;border-radius:12px;background:linear-gradient(135deg,#c98942,#f1ce78);color:#1b1208;font-weight:800}
+.btn.secondary{background:#ffffff10;color:#ddd;border:1px solid #ffffff18}
+#battle,#qi{height:100%;position:relative}
+canvas{display:block;width:100%;height:100%}
+.hud{position:absolute;inset:12px 16px auto;display:flex;justify-content:space-between;pointer-events:none;z-index:3}
+.hudbox{background:#080d1dcc;border:1px solid #ffffff18;border-radius:14px;padding:9px 12px;backdrop-filter:blur(6px)}
+.bar{width:180px;height:8px;background:#ffffff18;border-radius:99px;overflow:hidden;margin-top:5px}.fill{height:100%;width:100%;background:#68d391}.energy .fill{background:#77b7ff}
+.skills{position:absolute;bottom:18px;left:50%;transform:translateX(-50%);display:flex;gap:10px;z-index:4}
+.skill{width:68px;height:68px;border-radius:18px;background:#111a32dd;border:1px solid #ffffff2b;display:grid;place-items:center;font-size:28px;position:relative}
+.skill small{position:absolute;bottom:3px;font-size:9px;color:#aeb7ce}.cd{position:absolute;inset:0;display:grid;place-items:center;font-weight:900;font-size:22px;color:#fff;text-shadow:0 2px 5px #000}
+.back{position:absolute;right:16px;bottom:18px;z-index:5}
+#qiPanel{position:absolute;left:16px;top:82px;width:250px;background:#080d1ddd;border:1px solid #ffffff18;border-radius:18px;padding:15px;z-index:3}
+#qiPanel h3{margin:0 0 8px;color:#f0c979}.meter{height:12px;background:#ffffff12;border-radius:99px;overflow:hidden}.meter i{display:block;height:100%;background:linear-gradient(90deg,#8b6cff,#e5a4ff);width:38%}
+#skillBook{position:absolute;right:16px;top:82px;width:270px;background:#080d1ddd;border:1px solid #ffffff18;border-radius:18px;padding:15px;z-index:3}
+.recipe{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}.rune{padding:8px 10px;border-radius:10px;background:#ffffff0b;border:1px solid #ffffff18}
+.log{font-size:12px;color:#9da8c4;line-height:1.5;height:75px;overflow:hidden}
+@media(max-width:700px){.screen{height:100vh}.top{height:58px}.mode{width:92vw}.hero{padding:15px}.hero h1{font-size:44px}#qiPanel,#skillBook{position:absolute;top:auto;bottom:90px;width:44%;font-size:11px}#qiPanel{left:8px}#skillBook{right:8px}.bar{width:120px}.skill{width:58px;height:58px}.skills{gap:6px}}
+
+button,.mode,.skill{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+body{overscroll-behavior:none;-webkit-user-select:none;user-select:none}
+.screen{padding-bottom:env(safe-area-inset-bottom)}
+.mobileControls{display:none;position:absolute;left:14px;bottom:18px;z-index:6;width:150px;height:150px;pointer-events:none}
+.mobileControls button{pointer-events:auto;position:absolute;width:48px;height:48px;border-radius:15px;background:#111a32dd;border:1px solid #ffffff25;box-shadow:0 5px 20px #0008;font-size:20px}
+.mobileControls .up{left:51px;top:0}.mobileControls .left{left:0;top:51px}.mobileControls .right{right:0;top:51px}.mobileControls .down{left:51px;bottom:0}
+.mobileHint{display:none;position:absolute;left:50%;top:78px;transform:translateX(-50%);z-index:5;font-size:11px;color:#aeb7ce;background:#080d1dcc;padding:6px 10px;border-radius:99px}
+@media (max-width:700px){
+  .mobileHint{display:block}
+  #battle .skills{bottom:16px;left:auto;right:10px;transform:none;flex-wrap:wrap;width:150px;justify-content:flex-end}
+  #battle .skill{width:58px;height:58px}
+  #battle .hud{inset:8px 8px auto}
+  #battle .hudbox{padding:7px 9px}
+  #battle .bar{width:120px}
+  #battle .back{right:8px;bottom:8px}
+}
+@media (orientation:landscape) and (max-height:520px){
+  .mobileControls{display:block}
+  #battle .skills{bottom:8px}
+  #battle .back{bottom:8px}
+  .mobileHint{top:60px}
+}
+@media (orientation:portrait) and (max-width:700px){
+  .mobileControls{display:block}
+  #battle .mobileHint{top:68px}
+}
+</style>
+</head>
+<body>
+<div id="app"><div class="screen">
+<header class="top"><div><div class="brand">天龍 · ПУТЬ НЕБЕСНОГО ДРАКОНА</div><div class="sub">Уся / сянься — прототип</div></div><div class="stats"><div class="pill">☯ Ци <b id="qiStat">380</b></div><div class="pill">✦ Дух <b id="spiritStat">12</b></div></div></header>
+<main>
+<section id="menu">
+<div class="hero"><h1>Путь Небесного Дракона</h1><p>Стань культиватором: собирай Ци, создавай собственные техники и переживи смертельную схватку в Долине Девяти Сект.</p>
+<div class="cards">
+<button class="mode" onclick="startBattle()"><h2>⚔️ Арена Девяти Сект</h2><p>Королевская битва. Используй техники, рывки и щиты. Собирай сферы Ци и уничтожай соперников.</p><b>Играть →</b></button>
+<button class="mode" onclick="startQi()"><h2>☯️ Внутренний Котёл</h2><p>Змейка + головоломка. Собирай меридианы, комбинируй стихии и открывай новые навыки.</p><b>Культивировать →</b></button>
+</div></div>
+</section>
+<section id="battle" class="hidden"><canvas id="bc"></canvas>
+<div class="mobileHint">Тапай по навыкам · управляй крестовиной</div>
+<div class="mobileControls" id="mobileControls">
+<button class="up" data-dir="up">▲</button><button class="left" data-dir="left">◀</button>
+<button class="right" data-dir="right">▶</button><button class="down" data-dir="down">▼</button>
+</div>
+<div class="hud"><div class="hudbox">❤️ Жизнь <div class="bar"><i id="hp" class="fill"></i></div><div style="font-size:11px">☯ Ци: <span id="bqi">100</span></div></div><div class="hudbox" style="text-align:right">Живых: <b id="alive">8</b><br><span class="sub">WASD / стрелки · 1 2 3 4</span></div></div>
+<div class="skills"><button class="skill" onclick="useSkill(0)">🔥<small>Пламя · 1</small><span id="c0" class="cd"></span></button><button class="skill" onclick="useSkill(1)">⚡<small>Молния · 2</small><span id="c1" class="cd"></span></button><button class="skill" onclick="useSkill(2)">🛡️<small>Щит · 3</small><span id="c2" class="cd"></span></button><button class="skill" onclick="useSkill(3)">🌪️<small>Шаг · 4</small><span id="c3" class="cd"></span></button></div>
+<button class="btn secondary back" onclick="backMenu()">Меню</button></section>
+<section id="qi" class="hidden"><canvas id="qc"></canvas>
+<div id="qiPanel"><h3>☯ Внутренний котёл</h3><div>Уровень: <b id="lvl">3</b> · Меридианов: <b id="len">3</b></div><div class="meter"><i id="qibar"></i></div><p class="sub">Собирай ☯ Ци. Не врежься в собственный меридиан. Каждые 5 сфер — выбор техники.</p><div class="log" id="qilog">Нажми WASD/стрелки или свайпай по полю.</div></div>
+<div id="skillBook"><h3 style="margin:0;color:#f0c979">📜 Созданные техники</h3><div id="recipes" class="recipe"></div><button class="btn" onclick="forge()">Синтезировать технику</button></div>
+<button class="btn secondary back" onclick="backMenu()">Меню</button></section>
+</main></div></div>
+<script>
+const $=id=>document.getElementById(id); let mode;
+let player={qi:380,spirit:12,level:3}; const save=()=>localStorage.wuxia=JSON.stringify(player);
+try{Object.assign(player,JSON.parse(localStorage.wuxia||'{}'))}catch{}
+function stats(){ $('qiStat').textContent=player.qi; $('spiritStat').textContent=player.spirit } stats();
+function show(x){['menu','battle','qi'].forEach(id=>$(id).classList.toggle('hidden',id!==x))}
+function backMenu(){mode=null;show('menu');stats();save()}
+function resize(c){c.width=c.clientWidth*devicePixelRatio;c.height=c.clientHeight*devicePixelRatio;let x=c.getContext('2d');x.scale(devicePixelRatio,devicePixelRatio);return x}
+let keys={}; addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if(mode==='battle'&&'1234'.includes(e.key))useSkill(+e.key-1);if(mode==='qi'&&['arrowup','arrowdown','arrowleft','arrowright','w','a','s','d'].includes(e.key))e.preventDefault()});addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+function startBattle(){show('battle');mode='battle'; initBattle()}
+let bc,ctx,bw,bh,bp,enemies=[],orbs=[],shots=[],last=0,cool=[0,0,0,0],ended=false;
+function initBattle(){bc=$('bc');ctx=resize(bc);bw=bc.clientWidth;bh=bc.clientHeight;bp={x:bw/2,y:bh/2,r:14,hp:100,energy:100,shield:0};enemies=[];orbs=[];shots=[];cool=[0,0,0,0];ended=false;for(let i=0;i<7;i++)enemies.push({x:50+Math.random()*(bw-100),y:90+Math.random()*(bh-170),r:13,hp:45,cd:Math.random()*2});for(let i=0;i<20;i++)orbs.push({x:25+Math.random()*(bw-50),y:80+Math.random()*(bh-130),r:5});requestAnimationFrame(battleLoop)}
+function useSkill(i){if(mode!=='battle'||cool[i]>0||ended)return;cool[i]=[3,5,7,4][i];if(i===0){shots.push({x:bp.x,y:bp.y,vx:0,vy:-8,damage:22,type:'fire'})}if(i===1){for(let e of enemies){if(Math.hypot(e.x-bp.x,e.y-bp.y)<170)e.hp-=28}}if(i===2){bp.shield=70}if(i===3){let dx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),dy=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0);bp.x=Math.max(20,Math.min(bw-20,bp.x+dx*100));bp.y=Math.max(75,Math.min(bh-20,bp.y+dy*100))}}
+function battleLoop(t){if(mode!=='battle')return;let dt=Math.min(.04,(t-last)/1000||0);last=t;updateBattle(dt);drawBattle();requestAnimationFrame(battleLoop)}
+function updateBattle(dt){let dx=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),dy=(keys.s||keys.arrowdown?1:0)-(keys.w||keys.arrowup?1:0),n=Math.hypot(dx,dy)||1;bp.x=Math.max(18,Math.min(bw-18,bp.x+dx/n*190*dt));bp.y=Math.max(75,Math.min(bh-18,bp.y+dy/n*190*dt));for(let i=0;i<4;i++)cool[i]=Math.max(0,cool[i]-dt);bp.shield=Math.max(0,bp.shield-dt*25);for(let o of orbs)if(Math.hypot(o.x-bp.x,o.y-bp.y)<22){o.x=-100;o.y=-100;bp.energy=Math.min(100,bp.energy+10);player.qi+=8}for(let s of shots){s.y+=s.vy;s.x+=s.vx;for(let e of enemies)if(e.hp>0&&Math.hypot(e.x-s.x,e.y-s.y)<e.r+7)e.hp-=s.damage}shots=shots.filter(s=>s.y>-20&&s.y<bh+20);if(Math.random()<dt*.12){let live=enemies.filter(e=>e.hp>0);if(live.length){let e=live[Math.floor(Math.random()*live.length)];let a=Math.atan2(bp.y-e.y,bp.x-e.x);let hit=Math.random()<.25;if(hit&&bp.shield<=0)bp.hp-=8;else if(hit)bp.shield=Math.max(0,bp.shield-12)}}enemies=enemies.filter(e=>e.hp>0);$('alive').textContent=enemies.length+1;$('hp').style.width=Math.max(0,bp.hp)+'%';$('bqi').textContent=Math.floor(bp.energy);for(let i=0;i<4;i++)$('c'+i).textContent=cool[i]>0?cool[i].toFixed(1):'';if(enemies.length===0||bp.hp<=0){ended=true;setTimeout(()=>{alert(enemies.length===0?'Ты покорил арену! +100 Ци':'Ты пал. Но культивация продолжается.');player.qi+=enemies.length===0?100:20;stats();backMenu()},300)}}
+function drawBattle(){ctx.clearRect(0,0,bw,bh);ctx.fillStyle='#08101a';ctx.fillRect(0,0,bw,bh);ctx.strokeStyle='#ffffff0b';for(let x=0;x<bw;x+=45){ctx.beginPath();ctx.moveTo(x,70);ctx.lineTo(x,bh);ctx.stroke()}for(let y=70;y<bh;y+=45){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(bw,y);ctx.stroke()}ctx.strokeStyle='#d9ad5a44';ctx.lineWidth=4;ctx.beginPath();ctx.arc(bw/2,(bh+70)/2,Math.min(bw,bh)*.43,0,7);ctx.stroke();for(let o of orbs){if(o.x<0)continue;ctx.fillStyle='#8b77ff';ctx.shadowBlur=14;ctx.shadowColor='#8b77ff';ctx.beginPath();ctx.arc(o.x,o.y,o.r,0,7);ctx.fill();ctx.shadowBlur=0}for(let e of enemies){ctx.fillStyle='#c94d5a';ctx.beginPath();ctx.arc(e.x,e.y,e.r,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.font='12px sans-serif';ctx.fillText('☯',e.x-6,e.y+4)}ctx.fillStyle=bp.shield>0?'#7bd8ff':'#e9b866';ctx.beginPath();ctx.arc(bp.x,bp.y,bp.r,0,7);ctx.fill();ctx.fillStyle='#fff';ctx.font='16px sans-serif';ctx.fillText('龍',bp.x-8,bp.y+6);for(let s of shots){ctx.fillStyle='#ffad4d';ctx.beginPath();ctx.arc(s.x,s.y,7,0,7);ctx.fill()}}
+let qc,qctx,qw,qh,grid=20,cell=28,snake,food,dir={x:1,y:0},nextDir={x:1,y:0},timer=0,qLevel=3;
+function startQi(){show('qi');mode='qi';qc=$('qc');qctx=resize(qc);qw=qc.clientWidth;qh=qc.clientHeight;cell=Math.max(20,Math.min(30,Math.floor(Math.min(qw,qh)/22)));grid=Math.floor(Math.min(qw,qh-70)/cell);snake=[{x:Math.floor(grid/2),y:Math.floor(grid/2)},{x:Math.floor(grid/2)-1,y:Math.floor(grid/2)}];dir={x:1,y:0};nextDir=dir;spawnFood();timer=0;qLevel=3;drawQi();requestAnimationFrame(qiLoop)}
+function spawnFood(){do{food={x:Math.floor(Math.random()*grid),y:Math.floor(Math.random()*grid)}}while(snake.some(s=>s.x===food.x&&s.y===food.y))}
+function qiLoop(t){if(mode!=='qi')return;timer+=(t-(qiLoop.last||t));qiLoop.last=t;if(timer>105){timer=0;dir=nextDir;let h={x:snake[0].x+dir.x,y:snake[0].y+dir.y};if(h.x<0||h.y<0||h.x>=grid||h.y>=grid||snake.some((s,i)=>i>0&&s.x===h.x&&s.y===h.y)){snake=[{x:Math.floor(grid/2),y:Math.floor(grid/2)}];player.qi=Math.max(0,player.qi-15);log('Меридиан разорван. Потеряно 15 Ци.')}else{snake.unshift(h);if(h.x===food.x&&h.y===food.y){player.qi+=15;qLevel++;if(qLevel%5===0){player.spirit++;log('Новая ступень! Дух +1.');}spawnFood();}else snake.pop()}$('len').textContent=snake.length;$('lvl').textContent=qLevel;$('qibar').style.width=Math.min(100,20+qLevel*3)+'%';stats();save()}drawQi();requestAnimationFrame(qiLoop)}
+function drawQi(){qctx.clearRect(0,0,qw,qh);qctx.fillStyle='#090b18';qctx.fillRect(0,0,qw,qh);let ox=(qw-grid*cell)/2,oy=55;for(let x=0;x<grid;x++)for(let y=0;y<grid;y++){qctx.strokeStyle='#ffffff08';qctx.strokeRect(ox+x*cell,oy+y*cell,cell,cell)}qctx.fillStyle='#e9a55a';qctx.shadowBlur=18;qctx.shadowColor='#e9a55a';qctx.beginPath();qctx.arc(ox+food.x*cell+cell/2,oy+food.y*cell+cell/2,cell*.27,0,7);qctx.fill();qctx.shadowBlur=0;snake.forEach((s,i)=>{qctx.fillStyle=i===0?'#b99cff':'#6f5fc0';qctx.beginPath();qctx.arc(ox+s.x*cell+cell/2,oy+s.y*cell+cell/2,cell*.37,0,7);qctx.fill()})}
+function setDir(x,y){if(x===-dir.x&&y===-dir.y)return;nextDir={x,y}}addEventListener('keydown',e=>{if(mode==='qi'){if(e.key==='ArrowUp'||e.key.toLowerCase()==='w')setDir(0,-1);if(e.key==='ArrowDown'||e.key.toLowerCase()==='s')setDir(0,1);if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')setDir(-1,0);if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')setDir(1,0)}})
+let tx=0,ty=0;
+document.addEventListener('touchstart',e=>{
+  const t=e.touches[0];
+  if(t){tx=t.clientX;ty=t.clientY;}
+},{passive:true});
+document.addEventListener('touchend',e=>{
+  if(mode!=='qi') return;
+  const t=e.changedTouches[0]; if(!t) return;
+  const dx=t.clientX-tx,dy=t.clientY-ty;
+  if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;
+  if(Math.abs(dx)>Math.abs(dy))setDir(Math.sign(dx),0);else setDir(0,Math.sign(dy));
+},{passive:true});
+document.querySelectorAll('#mobileControls button').forEach(b=>{
+  b.addEventListener('touchstart',e=>{
+    e.preventDefault();
+    const d=b.dataset.dir;
+    if(d==='up') keys.arrowup=true;
+    if(d==='down') keys.arrowdown=true;
+    if(d==='left') keys.arrowleft=true;
+    if(d==='right') keys.arrowright=true;
+  },{passive:false});
+  b.addEventListener('touchend',e=>{
+    e.preventDefault();
+    const d=b.dataset.dir;
+    if(d==='up') keys.arrowup=false;
+    if(d==='down') keys.arrowdown=false;
+    if(d==='left') keys.arrowleft=false;
+    if(d==='right') keys.arrowright=false;
+  },{passive:false});
+});
+function log(s){$('qilog').textContent=s}
+function forge(){let names=['☯ Пылающий меридиан','⚡ Небесный разряд','🌪️ Шаг по облакам','🛡️ Золотой купол'];let n=names[Math.floor(Math.random()*names.length)];$('recipes').insertAdjacentHTML('beforeend','<span class="rune">'+n+'</span>');player.spirit++;player.qi=Math.max(0,player.qi-40);stats();save();log('Техника создана: '+n+' · -40 Ци, +1 Дух')}
+window.addEventListener('resize',()=>{if(mode==='battle'){ctx=resize(bc);bw=bc.clientWidth;bh=bc.clientHeight}else if(mode==='qi'){qctx=resize(qc);qw=qc.clientWidth;qh=qc.clientHeight}});
+
+document.addEventListener('touchmove', e=>{ if(mode) e.preventDefault(); }, {passive:false});
+document.querySelectorAll('.mode,.skill,.btn').forEach(el=>{
+  el.addEventListener('touchend',()=>{}, {passive:true});
+});
+</script></body></html>
