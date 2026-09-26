@@ -1022,7 +1022,7 @@ function emitFx(dt,still){
 /* ---- rewards / drops ---- */
 function killReward(e){
  const s=arenaState;if(!s)return;
- if(e.isBoss){const rw=5000*(e.tier||1),rw2=e.columns||0;save.rewards+=rw;if(rw2>0)save.rewards2+=rw2;toast('Босс повержен: +'+fmt(rw)+' осколков души'+(rw2?' · +'+rw2+' осколков 2 этапа':''));floatText(e.x,e.y-84,'+'+fmt(rw),'#ffd85b',20);shake(12);onBossDefeated()}
+ if(e.isBoss){const rw=5000*(e.tier||1),rw2=(e.columns||0)*10;save.rewards+=rw;if(rw2>0)save.rewards2+=rw2;toast('Босс повержен: +'+fmt(rw)+' осколков души'+(rw2?' · +'+rw2+' осколков 2 этапа':''));floatText(e.x,e.y-84,'+'+fmt(rw),'#ffd85b',20);shake(12);onBossDefeated()}
  else{const rw=e.stars||0,rw2=e.columns||0;if(rw>0){save.rewards+=rw;floatText(e.x,e.y-28,'+'+rw,'#ffd85b',12)}if(rw2>0)save.rewards2+=rw2;mobDrop(e)}
 }
 /* ---- damage ---- */
