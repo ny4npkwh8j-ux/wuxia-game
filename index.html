@@ -115,7 +115,7 @@ try{
  save.blueprints??=[];save.blueprints=save.blueprints.filter(b=>b&&b.type&&b.n);
  if(save.healthBalanceV!==3){save.health+=3*save.stars*(save.stageLevel>=2?1.5:1);save.healthBalanceV=3}
  // v0.4.15 balance migration: convert old strength progression (7 + 0.1★) to 10 + 0.15★.
- if(save.strengthBalanceV!==2){save.str=10+save.stars*.15;save.strengthBalanceV=2;}
+ if(save.strengthBalanceV!==3){save.str=10+save.stars*.90;save.strengthBalanceV=3;}
  localStorage.setItem(SAVE_SCHEMA,'1');localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);localStorage.setItem(SAVE_KEY,JSON.stringify(save));
 }catch(e){save=freshSave()}
 function persist(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);localStorage.setItem('wuxiaSaveSchema',SAVE_SCHEMA)}catch(e){}updateUI()}
