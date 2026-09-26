@@ -911,7 +911,7 @@ function drawCult(){
  for(let y=-300;y<=300;y+=40){ctx.beginPath();ctx.moveTo(-210,y);ctx.lineTo(210,y);ctx.stroke()}
  for(let x=-210;x<=210;x+=40){ctx.beginPath();ctx.moveTo(x,-300);ctx.lineTo(x,300);ctx.stroke()}
  drawBody(ctx);
- ctx.strokeStyle='#55ddffbb';ctx.lineWidth=1.2/save.zoom;
+ ctx.strokeStyle='#ff3030dd';ctx.lineWidth=1.2/save.zoom;
  for(const [a,b] of save.meridianEdges){
    const p=save.starPts[a],q=save.starPts[b];if(!p||!q)continue;
    ctx.beginPath();ctx.moveTo(p.x*210,p.y*520);ctx.lineTo(q.x*210,q.y*520);ctx.stroke();
