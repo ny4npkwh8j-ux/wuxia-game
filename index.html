@@ -286,6 +286,7 @@ async function attemptPillar(cost,payFn){
   if(wasFirst){
    const q=pillarQualityFor(save.stars);save.pillarQuality=q.name;save.pillarCoef=q.coef;save.pillarQiBonus=q.qi;save.pillarStars=save.stars;placingStar=false;$('cultHint').classList.remove('show');
    save.pillars=1;save.stageLevel=2;
+   save.maxQi+=save.pillarQiBonus||0;
    toast('Первая колонна сформирована · '+save.pillarQuality+'! Стадия II. Дальнейшие колонны — только осколками второго этапа.');
   }else{
    save.pillars++;save.maxQi+=save.pillarQiBonus||0;
