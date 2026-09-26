@@ -86,7 +86,7 @@ body.kb-mode #joy,body.kb-mode #attackBtn{display:none}
 const BUILD_VERSION='0.5.3';
 const SAVE_KEY='wuxiaSave';
 const SAVE_SCHEMA='cultivation_arena_v2';
-const PILLAR_STEP=500,MAX_PILLARS=5,FIRST_PILLAR_STARS=50,PATH_CAP=40;
+const PILLAR_STEP=500,MAX_PILLARS=5,FIRST_PILLAR_STARS=50,PATH_CAP=100;
 const PILLAR_Q=[[100,'ИСКЛЮЧИТЕЛЬНАЯ',1000,1.30],[90,'ПРЕВОСХОДНАЯ',900,1.15],[80,'ОТЛИЧНАЯ',800,1.00],[70,'ХОРОШАЯ',700,.70],[60,'ОБЫЧНАЯ',600,.50],[50,'НИЧТОЖНАЯ',500,.30]];
 function pillarQualityFor(stars){for(const q of PILLAR_Q)if(stars>=q[0])return{name:q[1],qi:q[2],coef:q[3]};return{name:PILLAR_Q[5][1],qi:PILLAR_Q[5][2],coef:PILLAR_Q[5][3]}}
 function pillarCost(n){return 10000*n}
