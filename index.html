@@ -146,10 +146,10 @@ function stunMaxDur(n){return 4+.1*Math.min(PATH_CAP,Math.max(0,n))}
 const TECH_COST={qiSingle:20,qiArea:20,shield:20,stun:40};
 function techniquePower(n){return Math.pow(1.05,Math.max(0,Math.min(PATH_CAP,n)-10))}
 function starFactor(stars){return .5*Math.min(100,Math.max(0,stars))}
-function powerMult(pathLen,stars){return techniquePower(pathLen)*starFactor(stars)}
-function myMult(t){return powerMult(t.nodes.length,save.stars)}
-function mobMult(stars,cols){return powerMult(Math.min(PATH_CAP,stars),stars)*(1+.15*Math.min(5,cols||0))}
-function bossMult(b){return powerMult(PATH_CAP,100)}
+function powerMult(pathLen,stars){return techniquePower(pathLen)*starFactor(stars);}
+function myMult(t){return powerMult(t.nodes.length,save.stars);}
+function mobMult(stars){return powerMult(Math.min(PATH_CAP,stars),stars);}
+function bossMult(b){return powerMult(PATH_CAP,100);}
 function techCoef(t){return currentQualityCoef()*techniquePower(t.nodes.length)}
 function techDamage(t){return TECH_BASE[t.type]*myMult(t)}
 function techShieldMax(t){return TECH_BASE.shield*myMult(t)}
