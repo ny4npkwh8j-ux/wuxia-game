@@ -31,13 +31,13 @@ function entCost(e,t){return t==='dodge'?Math.ceil(.05*e.maxQi):t==='qiShield'?0
 /* здоровье, сила и запас Ци — по тем же формулам, что у игрока (bodyHp / bodyStr / bodyQi) */
 function applyKit(e,kit){
  const S=kit.stars,mh=bodyHp(S),mq=bodyQi(S,e.columns||0,e.isBoss?PILLAR_Q[0][2]:0);
- Object.assign(e,{v:ENT_V,stars:S,str:bodyStr(S),techs:kit.techs,technique:kit.techs[0]||null,hp:mh,maxHp:mh,qi:mq,maxQi:mq,shield:0,shieldMax:0,qiShieldOn:kit.techs.includes('qiShield'),qsFlash:0,wind:null,mcd:0,cd:{atk:e.isBoss?.8:1+Math.random()*1.5,sh:0,dash:1+Math.random()*2,stun:2}});
+ Object.assign(e,{v:ENT_V,stars:S,str:bodyStr(S),techs:kit.techs,technique:kit.techs[0]||null,hp:mh,maxHp:mh,qi:mq,maxQi:mq,shield:0,shieldMax:0,qiShieldOn:kit.techs.includes('qiShield'),qsFlash:0,wind:null,mcd:0,cd:{atk:e.isBoss?.8:1+Math.random()*1.5,sh:0,dash:1+Math.random()*2,stun:2,area:0}});
  return e;
 }
 /* общий тик противника (моб или босс): кулдауны, восстановление Ци как у игрока */
 function entTick(e,dt){
  const cd=e.cd||(e.cd={atk:2,sh:0,dash:2,stun:2});
- cd.atk-=dt;cd.sh-=dt;cd.dash-=dt;cd.stun=(cd.stun??0)-dt;
+ cd.atk-=dt;cd.sh-=dt;cd.dash-=dt;cd.stun=(cd.stun??0)-dt;cd.area=(cd.area??0)-dt;
  e.mcd=Math.max(0,(e.mcd||0)-dt);
  if(e.maxQi!=null)e.qi=Math.min(e.maxQi,e.qi+.5*Math.min(100,e.stars||0)/100*dt);
  e.qsFlash=Math.max(0,(e.qsFlash||0)-dt*3);
@@ -68,7 +68,7 @@ function mobAI(e,dt,d){
  if(cd.atk<=0){
   const opts=[];
   if(tc.includes('qiSingle')&&d<R.single*.95&&e.qi>=cost('qiSingle'))opts.push('single');
-  if(tc.includes('qiArea')&&d<R.area*.95&&e.qi>=cost('qiArea'))opts.push('area');
+  if(tc.includes('qiArea')&&cd.area<=0&&d<R.area*.95&&e.qi>=cost('qiArea'))opts.push('area');
   if(tc.includes('stun')&&cd.stun<=0&&d<R.stun*.9&&!(s.stun>0)&&!(s.stunImm>0)&&e.qi>=cost('stun'))opts.push('stun');
   if(opts.length){
    const k=opts[Math.floor(Math.random()*opts.length)];
@@ -76,7 +76,7 @@ function mobAI(e,dt,d){
    e.wind={type:k,t:0,dur,ang:e.ang,range:R[k]};
    e.qi-=cost(k==='single'?'qiSingle':k==='area'?'qiArea':'stun');
    cd.atk=boss?1.2+Math.random()*.9:2.2+Math.random()*1.6;
-   if(k==='stun')cd.stun=15;
+   if(k==='stun')cd.stun=AREA_CD.stun+3;if(k==='area')cd.area=AREA_CD.qiArea+(boss?0:2);
    if(boss)toast(k==='single'?'Босс собирает Удар Ци — уходи с линии!':k==='area'?'Босс собирает Удар по площади — выходи из круга!':'Босс собирает Оцепенение — выходи из круга!');
    return true;
   }

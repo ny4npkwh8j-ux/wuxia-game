@@ -1,5 +1,5 @@
 'use strict';
-function initFx(st){Object.assign(st,{parts:[],floats:[],slashes:[],ghosts:[],corpses:[],shake:0,hurt:0,hitFlash:0,shieldFlash:0,aimT:0,castAnim:0,punchDur:.32,qiCast:0,facing:Math.PI/2,wp:0,mv:0,channel:null,punchSide:0,t:0,ghostAcc:0,stun:0,stunImm:0,punchCd:0,qiShieldOn:false,qiShieldFlash:0,shieldMax:20,dashCdMax:.8});if(st.boss)st.boss.wind=null}
+function initFx(st){Object.assign(st,{parts:[],floats:[],slashes:[],ghosts:[],corpses:[],shake:0,hurt:0,hitFlash:0,shieldFlash:0,aimT:0,castAnim:0,punchDur:.32,qiCast:0,facing:Math.PI/2,wp:0,mv:0,channel:null,punchSide:0,t:0,ghostAcc:0,stun:0,stunImm:0,punchCd:0,cdArea:0,cdStun:0,qiShieldOn:false,qiShieldFlash:0,shieldMax:20,dashCdMax:.8});if(st.boss)st.boss.wind=null}
 function tickList(arr,k,mk,dt){let j=0;for(let i=0;i<arr.length;i++){const o=arr[i];o[k]+=dt;if(o[k]>=o[mk])continue;arr[j++]=o}arr.length=j}
 function updateFx(dt){
  const s=arenaState;let j=0;

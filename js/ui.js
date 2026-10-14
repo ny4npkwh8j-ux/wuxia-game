@@ -21,7 +21,8 @@ function updateArenaUI(){
  rebuildTechButtons();
  for(const b of $('techCol').querySelectorAll('.tbtn')){
   const t=save.techniques[+b.dataset.i];if(!t)continue;const lab=b.querySelector('small'),cost=techCost(t);
-  if(t.type==='qiSingle'||t.type==='qiArea'){
+  if(t.type==='qiArea'&&s.cdArea>0){setTxt(lab,TECH_SHORT.qiArea+'\n'+s.cdArea.toFixed(1)+' с');setSkB(b,true,s.cdArea/AREA_CD.qiArea,'rgba(0,0,0,.62)')}
+  else if(t.type==='qiSingle'||t.type==='qiArea'){
    const chg=s.qiCharge&&s.qiCharge.type===t.type,heldSec=chg?Math.min(CHARGE_MAX,(performance.now()-s.qiCharge.start)/1000):0,f=chargeFactor(heldSec),liveCost=Math.max(1,Math.round(techCost(t)*f));
    setTxt(lab,TECH_SHORT[t.type]+'\n'+(chg?Math.round(f*100)+'% · '+liveCost+' Ци':Math.round(techCost(t)*CHARGE_MIN_F)+'-'+Math.round(techCost(t)*CHARGE_MAX_F)+' Ци'));
    setSkB(b,qi<Math.round(techCost(t)*CHARGE_MIN_F),chg?heldSec/CHARGE_MAX:0,'rgba(255,216,77,.6)');
@@ -29,6 +30,7 @@ function updateArenaUI(){
   else if(t.type==='heal'){const hl=s.heal&&s.heal.tech===t?s.heal:null;setTxt(lab,hl?'ЛЕЧИТ…':'ЛЕЧЕНИЕ\nдержи');setSkB(b,s.hp>=s.maxHp||qi<3,0,'rgba(141,255,184,.5)')}
   else if(t.type==='shield'){setTxt(lab,'ЩИТ\n'+cost+' Ци');setSkB(b,qi<cost&&s.shield<=0,s.shield>0?s.shield/Math.max(1,s.shieldMax):0,'rgba(99,233,255,.4)')}
   else if(t.type==='dodge'){setTxt(lab,'РЫВОК\n'+cost+' Ци');setSkB(b,qi<cost||s.dashCd>0,s.dashCd/(s.dashCdMax||.8),'rgba(0,0,0,.62)')}
+  else if(t.type==='stun'&&s.cdStun>0&&!(s.channel&&s.channel.tech===t)){setTxt(lab,'СТАН\n'+s.cdStun.toFixed(1)+' с');setSkB(b,true,s.cdStun/AREA_CD.stun,'rgba(0,0,0,.62)')}
   else if(t.type==='stun'){const ch=s.channel&&s.channel.tech===t?s.channel:null;setTxt(lab,ch?'ДЕРЖИ '+Math.max(0,ch.dur-ch.t).toFixed(1)+'с':'СТАН\n'+cost+' Ци · '+castTime(t.cast||5).toFixed(1)+'с');setSkB(b,!ch&&qi<cost,ch?ch.t/ch.dur:0,'rgba(197,140,255,.6)')}
   else if(t.type==='qiShield'){setTxt(lab,'ЛИЧНЫЙ\n'+(s.qiShieldOn?'ВКЛ':'ВЫКЛ'));b.classList.toggle('on',!!s.qiShieldOn);setSkB(b,!s.qiShieldOn&&qi<1,0,'')}
  }

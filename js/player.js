@@ -3,8 +3,9 @@
 function stunBlock(){const s=arenaState;if(s&&s.stun>0){toast('Оцепенён ещё '+s.stun.toFixed(1)+' с');return true}return false}
 function activateQiStrike(t,held){
  interruptArenaMeditation();const s=arenaState;if(!s||!t||(t.type!=='qiSingle'&&t.type!=='qiArea'))return;if(stunBlock())return;
+ if(t.type==='qiArea'&&s.cdArea>0)return toast('Удар по площади перезаряжается: '+s.cdArea.toFixed(1)+' с');
  const f=chargeFactor(held),cost=Math.max(1,Math.round(techCost(t)*f));if(save.qi<cost)return toast('Недостаточно Ци. Нужно '+cost);
- save.qi-=cost;s.qiCast=QD;s.attackAnim=.36;s.punchDur=.36;s.punchSide=Math.random()<.5?1:0;s.aimT=t.type==='qiSingle'?.6:0;
+ save.qi-=cost;if(t.type==='qiArea')s.cdArea=AREA_CD.qiArea;s.qiCast=QD;s.attackAnim=.36;s.punchDur=.36;s.punchSide=Math.random()<.5?1:0;s.aimT=t.type==='qiSingle'?.6:0;
  const total=techDamage(t)*f,targets=[],b=s.boss;
  if(t.type==='qiSingle'){
   const range=300,cone=Math.PI/7;
@@ -37,7 +38,7 @@ function startDash(t){
  const m=Math.hypot(s.dx,s.dy);let dx,dy;if(m>.08){dx=s.dx/m;dy=s.dy/m}else{dx=Math.cos(s.facing);dy=Math.sin(s.facing)}
  const n=t.nodes.length,dist=dashDist(n),cd=dashCdOf(n);s.dashDuration=.18;s.dashSpeed=dist/.18;s.lastMoveX=dx;s.lastMoveY=dy;s.facing=Math.atan2(dy,dx);save.qi-=cost;s.dashTime=s.dashDuration;s.invuln=.4;s.dashCd=cd;s.dashCdMax=cd;s.ghostAcc=1;shake(2);persist();
 }
-function beginQiCharge(type){const s=arenaState;if(!s)return;s.qiCharge={type,start:performance.now()}}
+function beginQiCharge(type){const s=arenaState;if(!s)return;if(type==='qiArea'&&s.cdArea>0)return toast('Удар по площади перезаряжается: '+s.cdArea.toFixed(1)+' с');s.qiCharge={type,start:performance.now()}}
 function endQiCharge(type,t){const s=arenaState;if(!s)return;let held=0;if(s.qiCharge&&s.qiCharge.type===type)held=(performance.now()-s.qiCharge.start)/1000;s.qiCharge=null;activateQiStrike(t,held)}
 function cancelQiCharge(type){const s=arenaState;if(s&&s.qiCharge&&s.qiCharge.type===type)s.qiCharge=null}
 function toggleQiShield(){
@@ -73,7 +74,7 @@ function applyStun(t){
  persist();toast('Оцепенение: оглушено '+stunned+' из '+list.length);
 }
 function beginChannel(t){
- const s=arenaState;if(!s||!t||s.channel)return;if(arenaMeditation.active)return;if(stunBlock())return;interruptArenaMeditation();
+ const s=arenaState;if(!s||!t||s.channel)return;if(arenaMeditation.active)return;if(stunBlock())return;if(s.cdStun>0)return toast('Оцепенение перезаряжается: '+s.cdStun.toFixed(1)+' с');interruptArenaMeditation();
  const cost=techCost(t);if(save.qi<cost)return toast('Недостаточно Ци. Нужно '+cost);
  s.channel={t:0,dur:castTime(t.cast||5),tech:t};
 }

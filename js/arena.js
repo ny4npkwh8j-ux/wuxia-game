@@ -85,7 +85,7 @@ function killReward(e){
 function arenaLoop(t){
  const s=arenaState;if(!s)return;
  const dt=Math.min(.035,(t-s.last)/1000);s.last=t;s.t+=dt;
- s.invuln=Math.max(0,s.invuln-dt);s.dashCd=Math.max(0,s.dashCd-dt);s.contactCd=Math.max(0,s.contactCd-dt);s.punchCd=Math.max(0,(s.punchCd||0)-dt);s.spawnTimer-=dt;s.checkpointTimer-=dt;
+ s.invuln=Math.max(0,s.invuln-dt);s.dashCd=Math.max(0,s.dashCd-dt);s.contactCd=Math.max(0,s.contactCd-dt);s.punchCd=Math.max(0,(s.punchCd||0)-dt);s.cdArea=Math.max(0,(s.cdArea||0)-dt);s.cdStun=Math.max(0,(s.cdStun||0)-dt);s.spawnTimer-=dt;s.checkpointTimer-=dt;
  s.hitFlash=Math.max(0,s.hitFlash-dt*3.5);s.hurt=Math.max(0,s.hurt-dt*2.2);s.shake=Math.max(0,s.shake-dt*30);s.aimT=Math.max(0,s.aimT-dt);s.castAnim=Math.max(0,s.castAnim-dt);s.qiCast=Math.max(0,(s.qiCast||0)-dt);s.shieldFlash=Math.max(0,s.shieldFlash-dt*3);s.qiShieldFlash=Math.max(0,(s.qiShieldFlash||0)-dt*3);
  if(s.spawnTimer<=0){spawnEnemy();s.spawnTimer=4+Math.random()*3}
  if(s.checkpointTimer<=0){saveArenaCheckpoint();s.checkpointTimer=2}
@@ -119,7 +119,7 @@ function arenaLoop(t){
   e.hit=Math.max(0,e.hit-dt);
  }
  bossLoop(dt);collect();updateHeal(dt);
- if(s.channel){const ch=s.channel;ch.t+=dt;if(ch.t>=ch.dur){s.channel=null;const st=ch.tech,cost=techCost(st);if(save.qi>=cost){save.qi-=cost;applyStun(st)}else toast('Недостаточно Ци. Нужно '+cost)}}
+ if(s.channel){const ch=s.channel;ch.t+=dt;if(ch.t>=ch.dur){s.channel=null;const st=ch.tech,cost=techCost(st);if(save.qi>=cost){save.qi-=cost;s.cdStun=AREA_CD.stun;applyStun(st)}else toast('Недостаточно Ци. Нужно '+cost)}}
  save.qi=Math.max(0,Math.min(save.maxQi,save.qi));
  updateFx(dt);emitFx(dt,m<=.08);
  if(s.hp<=0){save.qi=0;const lost=Math.floor(save.rewards*.3);save.rewards-=lost;save.arenaCheckpoint=null;persist();stopArena();show('home');toast('Ты пал на арене. Вся Ци утрачена, потеряно '+fmt(lost)+' осколков души. Поле открыто заново.');return}

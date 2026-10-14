@@ -14,9 +14,12 @@ function stage(){return save.stageLevel>=2?'II':'I'}
 function currentStarCost(){return 10+5*save.stars}
 /* ===== power formula (same for player, mobs and bosses) ===== */
 const DANTIAN_Y=-.075,QI_SHIELD_RATIO=.5;
-/* TECH_BASE: удар и щит как ДОЛЯ максимального здоровья тела с тем же числом звёзд (техника на полную длину, без колонн).
-   Равные противники: одиночный удар = 30% здоровья (дуэль на 3-4 попадания), щит = 72% (гасит ~2,4 удара). Колонны и длина техники множат результат. */
-const TECH_BASE={qiSingle:.30,qiArea:.24,shield:.72,stun:10};
+/* TECH_BASE: фиксированная сила техники атакующего (не зависит от здоровья цели), в единицах «здоровье тела с таким же числом звёзд»
+   (техника на полную длину, без колонн). Удар равной силы без щита убивает (110%), любой щит равной силы (350% = ~3 удара) возвращает дуэль:
+   щит + здоровье = ~4 удара. Колонны и длина техники множат результат. */
+const TECH_BASE={qiSingle:1.1,qiArea:.88,shield:3.5,stun:10};
+/* перезарядки способностей по площади, секунды (общие для игрока, мобов и боссов) */
+const AREA_CD={qiArea:6,stun:12};
 const MIN_STARS={dodge:3,shield:5,qiSingle:5,qiArea:15,stun:20,qiShield:20,heal:3};
 const MOB_MIN={dodge:3,shield:5,qiSingle:5,qiArea:15,qiShield:10};
 function dashDist(n){n=Math.max(3,Math.min(PATH_CAP,n));return n<=20?110+(243-110)*(n-3)/17:243+(340-243)*(n-20)/20}

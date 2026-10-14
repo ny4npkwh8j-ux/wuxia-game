@@ -37,13 +37,13 @@ function getTechniqueType(nodes){
 function techniqueName(type){return type==='heal'?'Лечение':type==='qiShield'?'Личный щит':type==='stun'?'Оцепенение':type==='dodge'?'Рывок':type==='shield'?'Щит':type==='qiSingle'?'Удар Ци · Одиночный':type==='qiArea'?'Удар Ци · По площади':'Неразгаданная техника'}
 function techniqueDescription(type,n){
  const t={type,nodes:{length:n}};
- if(type==='stun')return 'Зажми '+castTime(5).toFixed(1)+' с · радиус 500 · урон 10 · оглушение до '+stunMaxDur(n).toFixed(1)+' с (сила '+fmt(myMult(t))+' против силы цели) · Ци '+techCost(t)+' · минимум 20 ★.';
+ if(type==='stun')return 'Зажми '+castTime(5).toFixed(1)+' с · радиус 500 · урон 10 · перезарядка '+AREA_CD.stun+' с · оглушение до '+stunMaxDur(n).toFixed(1)+' с (сила '+fmt(myMult(t))+' против силы цели) · Ци '+techCost(t)+' · минимум 20 ★.';
  if(type==='qiShield')return 'Личный щит (жёлтое свечение): после щита урон уходит в запас Ци, 1 урона за 0,5 Ци · минимум 20 ★.';
  if(type==='dodge')return 'Рывок на '+Math.round(dashDist(n))+' · перезарядка '+dashCdOf(n).toFixed(1)+' с · Ци '+techCost(t)+' (5% от макс.) · звёзды на обеих ногах, минимум 3 ★.';
  if(type==='shield')return 'Щит: прочность '+fmt(techShieldMax(t))+' · Ци '+techCost(t)+' · минимум 5 ★.';
  if(type==='heal')return 'Держи, пока не отпустишь: 3 Ци = 1 HP (остаток не сгорает), скорость вложения '+healRate(t).toFixed(1)+' Ци/с. Нужен треугольник из звёзд торса вокруг Дань-тяня, минимум 3 ★.';
  if(type==='qiSingle')return 'Держи для набора силы (0,4-1,5x, до 1,2 с) · конус 300 · общий урон '+fmt(techDamage(t))+' на полной силе, делится между целями · минимум 5 ★ · Ци '+techCost(t)+' на полной силе.';
- if(type==='qiArea')return 'Держи для набора силы (0,4-1,5x, до 1,2 с) · радиус 600 · общий урон '+fmt(techDamage(t))+' на полной силе, делится между целями · минимум 15 ★ · Ци '+techCost(t)+' на полной силе.';
+ if(type==='qiArea')return 'Держи для набора силы (0,4-1,5x, до 1,2 с) · радиус 600 · общий урон '+fmt(techDamage(t))+' на полной силе, делится между целями · перезарядка '+AREA_CD.qiArea+' с · минимум 15 ★ · Ци '+techCost(t)+' на полной силе.';
  return 'Нужна подходящая геометрия звёзд.';
 }
 function validateTechnique(nodes,dantian){
