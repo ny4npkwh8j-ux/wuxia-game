@@ -10,12 +10,11 @@ function startArena(){
 function arenaTier(s){const b=s&&s.boss;return b&&b.index?b.index:1}
 function migrateArenaEntities(state){
  for(const e of state.enemies){
-  if(e.v!==3){const st=e.stars||0,old=e.hp<=0?0:(e.maxHp?Math.min(1,e.hp/e.maxHp):1),techs=e.techs||(e.technique?[e.technique]:[]);
+  if(e.v!==ENT_V){const st=e.stars||0,old=e.hp<=0?0:(e.maxHp?Math.min(1,e.hp/e.maxHp):1),techs=e.techs||(e.technique?[e.technique]:[]);
    applyKit(e,{stars:st,techs});e.hp=old<=0?0:Math.max(1,Math.round(e.maxHp*old))}
   if(e.id==null)e.id=nid();if(!e.cd)e.cd={atk:2,sh:0,dash:2};
  }
- if(state.boss&&state.boss.v!==2){const ob=state.boss,r=ob.maxHp?Math.min(1,Math.max(0,ob.hp)/ob.maxHp):1,nb=newBoss(ob.index||ob.tier||1);nb.x=ob.x;nb.y=ob.y;nb.hp=ob.hp<=0?0:Math.max(1,Math.round(nb.maxHp*r));state.boss=nb}
- if(state.boss&&state.boss.maxHp!==500&&state.boss.v===2){const r=state.boss.hp<=0?0:Math.min(1,state.boss.hp/(state.boss.maxHp||500));state.boss.maxHp=500;state.boss.hp=r<=0?0:Math.max(1,Math.round(500*r))}
+ if(state.boss&&state.boss.v!==BOSS_V){const ob=state.boss,r=ob.maxHp?Math.min(1,Math.max(0,ob.hp)/ob.maxHp):1,nb=newBoss(ob.index||ob.tier||1);nb.x=ob.x;nb.y=ob.y;nb.hp=ob.hp<=0?0:Math.max(1,Math.round(nb.maxHp*r));state.boss=nb}
  if(state.boss&&state.boss.id==null)state.boss.id=nid();
  if(state.maxHp!==save.health){const r=state.maxHp?Math.min(1,state.hp/state.maxHp):1;state.maxHp=save.health;state.hp=Math.max(1,Math.round(save.health*r))}
 }
@@ -74,28 +73,34 @@ function circleRect(x,y,r,o){const cx=Math.max(o.x-o.w/2,Math.min(x,o.x+o.w/2)),
 function worldToScreen(x,y){return{x:x-arenaState.camx+aw/devicePixelRatio/2,y:y-arenaState.camy+ah/devicePixelRatio/2}}
 /* ---- arena state / fx bookkeeping ---- */
 /* ---- rewards / drops ---- */
+/* награда привязана к культивации противника: этап I — осколки души = число звёзд; этап II (есть колонны) — осколки 2 этапа = число колонн */
 function killReward(e){
  const s=arenaState;if(!s)return;
- if(e.isBoss){const rw=5000*(e.tier||1),rw2=(e.columns||0)*10;save.rewards+=rw;if(rw2>0)save.rewards2+=rw2;toast('Босс повержен: +'+fmt(rw)+' осколков души'+(rw2?' · +'+rw2+' осколков 2 этапа':''));floatText(e.x,e.y-84,'+'+fmt(rw),'#ffd85b',20);shake(12);onBossDefeated()}
- else{save.rewards+=50;floatText(e.x,e.y-28,'+50','#ffd85b',12);mobDrop(e)}
+ const cols=e.columns||0,stage2=cols>0,rw=stage2?cols:Math.floor(e.stars||0);
+ if(stage2)save.rewards2+=rw;else save.rewards+=rw;
+ if(e.isBoss){toast('Босс повержен: +'+fmt(rw)+(stage2?' осколков 2 этапа':' осколков души'));floatText(e.x,e.y-84,'+'+fmt(rw),stage2?'#c9a8ff':'#ffd85b',20);shake(12);onBossDefeated()}
+ else{if(rw>0)floatText(e.x,e.y-28,'+'+fmt(rw),stage2?'#c9a8ff':'#ffd85b',12);mobDrop(e)}
 }
 /* ---- main loop ---- */
 function arenaLoop(t){
  const s=arenaState;if(!s)return;
  const dt=Math.min(.035,(t-s.last)/1000);s.last=t;s.t+=dt;
- s.invuln=Math.max(0,s.invuln-dt);s.dashCd=Math.max(0,s.dashCd-dt);s.contactCd=Math.max(0,s.contactCd-dt);s.spawnTimer-=dt;s.checkpointTimer-=dt;
+ s.invuln=Math.max(0,s.invuln-dt);s.dashCd=Math.max(0,s.dashCd-dt);s.contactCd=Math.max(0,s.contactCd-dt);s.punchCd=Math.max(0,(s.punchCd||0)-dt);s.spawnTimer-=dt;s.checkpointTimer-=dt;
  s.hitFlash=Math.max(0,s.hitFlash-dt*3.5);s.hurt=Math.max(0,s.hurt-dt*2.2);s.shake=Math.max(0,s.shake-dt*30);s.aimT=Math.max(0,s.aimT-dt);s.castAnim=Math.max(0,s.castAnim-dt);s.qiCast=Math.max(0,(s.qiCast||0)-dt);s.shieldFlash=Math.max(0,s.shieldFlash-dt*3);s.qiShieldFlash=Math.max(0,(s.qiShieldFlash||0)-dt*3);
  if(s.spawnTimer<=0){spawnEnemy();s.spawnTimer=4+Math.random()*3}
  if(s.checkpointTimer<=0){saveArenaCheckpoint();s.checkpointTimer=2}
  if(!arenaMeditation.active&&save.stars>0&&save.qi<save.maxQi)save.qi=Math.min(save.maxQi,save.qi+starRegen()*dt);
  applyQiZones(dt);
- const m=Math.hypot(s.dx,s.dy);let moved=0;
- if(m>.08){s.lastMoveX=s.dx/m;s.lastMoveY=s.dy/m;const ox=s.px,oy=s.py;movePlayer(s.dx*260*dt,s.dy*260*dt);moved=Math.hypot(s.px-ox,s.py-oy);s.facing=lerpAng(s.facing,Math.atan2(s.dy,s.dx),dt*16)}
+ if(s.stun>0){s.stun-=dt;if(s.stun<=0){s.stun=0;s.stunImm=3}}else if(s.stunImm>0)s.stunImm=Math.max(0,s.stunImm-dt);
+ const m=s.stun>0?0:Math.hypot(s.dx,s.dy);let moved=0;
+ if(m>.08){s.lastMoveX=s.dx/m;s.lastMoveY=s.dy/m;const ox=s.px,oy=s.py;movePlayer(s.dx*260*dt,s.dy*260*dt);moved=Math.hypot(s.px-ox,s.py-oy);if(!s.kbAim)s.facing=lerpAng(s.facing,Math.atan2(s.dy,s.dx),dt*16)}
+ if(s.kbAim)updateMouseAim();
  if(s.dashTime>0){const ox=s.px,oy=s.py,step=s.dashSpeed*dt;movePlayer(s.lastMoveX*step,s.lastMoveY*step);moved+=Math.hypot(s.px-ox,s.py-oy);s.dashTime=Math.max(0,s.dashTime-dt);s.ghostAcc+=dt;if(s.ghostAcc>.028){s.ghostAcc=0;s.ghosts.push({x:s.px,y:s.py,ang:s.facing,wp:s.wp,t:0,max:.32})}}
  s.mv+=((moved>.05?1:0)-s.mv)*Math.min(1,dt*10);s.wp+=moved*.11;
  s.camx+=(s.px-s.camx)*.18;s.camy+=(s.py-s.camy)*.18;s.attackAnim=Math.max(0,s.attackAnim-dt);
  for(const e of s.enemies){
   if(e.hp<=0)continue;
+  entTick(e,dt);
   if(e.stun>0){e.stun-=dt;e.mv=0;e.hit=Math.max(0,e.hit-dt);continue}
   const dx=s.px-e.x,dy=s.py-e.y,d=Math.hypot(dx,dy)||1,seePlayer=d<=VISION_RADIUS;
   if(seePlayer){e.seenT=TARGET_MEMORY_TIME;e.lastX=s.px;e.lastY=s.py}else e.seenT=Math.max(0,(e.seenT||0)-dt);
@@ -110,7 +115,7 @@ function arenaLoop(t){
   }
   for(const o of s.enemies){if(o===e||o.hp<=0)continue;const sx=e.x-o.x,sy=e.y-o.y,sd=Math.hypot(sx,sy)||1,mn=e.r+o.r+3;if(sd<mn){e.x+=sx/sd*(mn-sd)*.5;e.y+=sy/sd*(mn-sd)*.5}}
   const md=Math.hypot(e.x-ox,e.y-oy);e.mv=(e.mv||0)+((md>.05?1:0)-(e.mv||0))*Math.min(1,dt*8);e.wp=(e.wp||0)+md*.13;e.atk=Math.max(0,(e.atk||0)-dt);
-  if(seePlayer&&d<45&&s.contactCd<=0){takeDamage(Math.max(5,save.str*.45));s.contactCd=.65;e.atk=.32}
+  if(seePlayer&&d<45&&e.mcd<=0){takeDamage(e.str??bodyStr(e.stars||0));e.mcd=.65;e.atk=.32}
   e.hit=Math.max(0,e.hit-dt);
  }
  bossLoop(dt);collect();updateHeal(dt);
@@ -131,7 +136,7 @@ function qiZoneDelta(x,y){
 function applyQiZones(dt){
  const s=arenaState;
  const pd=qiZoneDelta(s.px,s.py);if(pd)save.qi=Math.max(0,Math.min(save.maxQi,save.qi+pd*dt));
- for(const e of s.enemies){if(e.hp<=0||e.maxQi==null)continue;const ed=qiZoneDelta(e.x,e.y);if(ed)e.qi=Math.max(0,Math.min(e.maxQi,e.qi+ed*dt))}
+ for(const e of (s.boss&&s.boss.hp>0?s.enemies.concat([s.boss]):s.enemies)){if(e.hp<=0||e.maxQi==null)continue;const ed=qiZoneDelta(e.x,e.y);if(ed)e.qi=Math.max(0,Math.min(e.maxQi,e.qi+ed*dt))}
 }
 function drawArena(time){
  const s=arenaState,W=aw/devicePixelRatio,H=ah/devicePixelRatio;
@@ -140,7 +145,7 @@ function drawArena(time){
  drawGround(W,H,time);drawTufts(W,H,time);
  for(const z of s.hazards)drawHazard(z,W,H,time);
  for(const z of (s.springs||[]))drawSpring(z,W,H,time);
- drawTelegraphs(time);drawMobTelegraphs(time);
+ drawMobTelegraphs(time);
  for(const q of s.points)drawPoint(q,W,H,time);
  for(const q of s.orbs)drawOrb(q,W,H,time);
  for(const q of s.chests)drawChest(q,W,H,time);

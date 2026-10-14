@@ -1,6 +1,8 @@
 'use strict';
+/* под оцепенением от босса действовать нельзя */
+function stunBlock(){const s=arenaState;if(s&&s.stun>0){toast('Оцепенён ещё '+s.stun.toFixed(1)+' с');return true}return false}
 function activateQiStrike(t,held){
- interruptArenaMeditation();const s=arenaState;if(!s||!t||(t.type!=='qiSingle'&&t.type!=='qiArea'))return;
+ interruptArenaMeditation();const s=arenaState;if(!s||!t||(t.type!=='qiSingle'&&t.type!=='qiArea'))return;if(stunBlock())return;
  const f=chargeFactor(held),cost=Math.max(1,Math.round(techCost(t)*f));if(save.qi<cost)return toast('Недостаточно Ци. Нужно '+cost);
  save.qi-=cost;s.qiCast=QD;s.attackAnim=.36;s.punchDur=.36;s.punchSide=Math.random()<.5?1:0;s.aimT=t.type==='qiSingle'?.6:0;
  const total=techDamage(t)*f,targets=[],b=s.boss;
@@ -24,13 +26,13 @@ function activateQiStrike(t,held){
  toast((t.type==='qiSingle'?'Одиночный Удар Ци: ':'Удар Ци по площади: ')+Math.round(f*100)+'% силы · '+fmt(total)+' урона · '+targets.length+' целей · по '+fmt(each));
 }
 function activateShield(t){
- interruptArenaMeditation();const s=arenaState;if(!s||!t)return;
+ interruptArenaMeditation();const s=arenaState;if(!s||!t)return;if(stunBlock())return;
  if(s.shield>0)return toast('Щит уже активен.');const cost=techCost(t);if(save.qi<cost)return toast('Недостаточно Ци. Нужно '+cost);
  save.qi-=cost;s.shieldMax=techShieldMax(t);s.shield=s.shieldMax;s.shieldFlash=1;s.qiEffects.push({type:'ring',x:s.px,y:s.py,life:0,duration:.5,radius:70,col:'#63e9ff'});burst(s.px,s.py,14,'#63e9ff',190,.5,2.6);
  toast('Защитный покров: '+fmt(s.shieldMax)+' прочности');
 }
 function startDash(t){
- const s=arenaState;if(!s||!t||s.dashCd>0||s.dashTime>0)return;interruptArenaMeditation();const cost=techCost(t);
+ const s=arenaState;if(!s||!t||s.dashCd>0||s.dashTime>0)return;if(stunBlock())return;interruptArenaMeditation();const cost=techCost(t);
  if(save.qi<cost)return toast('Недостаточно Ци. Нужно '+cost);
  const m=Math.hypot(s.dx,s.dy);let dx,dy;if(m>.08){dx=s.dx/m;dy=s.dy/m}else{dx=Math.cos(s.facing);dy=Math.sin(s.facing)}
  const n=t.nodes.length,dist=dashDist(n),cd=dashCdOf(n);s.dashDuration=.18;s.dashSpeed=dist/.18;s.lastMoveX=dx;s.lastMoveY=dy;s.facing=Math.atan2(dy,dx);save.qi-=cost;s.dashTime=s.dashDuration;s.invuln=.4;s.dashCd=cd;s.dashCdMax=cd;s.ghostAcc=1;shake(2);persist();
@@ -39,12 +41,12 @@ function beginQiCharge(type){const s=arenaState;if(!s)return;s.qiCharge={type,st
 function endQiCharge(type,t){const s=arenaState;if(!s)return;let held=0;if(s.qiCharge&&s.qiCharge.type===type)held=(performance.now()-s.qiCharge.start)/1000;s.qiCharge=null;activateQiStrike(t,held)}
 function cancelQiCharge(type){const s=arenaState;if(s&&s.qiCharge&&s.qiCharge.type===type)s.qiCharge=null}
 function toggleQiShield(){
- const s=arenaState;if(!s)return;interruptArenaMeditation();
+ const s=arenaState;if(!s)return;if(stunBlock())return;interruptArenaMeditation();
  if(s.qiShieldOn){s.qiShieldOn=false;return toast('Личный щит выключен.')}
  if(save.qi<1)return toast('Нет Ци для личного щита.');
  s.qiShieldOn=true;s.qiShieldFlash=1;toast('Личный щит включён: 1 урона за 0,5 Ци.');
 }
-function beginHeal(t){const s=arenaState;if(!s||s.heal||s.channel)return;interruptArenaMeditation();s.heal={tech:t,frac:0}}
+function beginHeal(t){const s=arenaState;if(!s||s.heal||s.channel)return;if(stunBlock())return;interruptArenaMeditation();s.heal={tech:t,frac:0}}
 function endHeal(){const s=arenaState;if(!s)return;s.heal=null}
 function updateHeal(dt){
  const s=arenaState;if(!s||!s.heal)return;
@@ -65,19 +67,19 @@ function applyStun(t){
  const S=myMult(t);let stunned=0;
  for(const e of list){
   const dead=damageEnemy(e,10);if(dead){killReward(e);continue}
-  const R=e.isBoss?bossMult(e):mobMult(e.stars||0),dur=S>0?stunMaxDur(t.nodes.length)*S/(S+R):0;
+  const R=entMult(e),dur=S>0?stunMaxDur(t.nodes.length)*S/(S+R):0;
   if(dur>.05){e.stun=Math.max(e.stun||0,dur);stunned++;burst(e.x,e.y,8,'#c9a8ff',120,.6,2.6)}
  }
  persist();toast('Оцепенение: оглушено '+stunned+' из '+list.length);
 }
 function beginChannel(t){
- const s=arenaState;if(!s||!t||s.channel)return;if(arenaMeditation.active)return;interruptArenaMeditation();
+ const s=arenaState;if(!s||!t||s.channel)return;if(arenaMeditation.active)return;if(stunBlock())return;interruptArenaMeditation();
  const cost=techCost(t);if(save.qi<cost)return toast('Недостаточно Ци. Нужно '+cost);
  s.channel={t:0,dur:castTime(t.cast||5),tech:t};
 }
 function endChannel(){const s=arenaState;if(!s||!s.channel)return;s.channel=null;toast('Оцепенение прервано');burst(s.px,s.py,8,'#c58cff',130,.4,2.4)}
 function takeDamage(amount){
- const s=arenaState;if(s.invuln>0)return;interruptArenaMeditation();
+ const s=arenaState;if(s.invuln>0)return;interruptArenaMeditation();amount/=myToughness();
  if(s.shield>0){const ab=Math.min(s.shield,amount);s.shield-=ab;amount-=ab;if(ab>0){floatText(s.px,s.py-32,'-'+fmt(ab),'#63e9ff',13);s.shieldFlash=1;burst(s.px,s.py,10,'#63e9ff',170,.4,2.4)}}
  if(amount>0&&s.qiShieldOn&&save.qi>0){
   const ab=Math.min(amount,save.qi/QI_SHIELD_RATIO);save.qi=Math.max(0,save.qi-ab*QI_SHIELD_RATIO);amount-=ab;
@@ -90,11 +92,11 @@ function takeDamage(amount){
 function movePlayer(dx,dy){let nx=Math.max(70,Math.min(9930,arenaState.px+dx)),ny=Math.max(70,Math.min(9930,arenaState.py+dy));if(!blocked(nx,arenaState.py,22,'player'))arenaState.px=nx;if(!blocked(arenaState.px,ny,22,'player'))arenaState.py=ny}
 /* ---- damage ---- */
 function arenaAttack(){
- const s=arenaState;if(!s)return;interruptArenaMeditation();
+ const s=arenaState;if(!s)return;if(stunBlock()||s.punchCd>0)return;interruptArenaMeditation();s.punchCd=.32;
  s.attackAnim=.32;s.punchDur=.32;s.aimT=.55;s.punchSide=Math.random()<.5?1:0;s.slashes.push({x:s.px,y:s.py,ang:s.shootAng,t:0,max:.24,side:s.punchSide});
  let hits=0;
- for(const e of s.enemies){if(e.hp<=0)continue;const dx=e.x-s.px,dy=e.y-s.py,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);if(d<=48&&Math.abs(angDiff(a,s.shootAng))<=1.35){hits++;if(damageEnemy(e,save.str))killReward(e)}}
- const b=s.boss;if(b&&b.hp>0){const dx=b.x-s.px,dy=b.y-s.py,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);if(d<=48&&Math.abs(angDiff(a,s.shootAng))<=1.35){hits++;if(damageEnemy(b,save.str))killReward(b)}}
+ for(const e of s.enemies){if(e.hp<=0)continue;const dx=e.x-s.px,dy=e.y-s.py,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);if(d<=48&&Math.abs(angDiff(a,s.shootAng))<=1.35){hits++;if(damageEnemy(e,playerStr()))killReward(e)}}
+ const b=s.boss;if(b&&b.hp>0){const dx=b.x-s.px,dy=b.y-s.py,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);if(d<=48&&Math.abs(angDiff(a,s.shootAng))<=1.35){hits++;if(damageEnemy(b,playerStr()))killReward(b)}}
  if(hits){shake(3);persist()}
 }
 /* player atlas: 8 columns (label order) x 3 rows (idle, left punch, right punch) */
@@ -123,6 +125,7 @@ function drawPlayer(time){
   ax.globalAlpha=1;ax.restore();
   if(cq>=0){const bx=p.x+Math.cos(ang)*FIST,by=p.y-PL.DY+Math.sin(ang)*FIST*.8,rb=22*ease(Math.min(1,cq/.12))*(1-ease((cq-.14)/.2));if(rb>1){ax.globalCompositeOperation='lighter';glow(ax,bx,by,rb*1.8,'#ffd85b',.85);starSprite(ax,bx,by,rb,time*4,.95);glow(ax,bx,by,rb*.6,'#ffffff',.9);ax.globalCompositeOperation='source-over'}}
  }else drawFighter(ax,{x:p.x,y:p.y,ang,pal:PAL.player,wp:s.wp,mv:s.mv,t:time,punch:s.attackAnim>0?1-s.attackAnim/.32:-1,side:s.punchSide,flash:s.hitFlash});
+ if(s.stun>0){ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y,32,'#8fb8ff',.45);ax.globalCompositeOperation='source-over';ax.fillStyle='#fff3a0';for(let i=0;i<3;i++){const a=time*3.4+i*TAU/3;star4(ax,p.x+Math.cos(a)*14,p.y-34+Math.sin(a)*4,4.4);ax.fill()}}
  if(s.shield>0)shieldBubble(ax,p.x,p.y+2,42+2*Math.sin(time*5),Math.min(1,s.shield/Math.max(1,s.shieldMax||20)),s.shieldFlash||0,time);
  if(ch){const k=ch.t/ch.dur,R=94-58*k;ax.save();ax.translate(p.x,p.y);ax.globalCompositeOperation='lighter';
   glow(ax,Math.cos(ang)*26,Math.sin(ang)*16-4,8+22*k,'#c58cff',.9);glow(ax,Math.cos(ang)*26,Math.sin(ang)*16-4,4+9*k,'#ffffff',.9);

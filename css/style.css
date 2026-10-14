@@ -58,3 +58,7 @@
 .pill.mini{padding:5px 8px;font-size:10.5px;opacity:.75}
 .gearbtn{width:34px;height:34px;border-radius:10px;background:#11182d;border:1px solid #3c4869;color:#cfd8ee;font-size:15px;padding:0}
 .verfoot{text-align:center;padding:6px 0 14px;font-size:9.5px;color:#5b6784;opacity:.7}
+
+/* hotkey badge on technique buttons (hidden on touch-only devices) */
+.hk{position:absolute;left:6px;top:3px;font-size:9px;font-style:normal;font-weight:900;color:#ffe9a0;opacity:.9;z-index:2;pointer-events:none;text-shadow:0 1px 2px #000}
+@media(hover:none){.hk{display:none}}

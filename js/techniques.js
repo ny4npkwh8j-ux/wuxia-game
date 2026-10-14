@@ -94,7 +94,7 @@ function rebuildTechButtons(force){
  const mk=(cls,html)=>{const b=document.createElement('button');b.className=cls;b.innerHTML=html;return b};
  if(techPage>0){const dn=mk('skill pager','▼');dn.onclick=()=>{techPage--;rebuildTechButtons()};dn.addEventListener('pointerdown',e=>e.stopPropagation());col.appendChild(dn)}
  for(let k=techPage;k<Math.min(list.length,techPage+vis);k++){
-  const t=list[k],b=mk('skill tbtn'+(t.type==='qiSingle'?' attack':'')+(t.type==='stun'?' stun':'')+(t.type==='qiShield'?' qis':''),TECH_ICON[t.type]+'<small></small>'+(t.type==='qiSingle'?'<span class="aimdot"></span>':'')+'<i class="cdov"></i>');
+  const t=list[k],b=mk('skill tbtn'+(t.type==='qiSingle'?' attack':'')+(t.type==='stun'?' stun':'')+(t.type==='qiShield'?' qis':''),TECH_ICON[t.type]+'<small></small>'+(t.type==='qiSingle'?'<span class="aimdot"></span>':'')+'<i class="cdov"></i><em class="hk">'+(k<9?k+1:k===9?'0':'')+'</em>');
   b.dataset.i=k;bindTechButton(b,k,t.type);col.appendChild(b);
  }
  if(techPage+vis<list.length){const up=mk('skill pager','▲ +'+(list.length-techPage-vis));up.onclick=()=>{techPage++;rebuildTechButtons()};up.addEventListener('pointerdown',e=>e.stopPropagation());col.appendChild(up)}

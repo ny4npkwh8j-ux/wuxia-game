@@ -1,5 +1,5 @@
 'use strict';
-function initFx(st){Object.assign(st,{parts:[],floats:[],slashes:[],ghosts:[],corpses:[],shake:0,hurt:0,hitFlash:0,shieldFlash:0,aimT:0,castAnim:0,punchDur:.32,qiCast:0,facing:Math.PI/2,wp:0,mv:0,channel:null,punchSide:0,t:0,ghostAcc:0,qiShieldOn:false,qiShieldFlash:0,shieldMax:20,dashCdMax:.8});if(st.boss)st.boss.windup=null}
+function initFx(st){Object.assign(st,{parts:[],floats:[],slashes:[],ghosts:[],corpses:[],shake:0,hurt:0,hitFlash:0,shieldFlash:0,aimT:0,castAnim:0,punchDur:.32,qiCast:0,facing:Math.PI/2,wp:0,mv:0,channel:null,punchSide:0,t:0,ghostAcc:0,stun:0,stunImm:0,punchCd:0,qiShieldOn:false,qiShieldFlash:0,shieldMax:20,dashCdMax:.8});if(st.boss)st.boss.wind=null}
 function tickList(arr,k,mk,dt){let j=0;for(let i=0;i<arr.length;i++){const o=arr[i];o[k]+=dt;if(o[k]>=o[mk])continue;arr[j++]=o}arr.length=j}
 function updateFx(dt){
  const s=arenaState;let j=0;
@@ -249,15 +249,6 @@ function tinted(k,color){const o=SPR[k];if(!o||!o.ok)return null;if(o.tint[color
 function starSprite(c,x,y,r,rot,alpha){const o=SPR.star;if(!o||!o.ok)return false;c.save();c.globalCompositeOperation='lighter';c.globalAlpha=alpha===undefined?1:alpha;c.translate(x,y);c.rotate(rot||0);c.drawImage(o.img,-r,-r,r*2,r*2);c.restore();return true}
 function sectOf(a){return((Math.round(a/(Math.PI/4))%8)+8)%8}
 const QD=.46,BEAM_HF=.864,FIST=36;
-function drawTelegraphs(time){
- const b=arenaState.boss;if(!b||b.hp<=0||!b.windup)return;
- const w=b.windup,p=worldToScreen(b.x,b.y),k=Math.min(1,w.t/w.dur);
- ax.save();ax.translate(p.x,p.y);ax.rotate(w.ang);
- sector(ax,w.range,w.cone);ax.fillStyle='rgba(255,50,50,'+(.1+.06*Math.sin(time*24))+')';ax.fill();
- sector(ax,w.range*k,w.cone);ax.fillStyle='rgba(255,70,50,'+(.22+.3*k)+')';ax.fill();
- sector(ax,w.range,w.cone);ax.strokeStyle='rgba(255,110,90,.95)';ax.lineWidth=2;ax.setLineDash([10,7]);ax.lineDashOffset=-time*40;ax.stroke();
- ax.restore();
-}
 function drawQiFx(fx,time){
  const p=worldToScreen(fx.x,fx.y),q=Math.min(1,fx.life/fx.duration),a=1-q*q;
  ax.save();ax.translate(p.x,p.y);ax.globalCompositeOperation='lighter';

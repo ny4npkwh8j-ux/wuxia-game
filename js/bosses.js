@@ -1,9 +1,12 @@
 'use strict';
+/* версия записи босса и его полный набор техник (все типы, что бывают у игрока) */
+const BOSS_V=3;
+const BOSS_KIT=['shield','dodge','qiSingle','qiArea','qiShield','stun','heal'];
 function newBoss(index=1){
  index=Math.max(1,Math.min(MAX_BOSS_INDEX,index));
- const cols=index-1,tier=index>=2?2:1,b={id:nid(),x:5000,y:3400,hp:500,maxHp:500,r:tier===1?34:38,s:tier===1?72:78,ang:0,hit:0,isBoss:true,tier,index,columns:cols,stars:100,v:2,shield:0,invuln:0,skillCd:2.5,shootAng:0,seenT:0,wanderT:0};
- const m=bossMult(b);
- b.techniques={qiStrike:{type:'qiSingle',damage:Math.round(TECH_BASE.qiSingle*m),qiCost:0,radius:600,cone:Math.PI/7},dodge:{distance:700,qiCost:0},shield:{max:Math.round(TECH_BASE.shield*m),qiCost:0}};
+ const cols=index-1,tier=index>=2?2:1,b={id:nid(),x:5000,y:3400,r:tier===1?34:38,s:tier===1?72:78,ang:0,hit:0,isBoss:true,tier,index,columns:cols,invuln:0,seenT:0,wanderT:0,mv:0,wp:0};
+ /* 100 звёзд + колонны: здоровье, сила, Ци и сила техник — по тем же формулам, что у игрока */
+ applyKit(b,{stars:100,techs:BOSS_KIT.slice()});b.v=BOSS_V;
  return b;
 }
 function onBossDefeated(){
@@ -21,42 +24,31 @@ function dropBossScroll(tier){
 }
 /* ---- stun (hold to cast) ---- */
 /* ---- boss ---- */
-function fireBossStrike(b){
- const s=arenaState,w=b.windup,t=b.techniques.qiStrike;b.windup=null;
- s.qiEffects.push({type:'single',x:b.x,y:b.y,ang:w.ang,life:0,duration:.38,range:w.range,cone:w.cone,hostile:true});shake(9);
- for(let i=0;i<16;i++){const aa=w.ang+rnd(-w.cone,w.cone)*.9,sp=rnd(300,600);addPart({k:'spark',x:b.x+Math.cos(aa)*40,y:b.y+Math.sin(aa)*40,vx:Math.cos(aa)*sp,vy:Math.sin(aa)*sp,t:0,max:rnd(.25,.5),size:rnd(2,3.6),col:'#ff7a5a',drag:2.6})}
- const d=Math.hypot(s.px-b.x,s.py-b.y),ad=Math.atan2(s.py-b.y,s.px-b.x);
- if(d<=w.range&&Math.abs(angDiff(ad,w.ang))<=w.cone&&s.invuln<=0){takeDamage(t.damage);toast('Босс применил Удар Ци')}
-}
 function bossLoop(dt){
  const s=arenaState,b=s.boss;if(!b||b.hp<=0)return;
- b.invuln=Math.max(0,(b.invuln||0)-dt);b.hit=Math.max(0,(b.hit||0)-dt);
- if(b.stun>0){b.stun-=dt;b.mv=0;b.windup=null;return}
- b.skillCd-=dt;
+ b.invuln=Math.max(0,(b.invuln||0)-dt);b.hit=Math.max(0,(b.hit||0)-dt);entTick(b,dt);
+ if(b.stun>0){b.stun-=dt;b.mv=0;b.wind=null;return}
  const dx=s.px-b.x,dy=s.py-b.y,d=Math.hypot(dx,dy)||1,seePlayer=d<=VISION_RADIUS;
  if(seePlayer){b.seenT=TARGET_MEMORY_TIME;b.lastX=s.px;b.lastY=s.py}else b.seenT=Math.max(0,(b.seenT||0)-dt);
  const engaged=seePlayer||b.seenT>0;
  if(!engaged){
-  b.windup=null;
+  b.wind=null;
   b.wanderT=(b.wanderT||0)-dt;if(b.wanderT<=0){b.wanderAng=Math.random()*TAU;b.wanderT=2+Math.random()*3}
   b.ang=b.wanderAng;
   const ox=b.x,oy=b.y;moveBoss(b,Math.cos(b.ang)*b.s*.4*dt,Math.sin(b.ang)*b.s*.4*dt);
   const md=Math.hypot(b.x-ox,b.y-oy);b.mv=(b.mv||0)+((md>.05?1:0)-(b.mv||0))*Math.min(1,dt*8);b.wp=(b.wp||0)+md*.09;
+  /* вне боя босс лечится техникой «Лечение»: 3 Ци = 1 здоровья, скорость как у игрока */
+  if(b.hp<b.maxHp&&b.qi>0){const sp=Math.min(healRate({nodes:{length:PATH_CAP}})*dt,b.qi);b.qi-=sp;b.healAcc=(b.healAcc||0)+sp;const g=Math.floor(b.healAcc/3);if(g>0){b.healAcc-=g*3;b.hp=Math.min(b.maxHp,b.hp+g)}}
   return;
  }
  const tgx=seePlayer?dx:b.lastX-b.x,tgy=seePlayer?dy:b.lastY-b.y;
- b.ang=b.windup?b.windup.ang:Math.atan2(tgy,tgx);
- if(!b.windup&&b.skillCd<=0&&seePlayer){
-  const roll=Math.random(),tq=b.techniques.qiStrike;
-  if(roll<.25&&b.techniques.shield&&b.shield<=0){b.shield=b.techniques.shield.max;b.invuln=.35;toast('Босс активировал Защитный покров')}
-  else if(roll<.60){b.windup={t:0,dur:b.tier===2?.65:.85,ang:b.ang,range:tq.radius||600,cone:tq.cone||Math.PI/7};toast('Босс собирает Удар Ци — уходи с линии!')}
-  else{const dist=Math.min(700,d);if(dist>80){const nx=dx/d,ny=dy/d;burst(b.x,b.y,10,'#ffd85b',160,.4,3);moveBoss(b,nx*dist,ny*dist);burst(b.x,b.y,10,'#ffd85b',160,.4,3);b.invuln=.4;toast('Босс применил Уклонение')}}
-  b.skillCd=2.2+Math.random()*1.8;
- }
- if(b.windup){b.windup.t+=dt;b.mv=0;if(b.windup.t>=b.windup.dur)fireBossStrike(b)}
+ b.ang=b.wind?b.wind.ang:Math.atan2(tgy,tgx);
+ const busy=seePlayer&&mobAI(b,dt,d);
+ if(busy)b.mv=0;
  else if(d>55){const ox=b.x,oy=b.y;moveBoss(b,Math.cos(b.ang)*b.s*dt,Math.sin(b.ang)*b.s*dt);const md=Math.hypot(b.x-ox,b.y-oy);b.mv+=((md>.05?1:0)-(b.mv||0))*Math.min(1,dt*8);b.wp=(b.wp||0)+md*.09}
  else b.mv=0;
- if(d<58&&s.contactCd<=0){takeDamage(Math.max(18,save.str*1.2));s.contactCd=.65}
+ /* физический удар — собственная сила босса по формуле игрока (10 + 0,9 за звезду) */
+ if(d<58&&b.mcd<=0){takeDamage(b.str);b.mcd=.65}
 }
 function moveBoss(b,dx,dy){let nx=Math.max(100,Math.min(9900,b.x+dx)),ny=Math.max(100,Math.min(9900,b.y+dy));if(!blocked(nx,b.y,b.r,b.id))b.x=nx;if(!blocked(b.x,ny,b.r,b.id))b.y=ny}
 /* boss portraits (frame rects inside the boss atlas) */
@@ -64,7 +56,7 @@ const BOSSP={master:[0,0,122,144],elite:[142,0,112,146]},BOSS_S=.86;
 function bossFrame(c,img,m,x,y,sc,al){const w=m[2]*sc,h=m[3]*sc;c.globalAlpha=al;c.drawImage(img,m[0],m[1],m[2],m[3],x-w/2,y-h/2,w,h)}
 function drawBoss(W,H,time){
  const s=arenaState,b=s.boss;if(!b||b.hp<=0)return;const p=worldToScreen(b.x,b.y);if(p.x<-150||p.x>W+150||p.y<-150||p.y>H+150)return;
- const t2=b.tier===2,aur=t2?'#ff8a3a':'#ffd85b',w=b.windup,wk=w?w.t/w.dur:0,o=SPR.boss,m=BOSSP[t2?'master':'elite'];
+ const t2=b.tier===2,aur=t2?'#ff8a3a':'#ffd85b',w=b.wind,wk=w?w.t/w.dur:0,o=SPR.boss,m=BOSSP[t2?'master':'elite'];
  ax.save();ax.translate(p.x,p.y);ax.globalCompositeOperation='lighter';ax.rotate(time*.5);
  ax.strokeStyle=aur+'99';ax.lineWidth=2;ax.setLineDash([16,9]);ax.beginPath();ax.arc(0,0,66,0,TAU);ax.stroke();ax.setLineDash([]);
  for(let i=0;i<8;i++){ax.save();ax.rotate(i*TAU/8);ax.translate(66,0);ax.fillStyle=aur+'cc';ax.fillRect(-2.5,-5,5,10);ax.restore()}

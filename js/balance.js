@@ -14,22 +14,41 @@ function stage(){return save.stageLevel>=2?'II':'I'}
 function currentStarCost(){return 10+5*save.stars}
 /* ===== power formula (same for player, mobs and bosses) ===== */
 const DANTIAN_Y=-.075,QI_SHIELD_RATIO=.5;
-const TECH_BASE={qiSingle:50,qiArea:60,shield:120,stun:10};
+/* TECH_BASE: удар и щит как ДОЛЯ максимального здоровья тела с тем же числом звёзд (техника на полную длину, без колонн).
+   Равные противники: одиночный удар = 30% здоровья (дуэль на 3-4 попадания), щит = 72% (гасит ~2,4 удара). Колонны и длина техники множат результат. */
+const TECH_BASE={qiSingle:.30,qiArea:.24,shield:.72,stun:10};
 const MIN_STARS={dodge:3,shield:5,qiSingle:5,qiArea:15,stun:20,qiShield:20,heal:3};
 const MOB_MIN={dodge:3,shield:5,qiSingle:5,qiArea:15,qiShield:10};
 function dashDist(n){n=Math.max(3,Math.min(PATH_CAP,n));return n<=20?110+(243-110)*(n-3)/17:243+(340-243)*(n-20)/20}
 function dashCdOf(n){n=Math.max(3,Math.min(PATH_CAP,n));return n<=20?1.6-.8*(n-3)/17:.8-.3*(n-20)/20}
 function stunMaxDur(n){return 4+.1*Math.min(PATH_CAP,Math.max(0,n))}
 const TECH_COST={qiSingle:20,qiArea:20,shield:20,stun:40};
-function techniquePower(n){return Math.pow(1.05,Math.max(0,Math.min(PATH_CAP,n)-10))}
-function starFactor(stars){return .5*Math.min(100,Math.max(0,stars))}
+/* одни и те же формулы тела для игрока, мобов и боссов: здоровье, физическая сила, запас Ци */
+function bodyHp(stars){return 100+4*Math.max(0,stars)}
+function bodyStr(stars){return 10+.9*Math.max(0,stars)}
+function bodyQi(stars,cols,perCol){return 100+10*Math.max(0,stars)+Math.max(0,cols||0)*(perCol||0)}
+/* техника на полную длину (столько звёзд, сколько есть, но не больше PATH_CAP) = 1; каждая недостающая звезда -5% */
+function techniquePower(n,stars){const ref=Math.min(PATH_CAP,Math.max(3,Math.floor(stars||0)));return Math.pow(1.05,Math.min(PATH_CAP,Math.max(0,n))-ref)}
 function colFactor(cols,M){return cols>0?Math.pow(M||1,cols):1}
-function powerMult(pathLen,stars,cols,M){return techniquePower(pathLen)*starFactor(stars)*colFactor(cols,M)}
+function powerMult(pathLen,stars,cols,M){return techniquePower(pathLen,stars)*bodyHp(stars)*colFactor(cols,M)}
 function myMult(t){return powerMult(t.nodes.length,save.stars,save.pillars,save.pillarCoef)}
 function mobMult(stars){return powerMult(Math.min(PATH_CAP,stars),stars,0,1)}
 function bossMult(b){return powerMult(PATH_CAP,100,b.columns||0,PILLAR_Q[0][3])}
+/* сила любого противника по тем же формулам, что и у игрока */
+function entMult(e){return powerMult(Math.min(PATH_CAP,e.stars||0),e.stars||0,e.columns||0,e.isBoss?PILLAR_Q[0][3]:1)}
+/* сила игрока как цели оглушения (максимальная техника по его звёздам) */
+function playerRefMult(){return powerMult(Math.min(PATH_CAP,save.stars),save.stars,save.pillars,save.pillarCoef)}
+/* сила обычного удара кулаком: привязана к звёздам (100 звёзд = 100 урона) */
+function playerStr(){return bodyStr(save.stars)}
 function techDamage(t){return TECH_BASE[t.type]*myMult(t)}
-function techShieldMax(t){return TECH_BASE.shield*myMult(t)}
+/* Стойкость стадии: колонны усиливают не только атаку (colFactor), но и делят входящий урон на ту же величину.
+   Равные по стадии противники дерутся как на этапе I (удар = 30% здоровья), а разница в колоннах даёт двойное преимущество.
+   Колонны с коэффициентом <1 стойкости не добавляют. Щит считается без колонн: стойкость уже работает на входе урона. */
+function toughness(cols,M){return Math.max(1,colFactor(cols,M))}
+function myToughness(){return toughness(save.pillars,save.pillarCoef)}
+function entToughness(e){return toughness(e.columns||0,e.isBoss?PILLAR_Q[0][3]:1)}
+function techShieldMax(t){return TECH_BASE.shield*techniquePower(t.nodes.length,save.stars)*bodyHp(save.stars)}
+function entShieldMax(e){const S=e.stars||0;return TECH_BASE.shield*techniquePower(Math.min(PATH_CAP,S),S)*bodyHp(S)}
 function techCost(t){if(t.type==='dodge')return Math.ceil(save.maxQi*.05);if(t.type==='qiShield')return 0;return Math.ceil(TECH_COST[t.type]+.3*save.stars)}
 function castTime(base){return Math.max(.3,base-.1*(save.meridians||0))}
 function starRegen(){return .5*Math.min(100,save.stars)/100}
