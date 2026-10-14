@@ -67,7 +67,8 @@ async function attemptPillar(cost,payFn){
    const q=pillarQualityFor(save.stars);save.pillarQuality=q.name;save.pillarCoef=q.coef;save.pillarQiBonus=q.qi;save.pillarStars=save.stars;placingStar=false;$('cultHint').classList.remove('show');
    save.pillars=1;save.stageLevel=2;
    save.maxQi+=save.pillarQiBonus||0;
-   toast('Первая колонна сформирована · '+save.pillarQuality+'! Дальнейшие колонны — только осколками второго этапа.');
+   toast('Первая колонна сформирована · '+save.pillarQuality+'! Дальнейшие колонны — Ци или осколками второго этапа.');
+   setTimeout(()=>playStageAnimation({kind:'col',success:true,title:'Переход на этап II',text:'Первая колонна сформирована · '+save.pillarQuality+'. Колонны растут внутри дань-тяня.'}),400);
   }else{
    save.pillars++;save.maxQi+=save.pillarQiBonus||0;
    toast('Колонна '+roman(save.pillars)+' сформирована · '+save.pillarQuality+'.');
@@ -113,15 +114,15 @@ function openColumns(){
  for(let i=1;i<=save.pillars;i++){const d=document.createElement('div');d.className='scrollcard';
   d.innerHTML='<div class="sc-head"><b>КОЛОННА '+roman(i)+'</b><span class="sc-tag">+'+save.pillarQiBonus+' Ци</span></div><p>'+save.pillarQuality+(i===1?' · '+save.pillarStars+' ★ при формировании':' · наследует качество первой')+'</p>';el.appendChild(d)}
  $('columnsTotal').textContent='Коэффициент качества техник: ×'+currentQualityCoef().toFixed(2)+' · Множитель силы: ×'+colFactor(save.pillars,currentQualityCoef()).toFixed(2);
- $('columnsModal').classList.add('show');
+ $('columnsModal').classList.add('show');startDview('colView',()=>({core:false,columns:save.pillars}),()=>$('columnsModal').classList.contains('show'));
 }
 function closeColumns(){$('columnsModal').classList.remove('show')}
 function cultDantianTap(x,y){
- if(placingStar&&save.pillars>=1){placingStar=false;$('cultHint').classList.remove('show');toast('После первой колонны новые звёзды создавать нельзя.');return true}
+ if(placingStar&&starsLocked()){placingStar=false;$('cultHint').classList.remove('show');toast('После первой колонны новые звёзды создавать нельзя.');return true}
  if(placingStar||window.__meridianMode)return false;
  const r=$('cultBody').getBoundingClientRect(),dx=r.left+r.width/2+save.panX*save.zoom,dy=r.top+r.height/2-20+save.panY*save.zoom+DANTIAN_Y*520*save.zoom;
  if(Math.hypot(x-dx,y-dy)>Math.max(26,16*save.zoom))return false;
- if(save.pillars>0)openColumns();else toast('Дань-тянь — начало любой техники. Колонны появятся после первой колонны (нужно 50 звёзд).');
+ if(hasCore())openCore();else if(save.pillars>0)openColumns();else toast('Дань-тянь — начало любой техники. Колонны появятся после первой колонны (нужно 50 звёзд).');
  return true;
 }
 function renderScrolls(){
@@ -184,7 +185,7 @@ function cultPointerToWorld(x,y){
          y:((y-r.top-r.height/2+20)/save.zoom-save.panY)/520};
 }
 function starOverlaps(p){return save.starPts.some(q=>Math.hypot((q.x-p.x)*210,(q.y-p.y)*520)<13)}
-function primaryCultAction(){if(save.pillars>=1)return toast('После первой колонны новые звёзды создавать нельзя.');if(save.stars>=100)return toast('Все 100 звёзд уже сформированы.');const cost=currentStarCost();if(!canAfford(cost))return toast('Недостаточно ресурса. Нужно '+cost+' Ци/осколков.');placingStar=true;$('cultHint').classList.add('show');toast('Выбери свободную точку внутри тела')}
+function primaryCultAction(){if(starsLocked())return toast('После первой колонны новые звёзды создавать нельзя.');if(save.stars>=100)return toast('Все 100 звёзд уже сформированы.');const cost=currentStarCost();if(!canAfford(cost))return toast('Недостаточно ресурса. Нужно '+cost+' Ци/осколков.');placingStar=true;$('cultHint').classList.add('show');toast('Выбери свободную точку внутри тела')}
 function startMeridianMode(){if(save.meridians>=200)return toast('Лимит 200 меридианов достигнут.');if(save.stars<2)return toast('Нужно минимум 2 звезды.');placingStar=false;$('cultHint').classList.remove('show');meridianPick=null;window.__meridianMode=true;toast('Выбери две звезды. Цена меридиана: '+currentStarCost()+' (Ци и награды).');drawCult()}
 function openScrolls(){renderScrolls();$('scrollModal').classList.add('show')}
 function closeScrolls(){$('scrollModal').classList.remove('show')}
@@ -265,9 +266,10 @@ function drawCult(){
     if(!starSprite(ctx,sx,sy,selected?11:8,i*.9,1)){ctx.fillStyle=selected?'#ffffff':'#ffd85b';ctx.beginPath();ctx.arc(sx,sy,selected?5:3.2,0,7);ctx.fill()}
     if(selected){ctx.strokeStyle='#fff';ctx.lineWidth=1.4/save.zoom;ctx.beginPath();ctx.arc(sx,sy,12,0,7);ctx.stroke()}
   });
- const dY=DANTIAN_Y*520;ctx.fillStyle='#b56bff';ctx.shadowBlur=18;ctx.shadowColor='#b56bff';ctx.beginPath();ctx.arc(0,dY,6,0,7);ctx.fill();ctx.shadowBlur=0;
- for(let i=0;i<save.pillars;i++){const a=-Math.PI/2+i*(Math.PI*2/MAX_PILLARS);ctx.fillStyle='#ffd45b';ctx.beginPath();ctx.arc(Math.cos(a)*13,dY+Math.sin(a)*13,3.2,0,7);ctx.fill()}
- ctx.fillStyle='#e7d3ff';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText('ДАНЬ-ТЯНЬ',0,dY+26);
+ const dY=DANTIAN_Y*520;
+ /* колонны стоят ВНУТРИ дань-тяня, а на его месте после слияния появляется ядро */
+ if(!drawDantianMark(ctx,dY,performance.now()/1000)){ctx.fillStyle='#b56bff';ctx.shadowBlur=18;ctx.shadowColor='#b56bff';ctx.beginPath();ctx.arc(0,dY,6,0,7);ctx.fill();ctx.shadowBlur=0}
+ ctx.fillStyle='#e7d3ff';ctx.font='bold 11px sans-serif';ctx.textAlign='center';ctx.fillText(hasCore()?'ЯДРО':'ДАНЬ-ТЯНЬ',0,dY+(hasCore()?44:26));
  ctx.restore();
 }
 function zoomCult(k){save.zoom=Math.max(.55,Math.min(3.5,save.zoom*k));persist()}

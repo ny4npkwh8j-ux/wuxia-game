@@ -1,9 +1,9 @@
 'use strict';
-const BUILD_VERSION='0.5.6';
+const BUILD_VERSION='0.5.7';
 const SAVE_KEY='wuxiaSave';
 const SAVE_SCHEMA='cultivation_arena_v2';
 const $=id=>document.getElementById(id);
-const freshSave=()=>({qi:100,maxQi:100,dantian:100,stars:0,meridians:0,pillars:0,pillarProgress:0,pillarQi:0,pillarRewards:0,pillarChanceExtra:0,pillarQuality:null,pillarCoef:0,pillarQiBonus:0,pillarStars:0,blueprints:[],str:10,spd:7,health:100,zoom:1,panX:0,panY:0,starPts:[],meridianEdges:[],techniques:[],rewards:0,rewards2:0,scrolls:[],arenaCheckpoint:null,stageLevel:1,strengthBalanceV:2});
+const freshSave=()=>({qi:100,maxQi:100,dantian:100,stars:0,meridians:0,pillars:0,pillarProgress:0,pillarQi:0,pillarRewards:0,pillarChanceExtra:0,pillarQuality:null,pillarCoef:0,pillarQiBonus:0,pillarStars:0,blueprints:[],str:10,spd:7,health:100,zoom:1,panX:0,panY:0,starPts:[],meridianEdges:[],techniques:[],rewards:0,rewards2:0,scrolls:[],arenaCheckpoint:null,stageLevel:1,strengthBalanceV:2,coreCoef:0,coreQuality:null,coreDeposit:0,coreChanceExtra:0});
 let save=freshSave();
 function latestLegacySaveKey(){
  const keys=[];for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&/^wuxiaSave_\d+\.\d+\.\d+$/.test(k))keys.push(k)}
@@ -13,6 +13,7 @@ try{
  const raw=localStorage.getItem(SAVE_KEY)||localStorage.getItem(latestLegacySaveKey());
  if(raw){Object.assign(save,JSON.parse(raw));}
  save.pillarProgress??=0;save.pillarQi??=0;save.pillarRewards??=0;save.techniques??=[];save.arenaCheckpoint??=null;save.stageLevel??=1;save.rewards??=0;save.scrolls??=[];
+ save.coreCoef??=0;save.coreQuality??=null;save.coreDeposit??=0;save.coreChanceExtra??=0;
  save.rewards2??=0;save.pillarChanceExtra??=0;save.pillarQuality??=null;save.pillarCoef??=0;save.pillarQiBonus??=0;save.pillarStars??=0;
  if(save.pillarMult&&!save.pillarCoef){save.pillarCoef=save.pillarMult;delete save.pillarMult}
  if(save.pillars>0&&!save.pillarCoef){const q=pillarQualityFor(save.stars);save.pillarCoef=q.coef;save.pillarQiBonus=q.qi;save.pillarQuality=q.name;save.pillarStars=save.stars}

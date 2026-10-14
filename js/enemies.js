@@ -30,8 +30,8 @@ const ENT_RANGE={mob:{single:300,area:350,stun:500},boss:{single:600,area:450,st
 function entCost(e,t){return t==='dodge'?Math.ceil(.05*e.maxQi):t==='qiShield'?0:Math.ceil(TECH_COST[t]+.3*(e.stars||0))}
 /* здоровье, сила и запас Ци — по тем же формулам, что у игрока (bodyHp / bodyStr / bodyQi) */
 function applyKit(e,kit){
- const S=kit.stars,mh=bodyHp(S),mq=bodyQi(S,e.columns||0,e.isBoss?PILLAR_Q[0][2]:0);
- Object.assign(e,{v:ENT_V,stars:S,str:bodyStr(S),techs:kit.techs,technique:kit.techs[0]||null,hp:mh,maxHp:mh,qi:mq,maxQi:mq,shield:0,shieldMax:0,qiShieldOn:kit.techs.includes('qiShield'),qsFlash:0,wind:null,mcd:0,cd:{atk:e.isBoss?.8:1+Math.random()*1.5,sh:0,dash:1+Math.random()*2,stun:2,area:0}});
+ const S=kit.stars,C=e.core>0?e.core:1,mh=bodyHp(S)*C,mq=bodyQi(S,e.columns||0,e.isBoss?PILLAR_Q[0][2]:0)*C;
+ Object.assign(e,{v:ENT_V,stars:S,str:bodyStr(S)*C,techs:kit.techs,technique:kit.techs[0]||null,hp:mh,maxHp:mh,qi:mq,maxQi:mq,shield:0,shieldMax:0,qiShieldOn:kit.techs.includes('qiShield'),qsFlash:0,wind:null,mcd:0,cd:{atk:e.isBoss?.8:1+Math.random()*1.5,sh:0,dash:1+Math.random()*2,stun:2,area:0}});
  return e;
 }
 /* общий тик противника (моб или босс): кулдауны, восстановление Ци как у игрока */
