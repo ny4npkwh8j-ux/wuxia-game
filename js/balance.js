@@ -53,7 +53,9 @@ function entMult(e){return powerMult(Math.min(PATH_CAP,e.stars||0),e.stars||0,e.
 /* сила игрока как цели оглушения (максимальная техника по его звёздам) */
 function playerRefMult(){return techniquePower(Math.min(PATH_CAP,save.stars),save.stars)*bodyHp(save.stars)*myStage()}
 /* сила обычного удара кулаком: привязана к звёздам (100 звёзд = 100 урона) */
-function playerStr(){return bodyStr(save.stars)*(myCore()||1)}
+function playerStr(){return bodyStr(save.stars)*myStage()}
+/* удар кулаком противника: колонны усиливают его так же, как удар игрока (ядро уже учтено в e.str) */
+function entMelee(e){return (e.str??bodyStr(e.stars||0))*colFactor(e.columns||0,e.isBoss?PILLAR_Q[0][3]:1)}
 function techDamage(t){return TECH_BASE[t.type]*myMult(t)}
 /* Стойкость стадии: колонны усиливают не только атаку (colFactor), но и делят входящий урон на ту же величину.
    Равные по стадии противники дерутся как на этапе I (удар = 30% здоровья), а разница в колоннах даёт двойное преимущество.

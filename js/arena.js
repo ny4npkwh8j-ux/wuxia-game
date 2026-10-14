@@ -66,7 +66,10 @@ function activeShields(excludeId){
 }
 function blocked(x,y,r,selfId){
  if(arenaState.obstacles.some(o=>circleRect(x,y,r,o)))return true;
- for(const sh of activeShields(selfId))if(Math.hypot(x-sh.x,y-sh.y)<r+sh.r)return true;
+ /* щиты твёрдые, но из них можно выйти: блокируется только движение, которое глубже втискивает в щит (иначе залипание) */
+ let ox=x,oy=y;const st=arenaState;
+ if(selfId==='player'){ox=st.px;oy=st.py}else{const me=(st.boss&&st.boss.id===selfId)?st.boss:st.enemies.find(q=>q.id===selfId);if(me){ox=me.x;oy=me.y}}
+ for(const sh of activeShields(selfId)){const nd=Math.hypot(x-sh.x,y-sh.y);if(nd<r+sh.r&&nd<Math.hypot(ox-sh.x,oy-sh.y)-1e-6)return true}
  return false;
 }
 function circleRect(x,y,r,o){const cx=Math.max(o.x-o.w/2,Math.min(x,o.x+o.w/2)),cy=Math.max(o.y-o.h/2,Math.min(y,o.y+o.h/2));return Math.hypot(x-cx,y-cy)<r}
@@ -115,7 +118,7 @@ function arenaLoop(t){
   }
   for(const o of s.enemies){if(o===e||o.hp<=0)continue;const sx=e.x-o.x,sy=e.y-o.y,sd=Math.hypot(sx,sy)||1,mn=e.r+o.r+3;if(sd<mn){e.x+=sx/sd*(mn-sd)*.5;e.y+=sy/sd*(mn-sd)*.5}}
   const md=Math.hypot(e.x-ox,e.y-oy);e.mv=(e.mv||0)+((md>.05?1:0)-(e.mv||0))*Math.min(1,dt*8);e.wp=(e.wp||0)+md*.13;e.atk=Math.max(0,(e.atk||0)-dt);
-  if(seePlayer&&d<45&&e.mcd<=0){takeDamage(e.str??bodyStr(e.stars||0));e.mcd=.65;e.atk=.32}
+  if(seePlayer&&d<45&&e.mcd<=0){takeDamage(entMelee(e));e.mcd=.65;e.atk=.32}
   e.hit=Math.max(0,e.hit-dt);
  }
  bossLoop(dt);collect();updateHeal(dt);
@@ -130,12 +133,12 @@ function collect(){let changed=false;for(let i=arenaState.orbs.length-1;i>=0;i--
 function qiZoneDelta(x,y){
  const s=arenaState;let d=0;
  for(const z of s.hazards)if(Math.hypot(x-z.x,y-z.y)<=z.r)d-=z.pw||3;
- for(const z of (s.springs||[]))if(Math.hypot(x-z.x,y-z.y)<=z.r)d+=z.pw||3;
+ for(const z of (s.springs||[]))if(Math.hypot(x-z.x,y-z.y)<=z.r)d+=(z.pw||3)*SPRING_PASSIVE_X;
  return d;
 }
 function applyQiZones(dt){
  const s=arenaState;
- const pd=qiZoneDelta(s.px,s.py);if(pd)save.qi=Math.max(0,Math.min(save.maxQi,save.qi+pd*dt));
+ let pd=qiZoneDelta(s.px,s.py);if(pd>0&&arenaMeditation.active)pd=0;if(pd)save.qi=Math.max(0,Math.min(save.maxQi,save.qi+pd*dt));
  for(const e of (s.boss&&s.boss.hp>0?s.enemies.concat([s.boss]):s.enemies)){if(e.hp<=0||e.maxQi==null)continue;const ed=qiZoneDelta(e.x,e.y);if(ed)e.qi=Math.max(0,Math.min(e.maxQi,e.qi+ed*dt))}
 }
 function drawArena(time){
@@ -167,8 +170,11 @@ function drawArena(time){
  if(hv>0){ax.globalAlpha=hv;ax.drawImage(vigRed,0,0,W,H)}
  ax.globalAlpha=1;
 }
-let arenaMeditation={active:false,start:0,duration:40000,startQi:0,targetQi:0,progress:0};
+/* медитация: полный набор Ци с нуля — 80 с (вдвое медленнее прежнего), в источнике Ци — вдвое быстрее; время пропорционально недостающей Ци */
+const MEDITATE_FULL_SEC=80,SPRING_PASSIVE_X=3,SPRING_MEDITATE_X=2;
+function inSpring(){const s=arenaState;return !!s&&(s.springs||[]).some(z=>Math.hypot(s.px-z.x,s.py-z.y)<=z.r)}
+let arenaMeditation={active:false,start:0,last:0,duration:40000,startQi:0,targetQi:0,progress:0};
 function interruptArenaMeditation(){if(arenaMeditation.active){arenaMeditation.active=false;arenaMeditation.progress=0;const btn=$('arenaMeditateBtn');if(btn)btn.classList.remove('meditating')}}
-function beginArenaMeditation(){if(!arenaState||arenaMeditation.active||arenaState.channel)return;if(save.qi>=save.maxQi)return toast('Ци уже полностью восстановлена.');arenaMeditation.startQi=save.qi;arenaMeditation.targetQi=save.maxQi;arenaMeditation.progress=0;arenaMeditation.active=true;arenaMeditation.start=performance.now();$('arenaMeditateBtn').classList.add('meditating');requestAnimationFrame(arenaMeditationLoop)}
+function beginArenaMeditation(){if(!arenaState||arenaMeditation.active||arenaState.channel)return;if(save.qi>=save.maxQi)return toast('Ци уже полностью восстановлена.');arenaMeditation.startQi=save.qi;arenaMeditation.targetQi=save.maxQi;arenaMeditation.progress=0;arenaMeditation.active=true;arenaMeditation.start=performance.now();arenaMeditation.last=performance.now();$('arenaMeditateBtn').classList.add('meditating');requestAnimationFrame(arenaMeditationLoop)}
 function stopArenaMeditation(){if(!arenaMeditation.active)return;arenaMeditation.active=false;$('arenaMeditateBtn').classList.remove('meditating');persist();toast(arenaMeditation.progress>=.999?'Медитация завершена':'Медитация прервана')}
-function arenaMeditationLoop(now){if(!arenaMeditation.active||!arenaState)return;arenaMeditation.progress=Math.min(1,(now-arenaMeditation.start)/arenaMeditation.duration);save.qi=arenaMeditation.startQi+(arenaMeditation.targetQi-arenaMeditation.startQi)*arenaMeditation.progress;$('arenaMedLabel').textContent=arenaMeditation.progress<1?'МЕДИТАЦИЯ '+(40*(1-arenaMeditation.progress)).toFixed(1)+'с':'ГОТОВО';if(arenaMeditation.progress<1)requestAnimationFrame(arenaMeditationLoop);else{arenaMeditation.active=false;$('arenaMeditateBtn').classList.remove('meditating');persist();toast('Ци полностью восстановлена')}}
+function arenaMeditationLoop(now){if(!arenaMeditation.active||!arenaState)return;const dt=Math.min(.1,Math.max(0,(now-(arenaMeditation.last||now))/1000));arenaMeditation.last=now;const rate=save.maxQi/MEDITATE_FULL_SEC*(inSpring()?SPRING_MEDITATE_X:1);save.qi=Math.min(arenaMeditation.targetQi,save.qi+rate*dt);const span=Math.max(1,arenaMeditation.targetQi-arenaMeditation.startQi);arenaMeditation.progress=Math.min(1,(save.qi-arenaMeditation.startQi)/span);const left=(arenaMeditation.targetQi-save.qi)/rate;$('arenaMedLabel').textContent=arenaMeditation.progress<1?'МЕДИТАЦИЯ '+left.toFixed(1)+'с':'ГОТОВО';if(arenaMeditation.progress<1)requestAnimationFrame(arenaMeditationLoop);else{arenaMeditation.active=false;$('arenaMeditateBtn').classList.remove('meditating');persist();toast('Ци полностью восстановлена')}}

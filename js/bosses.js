@@ -48,7 +48,7 @@ function bossLoop(dt){
  else if(d>55){const ox=b.x,oy=b.y;moveBoss(b,Math.cos(b.ang)*b.s*dt,Math.sin(b.ang)*b.s*dt);const md=Math.hypot(b.x-ox,b.y-oy);b.mv+=((md>.05?1:0)-(b.mv||0))*Math.min(1,dt*8);b.wp=(b.wp||0)+md*.09}
  else b.mv=0;
  /* физический удар — собственная сила босса по формуле игрока (10 + 0,9 за звезду) */
- if(d<58&&b.mcd<=0){takeDamage(b.str);b.mcd=.65}
+ if(d<58&&b.mcd<=0){takeDamage(entMelee(b));b.mcd=.65}
 }
 function moveBoss(b,dx,dy){let nx=Math.max(100,Math.min(9900,b.x+dx)),ny=Math.max(100,Math.min(9900,b.y+dy));if(!blocked(nx,b.y,b.r,b.id))b.x=nx;if(!blocked(b.x,ny,b.r,b.id))b.y=ny}
 /* boss portraits (frame rects inside the boss atlas) */
