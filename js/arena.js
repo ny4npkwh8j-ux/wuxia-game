@@ -96,7 +96,7 @@ function killReward(e){
 function arenaLoop(t){
  const s=arenaState;if(!s)return;
  const dt=Math.max(0,Math.min(.035,(t-s.last)/1000));s.last=t;s.t+=dt;
- s.invuln=Math.max(0,s.invuln-dt);s.dashCd=Math.max(0,s.dashCd-dt);s.contactCd=Math.max(0,s.contactCd-dt);s.punchCd=Math.max(0,(s.punchCd||0)-dt);s.cdArea=Math.max(0,(s.cdArea||0)-dt);s.cdStun=Math.max(0,(s.cdStun||0)-dt);s.spawnTimer-=dt;s.checkpointTimer-=dt;
+ s.invuln=Math.max(0,s.invuln-dt);s.dashCd=Math.max(0,s.dashCd-dt);s.contactCd=Math.max(0,s.contactCd-dt);s.punchCd=Math.max(0,(s.punchCd||0)-dt);s.cdArea=Math.max(0,(s.cdArea||0)-dt);s.cdStun=Math.max(0,(s.cdStun||0)-dt);tech2Tick(dt);s.spawnTimer-=dt;s.checkpointTimer-=dt;
  s.hitFlash=Math.max(0,s.hitFlash-dt*3.5);s.hurt=Math.max(0,s.hurt-dt*2.2);s.shake=Math.max(0,s.shake-dt*30);s.aimT=Math.max(0,s.aimT-dt);s.castAnim=Math.max(0,s.castAnim-dt);s.qiCast=Math.max(0,(s.qiCast||0)-dt);s.shieldFlash=Math.max(0,s.shieldFlash-dt*3);s.qiShieldFlash=Math.max(0,(s.qiShieldFlash||0)-dt*3);
  if(s.spawnTimer<=0){spawnEnemy();s.spawnTimer=4+Math.random()*3}
  if(s.checkpointTimer<=0){saveArenaCheckpoint();s.checkpointTimer=2}
@@ -113,7 +113,7 @@ function arenaLoop(t){
   if(e.hp<=0)continue;
   entTick(e,dt);
   if(e.stun>0){e.stun-=dt;e.mv=0;e.hit=Math.max(0,e.hit-dt);continue}
-  const dx=s.px-e.x,dy=s.py-e.y,d=Math.hypot(dx,dy)||1,seePlayer=d<=VISION_RADIUS;
+  const dx=s.px-e.x,dy=s.py-e.y,d=Math.hypot(dx,dy)||1,seePlayer=canSeePlayer(d);
   if(seePlayer){e.seenT=TARGET_MEMORY_TIME;e.lastX=s.px;e.lastY=s.py}else e.seenT=Math.max(0,(e.seenT||0)-dt);
   const engaged=seePlayer||e.seenT>0;
   const ox=e.x,oy=e.y;
@@ -166,6 +166,7 @@ function drawArena(time){
  drawBoss(W,H,time);
  drawNpcs(time);
  drawPlayer(time);
+ drawDecoy(time);
  for(const fx of s.qiEffects)drawQiFx(fx,time);
  for(const sl of s.slashes)drawSlash(sl);
  drawParts();drawFloats();

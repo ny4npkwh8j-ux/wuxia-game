@@ -2,10 +2,20 @@
 const SCROLLS={
  stun:{id:'stun',type:'stun',name:'Оцепенение',from:'первого босса',minStars:20,geo:'не меньше 3 звёзд в голове и 3 в ногах, руки не задействованы',check:z=>z.head>=3&&z.leg>=3&&z.hand===0,
   effect:()=>'зажми кнопку на арене на '+castTime(5).toFixed(1)+' с (каждый меридиан ускоряет на 0,1 с). Враги в радиусе 500 получают 10 урона и замирают. Длительность = (4 с + 0,1 с за каждую звезду в технике) × сила стана / (сила стана + сила цели), обе считаются по формуле силы. Цена: 40 Ци + 0,3 за каждую звезду.'},
+ blade:{id:'blade',type:'blade',name:'Ци-клинок',from:'третьего босса',minStars:8,geo:'звёзды и в руках, и в ногах, без головы (рука + шаг = клинок)',check:z=>z.hand>=2&&z.leg>=2&&z.head===0,
+  effect:()=>'нажми: на 8 с обычный удар бьёт на 130 вперёд широким конусом и сильнее. Перезарядка 14 с.'},
+ pull:{id:'pull',type:'pull',name:'Притяжение',from:'четвёртого босса',minStars:8,geo:'только торс, цепочка замкнута в кольцо (последняя звезда соединена меридианом с одной из прежних, не меньше 4 звёзд в кольце)',check:z=>z.hand===0&&z.leg===0&&z.head===0,
+  effect:()=>'нажми: 3 с тянет к тебе врагов и сферы, сундуки, точки силы в радиусе 800. Перезарядка 15 с.'},
+ repel:{id:'repel',type:'repel',name:'Отталкивание',from:'пятого босса',minStars:25,geo:'звёзды в голове, руках и ногах одновременно («всё тело»), не меньше 2 в каждой зоне',check:z=>z.head>=2&&z.hand>=2&&z.leg>=2,
+  effect:()=>'нажми: отбрасывает всех в радиусе 450, небольшой урон, мобы на миг оглушены. Перезарядка 15 с.'},
+ mirage:{id:'mirage',type:'mirage',name:'Мираж',from:'шестого босса',minStars:10,geo:'только ноги (и торс), цепочка замкнута в кольцо — «след» вокруг тебя, не меньше 3 звёзд в ногах',check:z=>z.leg>=3&&z.hand===0&&z.head===0,
+  effect:()=>'нажми: двойник на 5 с — враги теряют тебя из виду и идут к нему. Перезарядка 20 с.'},
+ poison:{id:'poison',type:'poison',name:'Отравление',from:'шестого босса',minStars:6,geo:'одна рука, звёзды руки по прямой линии («игла», не меньше 4 звёзд); без головы и ног',check:z=>z.hand>=4&&z.leg===0&&z.head===0&&(z.leftHand===0||z.rightHand===0),
+  effect:()=>'нажми: ближайшая цель в радиусе 450 6 с теряет здоровье и половину Ци, её техники срабатывают реже. Перезарядка 8 с.'},
  qiShield:{id:'qiShield',type:'qiShield',name:'Личный щит',from:'второго босса (Практик)',minStars:20,geo:'не меньше 3 звёзд в голове и по 2 в каждой руке, ноги не задействованы',check:z=>z.head>=3&&z.leftHand>=2&&z.rightHand>=2&&z.leg===0,
   effect:()=>'переключатель на арене, жёлтое свечение по силуэту. Пока включён, после обычного щита урон поглощается за счёт запаса Ци: 1 урона за 0,5 Ци. Когда Ци кончается, щит гаснет.'}
 };
-const BOSS_SCROLL={1:'stun',2:'qiShield'};
+const BOSS_SCROLL={1:'stun',2:'qiShield',3:'blade',4:'pull',5:'repel',6:['mirage','poison']};
 /* чертежи больше не нужны: любую технику можно собрать самому, а чертёж (выпадение с босса) лишь собирает её автоматически */
 function hasScroll(id){return true}
 function grantScroll(id){if(hasScroll(id))return false;save.scrolls.push(id);persist();return true}
@@ -25,17 +35,34 @@ function hasEnclosingTriangle(nodes){
  }
  return false;
 }
+/* ---- фигуры из звёзд: используются для различения техник с одинаковым набором зон ---- */
+/* кольцо: последняя звезда цепочки соединена меридианом с одной из прежних (замкнутый контур из ≥4 звёзд) */
+function hasRing(nodes){const k=nodes.length-1;for(let j=0;j<=k-3;j++)if(techConnected(nodes[k],nodes[j]))return true;return false}
+/* прямая: звёзды рук лежат почти на одной линии (отклонение ≤7 пикселей) */
+function isStraight(nodes){
+ const pts=nodes.map(i=>save.starPts[i]).filter(p=>p&&starZone(p).includes('Hand')).map(p=>({x:p.x*210,y:p.y*520}));
+ if(pts.length<4)return false;const a=pts[0],b=pts[pts.length-1],L=Math.hypot(b.x-a.x,b.y-a.y);if(L<20)return false;
+ for(const p of pts){const dev=Math.abs((b.x-a.x)*(a.y-p.y)-(a.x-p.x)*(b.y-a.y))/L;if(dev>7)return false}
+ return true;
+}
+/* Тип техники = набор зон + (если нужно) фигура:
+   голова+руки+ноги — Отталкивание · руки+ноги — Ци-клинок · голова+ноги — Оцепенение · голова+руки — Личный щит · голова — Щит
+   ноги — Рывок, а с кольцом — Мираж · одна рука — Удар Ци, по прямой («игла») — Отравление · обе руки — Удар по площади
+   только торс — кольцо: Притяжение, треугольник вокруг Дань-тяня: Лечение */
 function getTechniqueType(nodes){
  const z=techniqueZones(nodes),left=z.has('leftHand'),right=z.has('rightHand'),hand=left||right,leg=z.has('leftLeg')||z.has('rightLeg'),head=z.has('head');
- if(head&&!hand&&!leg)return 'shield';
- if(leg&&!hand&&!head)return 'dodge';
- if(hand&&!leg&&!head)return (left&&right)?'qiArea':'qiSingle';
- if(head&&leg&&!hand)return 'stun';
- if(head&&hand&&!leg)return 'qiShield';
- if(!hand&&!leg&&!head&&hasEnclosingTriangle(nodes))return 'heal';
+ if(head&&hand&&leg)return 'repel';
+ if(hand&&leg)return 'blade';
+ if(head&&leg)return 'stun';
+ if(head&&hand)return 'qiShield';
+ if(head)return 'shield';
+ if(leg)return hasRing(nodes)?'mirage':'dodge';
+ if(hand)return (left&&right)?'qiArea':(isStraight(nodes)?'poison':'qiSingle');
+ if(hasRing(nodes))return 'pull';
+ if(hasEnclosingTriangle(nodes))return 'heal';
  return 'unknown';
 }
-function techniqueName(type){return type==='heal'?'Лечение':type==='qiShield'?'Личный щит':type==='stun'?'Оцепенение':type==='dodge'?'Рывок':type==='shield'?'Щит':type==='qiSingle'?'Удар Ци · Одиночный':type==='qiArea'?'Удар Ци · По площади':'Неразгаданная техника'}
+function techniqueName(type){if(SCROLLS[type]&&['blade','pull','repel','mirage','poison'].includes(type))return SCROLLS[type].name;return type==='heal'?'Лечение':type==='qiShield'?'Личный щит':type==='stun'?'Оцепенение':type==='dodge'?'Рывок':type==='shield'?'Щит':type==='qiSingle'?'Удар Ци · Одиночный':type==='qiArea'?'Удар Ци · По площади':'Неразгаданная техника'}
 function techniqueDescription(type,n){
  const t={type,nodes:{length:n}};
  if(type==='stun')return 'Зажми '+castTime(5).toFixed(1)+' с · радиус 500 · урон 10 · перезарядка '+AREA_CD.stun+' с · оглушение до '+stunMaxDur(n).toFixed(1)+' с (сила '+fmt(myMult(t))+' против силы цели) · Ци '+techCost(t)+' · минимум 20 ★.';
@@ -45,6 +72,7 @@ function techniqueDescription(type,n){
  if(type==='heal')return 'Держи, пока не отпустишь: 3 Ци = 1 HP (остаток не сгорает), скорость вложения '+healRate(t).toFixed(1)+' Ци/с. Нужен треугольник из звёзд торса вокруг Дань-тяня, минимум 3 ★.';
  if(type==='qiSingle')return 'Держи для набора силы (0,4-1,5x, до 1,2 с) · конус 300 · общий урон '+fmt(techDamage(t))+' на полной силе, делится между целями · минимум 5 ★ · Ци '+techCost(t)+' на полной силе.';
  if(type==='qiArea')return 'Держи для набора силы (0,4-1,5x, до 1,2 с) · радиус 600 · общий урон '+fmt(techDamage(t))+' на полной силе, делится между целями · перезарядка '+AREA_CD.qiArea+' с · минимум 15 ★ · Ци '+techCost(t)+' на полной силе.';
+ if(TECH2[type]){const P=TECH2[type],t2={type,nodes:{length:n}};return SCROLLS[type].effect()+' · Ци '+techCost(t2)+' · минимум '+MIN_STARS[type]+' ★.'}
  return 'Нужна подходящая геометрия звёзд.';
 }
 /* какие зоны тела допустимы в маршруте техники (торс разрешён всегда как соединительная зона) */
@@ -57,17 +85,18 @@ function findBestChain(type,cap=PATH_CAP){
  for(const e of save.meridianEdges){if(e[0]!==e[1]){adj[e[0]].push(e[1]);adj[e[1]].push(e[0])}}
  const single=type==='qiSingle'||type==='poison',sides=single?['leftHand','rightHand']:[null];
  const lim=Math.min(cap,N);let best=null,validations=0;
- for(const side of sides){
-  const allowed=i=>{const z=starZone(save.starPts[i]);if(z==='body')return true;if(z==='head')return !!zs.head;if(z.includes('Hand'))return !!zs.hand&&(!side||z===side);if(z.includes('Leg'))return !!zs.leg;return false};
+ for(const side of sides)for(const useBody of (Object.keys(zs).length?[false,true]:[true])){
+  const allowed=i=>{const z=starZone(save.starPts[i]);if(z==='body')return useBody;if(z==='head')return !!zs.head;if(z.includes('Hand'))return !!zs.hand&&(!side||z===side);if(z.includes('Leg'))return !!zs.leg;return false};
   const pri=i=>starZone(save.starPts[i])==='body'?1:0;for(const l of adj)l.sort((a,b)=>pri(a)-pri(b));
-  let steps=0,stepsStart=0;const path=[],used=new Uint8Array(N),minN=MIN_STARS[type]||1;
+  validations=0;let steps=0,stepsStart=0;const path=[],used=new Uint8Array(N),minN=MIN_STARS[type]||1;
   const dfs=i=>{
    path.push(i);used[i]=1;
-   if(path.length>(best?best.length:0)&&path.length>=minN&&validations<20000){validations++;const v=validateTechnique(path,true);if(!v.err&&v.type===type)best=path.slice()}
+   if(path.length>(best?best.length:0)&&path.length>=minN&&validations<(Object.keys(zs).length?12000:40000)){validations++;const v=validateTechnique(path,true);if(!v.err&&v.type===type)best=path.slice()}
    if(path.length<lim&&steps++<150000&&stepsStart++<12000&&!(best&&best.length>=lim)){for(const j of adj[i]){if(used[j]||!allowed(j))continue;dfs(j);if(best&&best.length>=lim)break}}
    path.pop();used[i]=0;
   };
-  const starts=[];for(let i=0;i<N;i++)if(allowed(i)&&adj[i].length)starts.push(i);starts.sort((a,b)=>pri(a)-pri(b)||adj[b].length-adj[a].length);
+  const starts=[];for(let i=0;i<N;i++)if(allowed(i)&&adj[i].length)starts.push(i);const dd=i=>Math.hypot(save.starPts[i].x,save.starPts[i].y-DANTIAN_Y);
+  starts.sort(Object.keys(zs).length?((a,b)=>pri(a)-pri(b)||adj[b].length-adj[a].length):((a,b)=>dd(a)-dd(b)));
   for(const s0 of starts){if(steps>=150000||(best&&best.length>=lim))break;stepsStart=0;dfs(s0)}
  }
  return best;
@@ -86,7 +115,7 @@ function autoFormTechnique(type){
 function validateTechnique(nodes,dantian){
  if(!dantian)return{err:'Техника должна начинаться с Дан-тяня.'};
  const type=getTechniqueType(nodes);
- if(type==='unknown')return{err:'Нужна одна основная зона (руки, ноги или голова) либо голова + ноги (Оцепенение), либо голова + руки (Личный щит).'};
+ if(type==='unknown')return{err:'Не получается техника. Зоны: голова — Щит; ноги — Рывок (кольцо — Мираж); рука — Удар Ци (прямая линия — Отравление); обе руки — Волна; голова+ноги — Оцепенение; голова+руки — Личный щит; руки+ноги — Ци-клинок; всё тело — Отталкивание; торс: треугольник — Лечение, кольцо — Притяжение.'};
  const need=MIN_STARS[type];if(nodes.length<need)return{err:techniqueName(type)+': минимум '+need+' звёзд.'};
  const zc=zoneCounts(nodes);
  if(type==='dodge'&&(zc.leftLeg<1||zc.rightLeg<1))return{err:'Рывок: нужна хотя бы одна звезда на каждой ноге (сейчас '+zc.leftLeg+' и '+zc.rightLeg+').'};
@@ -120,8 +149,8 @@ function zoneStar(c,x,y,r,k,rot){
 }
 /* ===== scrolls list (generic) ===== */
 /* ===== technique buttons (vertical strip, right side, above the attack button) ===== */
-const TECH_ICON={qiSingle:'⚡',qiArea:'💥',shield:'🛡️',dodge:'➤',stun:'🌀',qiShield:'✨',heal:'✚'};
-const TECH_SHORT={qiSingle:'УДАР',qiArea:'ВОЛНА',shield:'ЩИТ',dodge:'РЫВОК',stun:'СТАН',qiShield:'ЛИЧНЫЙ',heal:'ЛЕЧЕНИЕ'};
+const TECH_ICON={qiSingle:'⚡',qiArea:'💥',shield:'🛡️',dodge:'➤',stun:'🌀',qiShield:'✨',heal:'✚',blade:'🗡️',pull:'🧲',repel:'💨',mirage:'👤',poison:'☠️'};
+const TECH_SHORT={qiSingle:'УДАР',qiArea:'ВОЛНА',shield:'ЩИТ',dodge:'РЫВОК',stun:'СТАН',qiShield:'ЛИЧНЫЙ',heal:'ЛЕЧЕНИЕ',blade:'КЛИНОК',pull:'ПРИТЯЖ.',repel:'ОТТАЛК.',mirage:'МИРАЖ',poison:'ЯД'};
 let techSig='',techPage=0;
 function techVisible(){const H=$('arena').getBoundingClientRect().height||700;return Math.max(3,Math.min(5,Math.floor((H-66-140-120)/63)))}
 function rebuildTechButtons(force){
@@ -142,7 +171,7 @@ function bindTechButton(b,k,type){
  if(type==='qiArea'){b.addEventListener('pointerdown',e=>{stop(e);b.setPointerCapture?.(e.pointerId);beginQiCharge('qiArea')});b.addEventListener('pointerup',e=>{stop(e);endQiCharge('qiArea',T())});b.addEventListener('pointercancel',()=>cancelQiCharge('qiArea'));b.addEventListener('lostpointercapture',()=>cancelQiCharge('qiArea'));return}
  if(type==='stun'){b.addEventListener('pointerdown',e=>{stop(e);b.setPointerCapture?.(e.pointerId);beginChannel(T())});b.addEventListener('pointerup',e=>{stop(e);endChannel()});b.addEventListener('pointercancel',endChannel);b.addEventListener('lostpointercapture',endChannel);return}
  if(type==='heal'){b.addEventListener('pointerdown',e=>{stop(e);b.setPointerCapture?.(e.pointerId);beginHeal(T())});b.addEventListener('pointerup',e=>{stop(e);endHeal()});b.addEventListener('pointercancel',endHeal);b.addEventListener('lostpointercapture',endHeal);return}
- b.addEventListener('pointerdown',e=>{stop(e);const t=T();if(type==='shield')activateShield(t);else if(type==='dodge')startDash(t);else if(type==='qiShield')toggleQiShield()});
+ b.addEventListener('pointerdown',e=>{stop(e);const t=T();if(type==='shield')activateShield(t);else if(type==='dodge')startDash(t);else if(type==='qiShield')toggleQiShield();else if(TECH2[type])activateTech2(t)});
 }
 /* ===== technique blueprints (drops) ===== */
 let bpGuide=null;
@@ -156,6 +185,10 @@ function bpQuota(type,n){
  else if(type==='qiArea')q.leftHand=q.rightHand=Math.max(2,Math.ceil(n*.35));
  else if(type==='stun'){q.head=Math.max(3,Math.ceil(n*.3));q.leftLeg=q.rightLeg=Math.max(2,Math.ceil(n*.25))}
  else if(type==='qiShield'){q.head=Math.max(3,Math.ceil(n*.3));q.leftHand=q.rightHand=Math.max(2,Math.ceil(n*.25))}
+ else if(type==='blade'){q.rightHand=Math.max(2,Math.ceil(n*.3));q.rightLeg=Math.max(2,Math.ceil(n*.3))}
+ else if(type==='repel'){q.head=q.rightHand=q.rightLeg=Math.max(2,Math.ceil(n*.2))}
+ else if(type==='mirage'){q.leftLeg=q.rightLeg=Math.max(2,Math.ceil(n*.3))}
+ else if(type==='poison'){q.rightHand=Math.max(4,Math.ceil(n*.7))}
  const used=q.head+q.leftHand+q.rightHand+q.leftLeg+q.rightLeg;q.body=Math.max(0,n-used);return q;
 }
 function bpText(bp){

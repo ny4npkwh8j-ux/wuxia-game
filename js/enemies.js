@@ -42,7 +42,7 @@ function applyKit(e,kit){
 function entTick(e,dt){
  const cd=e.cd||(e.cd={atk:2,sh:0,dash:2,stun:2});
  cd.atk-=dt;cd.sh-=dt;cd.dash-=dt;cd.stun=(cd.stun??0)-dt;cd.area=(cd.area??0)-dt;
- e.mcd=Math.max(0,(e.mcd||0)-dt);
+ e.mcd=Math.max(0,(e.mcd||0)-dt);if(e.poison)poisonTick(e,dt);
  if(e.maxQi!=null)e.qi=Math.min(e.maxQi,e.qi+.5*Math.min(100,e.stars||0)/100*dt);
  e.qsFlash=Math.max(0,(e.qsFlash||0)-dt*3);
 }

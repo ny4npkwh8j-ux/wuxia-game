@@ -96,8 +96,9 @@ function arenaAttack(){
  const s=arenaState;if(!s)return;if(stunBlock()||s.punchCd>0)return;interruptArenaMeditation();s.punchCd=.32;
  s.attackAnim=.32;s.punchDur=.32;s.aimT=.55;s.punchSide=Math.random()<.5?1:0;s.slashes.push({x:s.px,y:s.py,ang:s.shootAng,t:0,max:.24,side:s.punchSide});
  let hits=0;
- for(const e of s.enemies){if(e.hp<=0)continue;const dx=e.x-s.px,dy=e.y-s.py,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);if(d<=48&&Math.abs(angDiff(a,s.shootAng))<=1.35){hits++;if(damageEnemy(e,playerStr()))killReward(e)}}
- for(const b of aliveBosses(s)){const dx=b.x-s.px,dy=b.y-s.py,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);if(d<=48&&Math.abs(angDiff(a,s.shootAng))<=1.35){hits++;if(damageEnemy(b,playerStr()))killReward(b)}}
+ const bl=s.bladeT>0,rng=bl?TECH2.blade.range:48,cn=bl?TECH2.blade.cone:1.35,dm=bl?Math.max(playerStr(),s.bladeDmg||0):playerStr();
+ if(bl){s.qiEffects.push({type:'single',x:s.px,y:s.py,ang:s.shootAng,life:0,duration:.25,range:rng,cone:cn*.5})}
+ for(const e of s.enemies.concat(aliveBosses(s))){if(e.hp<=0)continue;const dx=e.x-s.px,dy=e.y-s.py,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);if(d<=rng&&Math.abs(angDiff(a,s.shootAng))<=cn){hits++;if(damageEnemy(e,dm))killReward(e)}}
  if(hits){shake(3);persist()}
 }
 /* player atlas: 8 columns (label order) x 3 rows (idle, left punch, right punch) */

@@ -32,6 +32,7 @@ function updateArenaUI(){
   else if(t.type==='dodge'){setTxt(lab,'РЫВОК\n'+cost+' Ци');setSkB(b,qi<cost||s.dashCd>0,s.dashCd/(s.dashCdMax||.8),'rgba(0,0,0,.62)')}
   else if(t.type==='stun'&&s.cdStun>0&&!(s.channel&&s.channel.tech===t)){setTxt(lab,'СТАН\n'+s.cdStun.toFixed(1)+' с');setSkB(b,true,s.cdStun/AREA_CD.stun,'rgba(0,0,0,.62)')}
   else if(t.type==='stun'){const ch=s.channel&&s.channel.tech===t?s.channel:null;setTxt(lab,ch?'ДЕРЖИ '+Math.max(0,ch.dur-ch.t).toFixed(1)+'с':'СТАН\n'+cost+' Ци · '+castTime(t.cast||5).toFixed(1)+'с');setSkB(b,!ch&&qi<cost,ch?ch.t/ch.dur:0,'rgba(197,140,255,.6)')}
+  else if(TECH2[t.type]){const k=CD_KEY[t.type],cd=s[k]||0,act=t.type==='blade'?s.bladeT:t.type==='pull'?s.pullT:t.type==='mirage'&&s.decoy?s.decoy.t:0;setTxt(lab,act>0?TECH2[t.type].short+'\n'+act.toFixed(1)+' с':cd>0?TECH2[t.type].short+'\n'+cd.toFixed(1)+' с':TECH2[t.type].short+'\n'+cost+' Ци');setSkB(b,cd>0||qi<cost,cd>0?cd/TECH2[t.type].cd:0,'rgba(0,0,0,.62)')}
   else if(t.type==='qiShield'){setTxt(lab,'ЛИЧНЫЙ\n'+(s.qiShieldOn?'ВКЛ':'ВЫКЛ'));b.classList.toggle('on',!!s.qiShieldOn);setSkB(b,!s.qiShieldOn&&qi<1,0,'')}
  }
  const sh=s.shield>0;$('shieldBar').classList.toggle('show',sh);$('shieldFill').style.width=(sh?s.shield/Math.max(1,s.shieldMax)*100:0)+'%';

@@ -49,7 +49,7 @@ function bossStep(b,dt){
  const s=arenaState;
  b.invuln=Math.max(0,(b.invuln||0)-dt);b.hit=Math.max(0,(b.hit||0)-dt);entTick(b,dt);
  if(b.stun>0){b.stun-=dt;b.mv=0;b.wind=null;return}
- const dx=s.px-b.x,dy=s.py-b.y,d=Math.hypot(dx,dy)||1,seePlayer=d<=VISION_RADIUS;
+ const dx=s.px-b.x,dy=s.py-b.y,d=Math.hypot(dx,dy)||1,seePlayer=canSeePlayer(d);
  if(seePlayer){b.seenT=TARGET_MEMORY_TIME;b.lastX=s.px;b.lastY=s.py}else b.seenT=Math.max(0,(b.seenT||0)-dt);
  const hd=Math.hypot(b.x-b.home.x,b.y-b.home.y),engaged=seePlayer||(b.seenT>0&&hd<BOSS_LEASH);
  if(!engaged){

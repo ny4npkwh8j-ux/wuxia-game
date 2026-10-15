@@ -32,12 +32,12 @@ const DANTIAN_Y=-.075,QI_SHIELD_RATIO=.5;
 const TECH_BASE={qiSingle:1.1,qiArea:.88,shield:3.5,stun:10};
 /* перезарядки способностей по площади, секунды (общие для игрока, мобов и боссов) */
 const AREA_CD={qiArea:6,stun:12};
-const MIN_STARS={dodge:3,shield:5,qiSingle:5,qiArea:15,stun:20,qiShield:20,heal:3};
+const MIN_STARS={dodge:3,shield:5,qiSingle:5,qiArea:15,stun:20,qiShield:20,heal:3,blade:8,pull:8,repel:25,mirage:10,poison:6};
 const MOB_MIN={dodge:3,shield:5,qiSingle:5,qiArea:15,qiShield:10};
 function dashDist(n){n=Math.max(3,Math.min(PATH_CAP,n));return n<=20?110+(243-110)*(n-3)/17:243+(340-243)*(n-20)/20}
 function dashCdOf(n){n=Math.max(3,Math.min(PATH_CAP,n));return n<=20?1.6-.8*(n-3)/17:.8-.3*(n-20)/20}
 function stunMaxDur(n){return 4+.1*Math.min(PATH_CAP,Math.max(0,n))}
-const TECH_COST={qiSingle:20,qiArea:20,shield:20,stun:40};
+const TECH_COST={qiSingle:20,qiArea:20,shield:20,stun:40,blade:30,pull:25,repel:40,mirage:30,poison:20};
 /* одни и те же формулы тела для игрока, мобов и боссов: здоровье, физическая сила, запас Ци */
 function bodyHp(stars){return 100+4*Math.max(0,stars)}
 function bodyStr(stars){return 10+.9*Math.max(0,stars)}
