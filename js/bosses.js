@@ -36,7 +36,9 @@ function dropBossScroll(b,tier){
 function bossLoop(dt){
  const s=arenaState;if(!s||!s.bosses)return;
  for(let i=0;i<s.bosses.length;i++){const b=s.bosses[i];
-  if(b.hp<=0){b.respawnT=(b.respawnT==null?BOSS_RESPAWN:b.respawnT)-dt;if(b.respawnT<=0){s.bosses[i]=newBoss(b.index||i+1);toast('Босс '+(b.index||i+1)+' возродился');}continue}
+  if(b.hp<=0){b.respawnT=(b.respawnT==null?BOSS_RESPAWN:b.respawnT)-dt;
+   if(b.respawnT<BOSS_RESPAWN-45){b.brkT=(b.brkT||0)+dt;if(b.brkT>=5){b.brkT=0;if(Math.random()<.5&&tryBreakthrough(i))continue}}
+   if(b.respawnT<=0){s.bosses[i]=newBoss(b.index||i+1);toast('Босс '+(b.index||i+1)+' возродился');}continue}
   bossStep(b,dt)}
 }
 function bossStep(b,dt){
@@ -50,7 +52,7 @@ function bossStep(b,dt){
   b.wind=null;
   b.wanderT=(b.wanderT||0)-dt;if(b.wanderT<=0||b.wanderAng==null){b.wanderAng=Math.random()*TAU;b.wanderT=2+Math.random()*3}
   if(hd>BOSS_ZONE_R*.6)b.wanderAng=Math.atan2(b.home.y-b.y,b.home.x-b.x);
-  b.ang=b.wanderAng;
+  b.ang=b.wanderAng;b.cult=hd<=BOSS_ZONE_R;
   const ox=b.x,oy=b.y;moveBoss(b,Math.cos(b.ang)*b.s*(hd>BOSS_ZONE_R*.6?1:.4)*dt,Math.sin(b.ang)*b.s*(hd>BOSS_ZONE_R*.6?1:.4)*dt);
   const md=Math.hypot(b.x-ox,b.y-oy);b.mv=(b.mv||0)+((md>.05?1:0)-(b.mv||0))*Math.min(1,dt*8);b.wp=(b.wp||0)+md*.09;
   /* вне боя босс лечится техникой «Лечение»: 3 Ци = 1 здоровья, скорость как у игрока */
@@ -59,7 +61,7 @@ function bossStep(b,dt){
  }
  const tgx=seePlayer?dx:b.lastX-b.x,tgy=seePlayer?dy:b.lastY-b.y;
  b.ang=b.wind?b.wind.ang:Math.atan2(tgy,tgx);
- const busy=seePlayer&&mobAI(b,dt,d);
+ b.cult=false;const busy=seePlayer&&mobAI(b,dt,d);
  if(busy)b.mv=0;
  else if(d>55){const ox=b.x,oy=b.y;moveBoss(b,Math.cos(b.ang)*b.s*dt,Math.sin(b.ang)*b.s*dt);const md=Math.hypot(b.x-ox,b.y-oy);b.mv+=((md>.05?1:0)-(b.mv||0))*Math.min(1,dt*8);b.wp=(b.wp||0)+md*.09}
  else b.mv=0;
@@ -92,5 +94,5 @@ function drawBossOne(b,W,H,time){
  ax.globalCompositeOperation='lighter';for(let i=0;i<3;i++){const a=time*1.4+i*TAU/3;glow(ax,p.x+Math.cos(a)*54,p.y+Math.sin(a)*46,9,aur,.9)}ax.globalCompositeOperation='source-over';
  if(b.shield>0)shieldBubble(ax,p.x,p.y,62,1,0,time);
  drawBar(ax,p.x,p.y-72,78,b.hp/b.maxHp,7);
- outText(ax,(t2?'ПРАКТИК':'БОСС')+' · 100 ★'+(b.columns?' · '+b.columns+' КОЛОННА':''),p.x,p.y-80,'#fff',11);
+ outText(ax,(t2?'ПРАКТИК':'БОСС')+' · 100 ★'+(b.columns?' · '+b.columns+' КОЛОННА':'')+(b.cult?' · КУЛЬТИВИРУЕТ':''),p.x,p.y-80,'#fff',11);
 }

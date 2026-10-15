@@ -121,8 +121,7 @@ function arenaLoop(t){
    const tgx=seePlayer?dx:e.lastX-e.x,tgy=seePlayer?dy:e.lastY-e.y;e.ang=Math.atan2(tgy,tgx);
    if(!(seePlayer&&mobAI(e,dt,d)))moveEnemy(e,Math.cos(e.ang)*e.s*dt,Math.sin(e.ang)*e.s*dt);
   }else{
-   e.wanderT=(e.wanderT||0)-dt;if(e.wanderT<=0||e.wanderAng==null){e.wanderAng=Math.random()*TAU;e.wanderT=1.5+Math.random()*2.5}
-   e.ang=e.wanderAng;moveEnemy(e,Math.cos(e.ang)*e.s*.35*dt,Math.sin(e.ang)*e.s*.35*dt);
+   mobIdle(e,dt);
   }
   for(const o of s.enemies){if(o===e||o.hp<=0)continue;const sx=e.x-o.x,sy=e.y-o.y,sd=Math.hypot(sx,sy)||1,mn=e.r+o.r+3;if(sd<mn){e.x+=sx/sd*(mn-sd)*.5;e.y+=sy/sd*(mn-sd)*.5}}
   const md=Math.hypot(e.x-ox,e.y-oy);e.mv=(e.mv||0)+((md>.05?1:0)-(e.mv||0))*Math.min(1,dt*8);e.wp=(e.wp||0)+md*.13;e.atk=Math.max(0,(e.atk||0)-dt);

@@ -183,3 +183,36 @@ function drawCorpse(c){
  const o=SPR.enemy;if(!o.ok)return;const sc=EN.SC[c.tier],k8=sectOf(c.ang);
  enFrame(ax,o.img,k8,c.tier,p.x,p.y-k*14,sc*(1-.2*k),1-k);const wt=tinted('enemy','#ffffff');if(wt)enFrame(ax,wt,k8,c.tier,p.x,p.y-k*14,sc*(1-.2*k),(1-k)*.85);ax.globalAlpha=1;
 }
+
+/* ---- культивация у зон Ци ---- */
+const MOB_GROW_SEC=45;
+/* ближайшая зона Ци босса (она же — место сбора) */
+function nearestBossZone(x,y){let best=null,bd=1e9;for(const z of (arenaState.springs||[])){if(!z.bz)continue;const d=Math.hypot(x-z.x,y-z.y);if(d<bd){bd=d;best=z}}return best}
+/* мирное поведение моба: культиваторы (со звёздами) частью идут к зоне Ци босса, сидят там и медленно растут */
+function mobIdle(e,dt){
+ if(e.zoneBound==null)e.zoneBound=(e.stars||0)>0&&Math.random()<.6;
+ e.wanderT=(e.wanderT||0)-dt;if(e.wanderT<=0||e.wanderAng==null){e.wanderAng=Math.random()*TAU;e.wanderT=1.5+Math.random()*2.5}
+ let sp=.35;e.cult=false;
+ const z=e.zoneBound&&(e.stars||0)>0?nearestBossZone(e.x,e.y):null;
+ if(z){const dz=Math.hypot(e.x-z.x,e.y-z.y);
+  if(dz>z.r*.7){e.wanderAng=Math.atan2(z.y-e.y,z.x-e.x);sp=.6}
+  if(dz<=z.r){e.cult=true;e.growT=(e.growT||0)+dt;if(e.growT>=MOB_GROW_SEC){e.growT=0;growMob(e)}}}
+ e.ang=e.wanderAng;moveEnemy(e,Math.cos(e.ang)*e.s*sp*dt,Math.sin(e.ang)*e.s*sp*dt);
+}
+/* рост на одну звезду: все параметры пересчитываются по тем же формулам, доля здоровья и Ци сохраняется */
+function growMob(e){
+ if(e.isBoss||(e.columns||0)>0)return;
+ const cap=Math.min(100,maxMobStars(arenaTier(arenaState)));if((e.stars||0)>=cap)return;
+ const r=e.maxHp?e.hp/e.maxHp:1,q=e.maxQi?e.qi/e.maxQi:1;
+ applyKit(e,{stars:e.stars+1,techs:(e.techs||[]).slice()});e.hp=Math.max(1,e.maxHp*r);e.qi=e.maxQi*q;
+}
+/* прорыв: если босс мёртв, ближайший к нему по культивации моб из его зоны может занять его место */
+function cultScore(e){return (e.columns||0)*100+(e.stars||0)}
+function tryBreakthrough(i){
+ const s=arenaState,b=s.bosses[i],z=(s.springs||[]).find(q=>q.bz===(b.index||i+1));if(!z)return false;
+ const need=((b.index||i+1)-1)*100+100-30;let best=null;
+ for(const m of s.enemies){if(m.hp<=0||m.isBoss)continue;if(Math.hypot(m.x-z.x,m.y-z.y)>z.r)continue;if(cultScore(m)<need)continue;if(!best||cultScore(m)>cultScore(best))best=m}
+ if(!best)return false;
+ const nb=newBoss(b.index||i+1);nb.x=best.x;nb.y=best.y;best.hp=0;best.removed=true;s.bosses[i]=nb;
+ burst(nb.x,nb.y,40,'#ffd85b',320,1,3.4);toast('Моб совершил прорыв и стал боссом '+nb.index+'!');return true;
+}
