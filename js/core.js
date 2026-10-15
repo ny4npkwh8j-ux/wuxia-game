@@ -60,7 +60,7 @@ function renderCore(){
   $('coreInfo').innerHTML='Ядро: <b>'+save.coreQuality+'</b> · множитель <b>×'+save.coreCoef+'</b> ко всему: здоровье, сила, Ци, мощь техник и стойкость. Колонны слились в ядро.';return}
  $('coreForm').style.display='block';
  const sc=save.pillars*(save.pillarCoef||1),q=coreQualityFor(save.pillars,save.pillarCoef||1),chance=coreChance(),bal=save.rewards2,left=coreShardsLeft(),canQ=coreUnlocked();
- $('coreInfo').innerHTML=canQ?('Колонн: <b>'+save.pillars+'</b> · качество колонн ×'+(save.pillarCoef||0).toFixed(2)+'. Ожидаемое ядро: <b>'+q.name+'</b> (×'+q.coef+'). Шанс успеха: <b>'+chance+'%</b>. При создании колонны рассыпаются и сплавляются в ядро; при неудаче ресурсы теряются и одна колонна разрушается.'):('Ядро открывается после '+CORE_MIN_PILLARS+'-й колонны.');
+ $('coreInfo').innerHTML=canQ?('Колонн: <b>'+save.pillars+'</b> · качество колонн ×'+(save.pillarCoef||0).toFixed(2)+'. Ожидаемое ядро: <b>'+q.name+'</b> (×'+q.coef+'). Шанс успеха: <b>'+chance+'%</b>.'+hintText('core')):('Ядро открывается после '+CORE_MIN_PILLARS+'-й колонны.');
  $('coreBarFill').style.width=(coreQiFraction()*100)+'%';
  $('coreProgress').textContent='Ци: '+fmt(save.coreDeposit||0)+' / '+fmt(CORE_QI_COST)+' · Осколки 2 этапа: '+fmt(bal)+' · не хватает '+fmt(left)+' осколков';
  $('coreDepositBtn').disabled=!canQ||save.qi<100||(save.coreDeposit||0)>=CORE_QI_COST;$('coreDepositBtn').textContent='Внести '+fmt(CORE_DEPOSIT_STEP)+' Ци';
@@ -75,13 +75,13 @@ function contributeCoreQi(){
 }
 async function formCoreFromQi(){
  if(!coreUnlocked()||(save.coreDeposit||0)<CORE_QI_COST)return;
- if(!await confirmDialog('Создать ядро? Шанс успеха: '+coreChance()+'%. Колонны будут уничтожены.','Создать'))return;
+ if(!await confirmDialog('Создать ядро? Шанс успеха: '+coreChance()+'%. Колонны будут уничтожены, при неудаче — все.','Создать'))return;
  attemptCore(()=>{save.coreDeposit-=CORE_QI_COST});
 }
 async function payCoreRewards(){
  const left=coreShardsLeft();if(!coreUnlocked()||left<=0)return;
  if(save.rewards2<left)return toast('Нужно '+fmt(left)+' осколков 2 этапа.');
- if(!await confirmDialog('Создать ядро? Шанс успеха: '+coreChance()+'%. Колонны будут уничтожены.','Создать'))return;
+ if(!await confirmDialog('Создать ядро? Шанс успеха: '+coreChance()+'%. Колонны будут уничтожены, при неудаче — все.','Создать'))return;
  attemptCore(()=>{save.rewards2-=left;save.coreDeposit=0});
 }
 function investCoreChance(){
@@ -100,9 +100,9 @@ function attemptCore(payFn){
   persist();updateUI();
   playStageAnimation({kind:'core',success:true,title:'Ядро: '+q.name,text:'Колонны рассыпались и сплавились в ядро. Всё стало сильнее в ×'+q.coef+' раз.',onClose:openCore});
  }else{
-  save.pillars=Math.max(0,n-1);save.maxQi=Math.max(100,save.maxQi-(save.pillarQiBonus||0));save.qi=Math.min(save.qi,save.maxQi);
+  save.pillars=0;save.maxQi=Math.max(100,save.maxQi-n*(save.pillarQiBonus||0));save.qi=Math.min(save.qi,save.maxQi);
   persist();updateUI();
-  playStageAnimation({kind:'core',success:false,title:'Ядро не удалось',text:'Ресурсы потеряны, одна колонна разрушена. Осталось колонн: '+save.pillars+'.',onClose:()=>{if(coreUnlocked()){renderCore();$('coreModal').classList.add('show')}}});
+  playStageAnimation({kind:'core',success:false,title:'Ядро не удалось',text:'Ресурсы потеряны, все колонны разрушены.',onClose:()=>{}});
  }
 }
 
@@ -153,4 +153,21 @@ function drawStageAnim(cv,st,t){
   for(let i=0;i<20;i++){const x=W*(.2+rnd(i)*.6),y=H*(.9-((t*.18+rnd(i+30))%1)*.7);glowDisc(c,x,y,5,'#b890ff',.7)}
   c.globalCompositeOperation='source-over';
  }
+}
+
+/* ---------- подсказки по культивации: выпадают из противников ---------- */
+const HINTS={
+ pillar:{name:'Колонны',text:'Каждая следующая колонна дороже предыдущей и формируется не гарантированно — есть шанс неудачи. Первую можно оплатить Ци (по 500) или осколками души; остальные — Ци или осколками второго этапа. Лишние осколки повышают шанс.'},
+ core:{name:'Ядро',text:' Колонны рассыпаются на осколки и сплавляются в ядро — чем больше и лучше колонны, тем выше шанс и качество. При неудаче ресурсы теряются, а все колонны разрушаются.'}
+};
+function hasHint(id){return (save.hints||[]).includes(id)}
+function hintText(id){return hasHint(id)?HINTS[id].text:''}
+function hintPlaceholder(id){return hasHint(id)?HINTS[id].text:'🔒 Подсказка «'+HINTS[id].name+'» не найдена — выпадает из противников.'}
+function dropHint(e){
+ const left=Object.keys(HINTS).filter(k=>!hasHint(k));if(!left.length)return;
+ const chance=e.isBoss?1:Math.min(.08,.01+(e.stars||0)/2000);
+ if(Math.random()>=chance)return;
+ const id=left[Math.floor(Math.random()*left.length)];
+ save.hints=(save.hints||[]).concat(id);persist();
+ showBanner('💡 Подсказка по культивации\n«'+HINTS[id].name+'»\nОткрыта в меню формирования');
 }

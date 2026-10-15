@@ -47,22 +47,24 @@ function myCore(){return save.coreCoef>0?save.coreCoef:0}
 function myStage(){return stageFactor(save.pillars,save.pillarCoef,myCore())}
 function myMult(t){return techniquePower(t.nodes.length,save.stars)*bodyHp(save.stars)*myStage()}
 function mobMult(stars){return powerMult(Math.min(PATH_CAP,stars),stars,0,1)}
-function bossMult(b){return powerMult(PATH_CAP,100,b.columns||0,PILLAR_Q[0][3])}
+/* качество колонн босса не ниже лучшего в игре и не ниже качества колонн самого игрока (чтобы боссы не отставали от прокачанного игрока) */
+function bossCoef(){return Math.max(PILLAR_Q[0][3],save.pillarCoef||0)}
+function bossMult(b){return powerMult(PATH_CAP,100,b.columns||0,bossCoef())}
 /* сила любого противника по тем же формулам, что и у игрока */
-function entMult(e){return powerMult(Math.min(PATH_CAP,e.stars||0),e.stars||0,e.columns||0,e.isBoss?PILLAR_Q[0][3]:1,e.core||0)}
+function entMult(e){return powerMult(Math.min(PATH_CAP,e.stars||0),e.stars||0,e.columns||0,e.isBoss?bossCoef():1,e.core||0)}
 /* сила игрока как цели оглушения (максимальная техника по его звёздам) */
 function playerRefMult(){return techniquePower(Math.min(PATH_CAP,save.stars),save.stars)*bodyHp(save.stars)*myStage()}
 /* сила обычного удара кулаком: привязана к звёздам (100 звёзд = 100 урона) */
 function playerStr(){return bodyStr(save.stars)*myStage()}
 /* удар кулаком противника: колонны усиливают его так же, как удар игрока (ядро уже учтено в e.str) */
-function entMelee(e){return (e.str??bodyStr(e.stars||0))*colFactor(e.columns||0,e.isBoss?PILLAR_Q[0][3]:1)}
+function entMelee(e){return (e.str??bodyStr(e.stars||0))*colFactor(e.columns||0,e.isBoss?bossCoef():1)}
 function techDamage(t){return TECH_BASE[t.type]*myMult(t)}
 /* Стойкость стадии: колонны усиливают не только атаку (colFactor), но и делят входящий урон на ту же величину.
    Равные по стадии противники дерутся как на этапе I (удар = 30% здоровья), а разница в колоннах даёт двойное преимущество.
    Колонны с коэффициентом <1 стойкости не добавляют. Щит считается без колонн: стойкость уже работает на входе урона. */
 function toughness(cols,M,core){return Math.max(1,stageFactor(cols,M,core))}
 function myToughness(){return toughness(save.pillars,save.pillarCoef,myCore())}
-function entToughness(e){return toughness(e.columns||0,e.isBoss?PILLAR_Q[0][3]:1,e.core||0)}
+function entToughness(e){return toughness(e.columns||0,e.isBoss?bossCoef():1,e.core||0)}
 function techShieldMax(t){return TECH_BASE.shield*techniquePower(t.nodes.length,save.stars)*bodyHp(save.stars)}
 function entShieldMax(e){const S=e.stars||0;return TECH_BASE.shield*techniquePower(Math.min(PATH_CAP,S),S)*bodyHp(S)}
 function techCost(t){if(t.type==='dodge')return Math.ceil(save.maxQi*.05);if(t.type==='qiShield')return 0;return Math.ceil(TECH_COST[t.type]+.3*save.stars)}

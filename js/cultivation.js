@@ -30,7 +30,7 @@ function renderPillar(){
  if(first)info=okStars?('Первая колонна доступна ('+save.stars+' ★).'):('Первая колонна открывается с '+FIRST_PILLAR_STARS+' звёзд (сейчас '+save.stars+').');
  else info='Колонн: <b>'+save.pillars+'/'+MAX_PILLARS+'</b>. Качество: <b>'+save.pillarQuality+'</b> ('+save.pillarStars+' ★ при формировании). Оплата — Ци, осколками 2 этапа или вместе.';
  if(!done&&okStars)info+=' Шанс успеха: <b>'+chance+'%</b>.'+(first?'':(' +'+save.pillarQiBonus+' Ци при успехе.'));
- $('pillarInfo').innerHTML=info;
+ $('pillarInfo').innerHTML=info;$('pillarHelp').textContent=hintPlaceholder('pillar');
  $('pillarProgressText').textContent=done?'Все колонны сформированы.':('Ци: '+fmt(save.pillarQi)+' / '+fmt(qiCost)+' · Осколки'+kind+': '+fmt(bal)+' · для полной оплаты не хватает '+fmt(left)+' осколков');
  $('pillarBarFill').style.width=(done?100:pillarQiFraction()*100)+'%';
  $('pillarDepositBtn').style.display='flex';
