@@ -30,7 +30,7 @@ const ENT_V=4;
 /* дальность техник: у боссов длиннее */
 const ENT_RANGE={mob:{single:300,area:350,stun:500},boss:{single:600,area:450,stun:500}};
 /* цена техник — по тем же правилам, что и у игрока */
-function entCost(e,t){return t==='dodge'?Math.ceil(.05*e.maxQi):t==='qiShield'?0:Math.ceil(TECH_COST[t]+.3*(e.stars||0))}
+function entCost(e,t){return t==='dodge'?Math.ceil(.05*e.maxQi):t==='qiShield'?0:Math.ceil((TECH_COST[t]+.3*(e.stars||0))*entQiVol(e))}
 /* здоровье, сила и запас Ци — по тем же формулам, что у игрока (bodyHp / bodyStr / bodyQi) */
 function applyKit(e,kit){
  if(kit.columns!=null)e.columns=kit.columns;
