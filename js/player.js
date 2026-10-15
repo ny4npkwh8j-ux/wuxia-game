@@ -6,18 +6,18 @@ function activateQiStrike(t,held){
  if(t.type==='qiArea'&&s.cdArea>0)return toast('Удар по площади перезаряжается: '+s.cdArea.toFixed(1)+' с');
  const f=chargeFactor(held),cost=Math.max(1,Math.round(techCost(t)*f));if(save.qi<cost)return toast('Недостаточно Ци. Нужно '+cost);
  save.qi-=cost;if(t.type==='qiArea')s.cdArea=AREA_CD.qiArea;s.qiCast=QD;s.attackAnim=.36;s.punchDur=.36;s.punchSide=Math.random()<.5?1:0;s.aimT=t.type==='qiSingle'?.6:0;
- const total=techDamage(t)*f,targets=[],b=s.boss;
+ const total=techDamage(t)*f,targets=[],bl=aliveBosses(s);
  if(t.type==='qiSingle'){
   const range=300,cone=Math.PI/7;
   s.qiEffects.push({type:'single',x:s.px,y:s.py,ang:s.shootAng,life:0,duration:QD,range,cone});
   for(const e of s.enemies){if(e.hp<=0)continue;const dx=e.x-s.px,dy=e.y-s.py;if(Math.hypot(dx,dy)<=range&&Math.abs(angDiff(Math.atan2(dy,dx),s.shootAng))<=cone)targets.push(e)}
-  if(b&&b.hp>0){const dx=b.x-s.px,dy=b.y-s.py;if(Math.hypot(dx,dy)<=range&&Math.abs(angDiff(Math.atan2(dy,dx),s.shootAng))<=cone)targets.push(b)}
+  for(const b of bl){const dx=b.x-s.px,dy=b.y-s.py;if(Math.hypot(dx,dy)<=range&&Math.abs(angDiff(Math.atan2(dy,dx),s.shootAng))<=cone)targets.push(b)}
   for(let i=0;i<18;i++){const aa=s.shootAng+rnd(-cone,cone)*.9,sp=rnd(280,560);addPart({k:'spark',x:s.px+Math.cos(aa)*30,y:s.py+Math.sin(aa)*30,vx:Math.cos(aa)*sp,vy:Math.sin(aa)*sp,t:0,max:rnd(.25,.5),size:rnd(1.6,3.2),col:'#ffe27a',drag:2.6})}
   shake(4);
  }else{
   const r=600;s.qiEffects.push({type:'area',x:s.px,y:s.py,life:0,duration:.5,radius:r});
   for(const e of s.enemies){if(e.hp>0&&Math.hypot(e.x-s.px,e.y-s.py)<=r)targets.push(e)}
-  if(b&&b.hp>0&&Math.hypot(b.x-s.px,b.y-s.py)<=r)targets.push(b);
+  for(const b of bl)if(Math.hypot(b.x-s.px,b.y-s.py)<=r)targets.push(b);
   for(let i=0;i<34;i++){const aa=rnd(0,TAU),sp=rnd(200,620);addPart({k:'spark',x:s.px,y:s.py,vx:Math.cos(aa)*sp,vy:Math.sin(aa)*sp,t:0,max:rnd(.3,.7),size:rnd(1.6,3.4),col:'#fff0a0',drag:2.2})}
   shake(7);
  }
@@ -64,7 +64,7 @@ function applyStun(t){
  const s=arenaState,r=500;
  s.qiEffects.push({type:'stun',x:s.px,y:s.py,life:0,duration:.95,radius:r});shake(8);
  const list=[];for(const e of s.enemies)if(e.hp>0&&Math.hypot(e.x-s.px,e.y-s.py)<=r)list.push(e);
- const b=s.boss;if(b&&b.hp>0&&Math.hypot(b.x-s.px,b.y-s.py)<=r)list.push(b);
+ for(const b of aliveBosses(s))if(Math.hypot(b.x-s.px,b.y-s.py)<=r)list.push(b);
  const S=myMult(t);let stunned=0;
  for(const e of list){
   const dead=damageEnemy(e,10);if(dead){killReward(e);continue}
@@ -97,7 +97,7 @@ function arenaAttack(){
  s.attackAnim=.32;s.punchDur=.32;s.aimT=.55;s.punchSide=Math.random()<.5?1:0;s.slashes.push({x:s.px,y:s.py,ang:s.shootAng,t:0,max:.24,side:s.punchSide});
  let hits=0;
  for(const e of s.enemies){if(e.hp<=0)continue;const dx=e.x-s.px,dy=e.y-s.py,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);if(d<=48&&Math.abs(angDiff(a,s.shootAng))<=1.35){hits++;if(damageEnemy(e,playerStr()))killReward(e)}}
- const b=s.boss;if(b&&b.hp>0){const dx=b.x-s.px,dy=b.y-s.py,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);if(d<=48&&Math.abs(angDiff(a,s.shootAng))<=1.35){hits++;if(damageEnemy(b,playerStr()))killReward(b)}}
+ for(const b of aliveBosses(s)){const dx=b.x-s.px,dy=b.y-s.py,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);if(d<=48&&Math.abs(angDiff(a,s.shootAng))<=1.35){hits++;if(damageEnemy(b,playerStr()))killReward(b)}}
  if(hits){shake(3);persist()}
 }
 /* player atlas: 8 columns (label order) x 3 rows (idle, left punch, right punch) */

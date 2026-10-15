@@ -13,7 +13,7 @@ function emitFx(dt,still){
  if(s.channel&&Math.random()<80*dt)addPart({k:'mote',x:0,y:0,vx:0,vy:0,a:rnd(0,TAU),r0:rnd(60,130),spin:rnd(-3,3),t:0,max:rnd(.4,.8),col:'#c58cff',size:1});
  if(s.mv>.5&&s.dashTime<=0&&Math.random()<7*dt)addPart({k:'dust',x:s.px+rnd(-6,6),y:s.py+9,vx:rnd(-8,8),vy:rnd(-8,8),t:0,max:.5,size:3,drag:2});
  if(s.dashTime>0)for(let i=0;i<2;i++)addPart({k:'dust',x:s.px+rnd(-8,8),y:s.py+rnd(-4,10),vx:-s.lastMoveX*rnd(30,90),vy:-s.lastMoveY*rnd(30,90),t:0,max:.45,size:4,drag:3});
- const b=s.boss;if(b&&b.hp>0&&Math.hypot(b.x-s.px,b.y-s.py)<700&&Math.random()<26*dt)addPart({k:'ember',x:b.x+rnd(-30,30),y:b.y+rnd(-5,30),vx:rnd(-10,10),vy:rnd(-60,-30),t:0,max:rnd(.8,1.4),size:rnd(4,8),col:b.tier===2?'#ff8a3a':'#ffd85b',drag:.2});
+ for(const b of aliveBosses(s))if(Math.hypot(b.x-s.px,b.y-s.py)<700&&Math.random()<26*dt)addPart({k:'ember',x:b.x+rnd(-30,30),y:b.y+rnd(-5,30),vx:rnd(-10,10),vy:rnd(-60,-30),t:0,max:rnd(.8,1.4),size:rnd(4,8),col:b.tier===2?'#ff8a3a':'#ffd85b',drag:.2});
 }
 /* ================= ARENA ART & FX (v0.5) ================= */
 const TAU=Math.PI*2;

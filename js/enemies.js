@@ -7,12 +7,15 @@ function maxMobStars(bossIndex){
  while(lo<=hi){const mid=(lo+hi)>>1;if(mobMult(mid)<=target){ans=mid;lo=mid+1}else hi=mid-1}
  return ans;
 }
-function mobTierRange(bossIndex){const cap=maxMobStars(bossIndex);return{a:Math.max(3,Math.round(cap*.3)),b:cap}}
+/* после смерти босса с N колоннами (индекс N+1) появляются мобы с колоннами до N−1 */
+function maxMobCols(bossIndex){return Math.max(0,bossIndex-3)}
+function mobTierRange(bossIndex){const cap=maxMobStars(bossIndex);return{a:Math.max(3,Math.round(cap*.3)),b:cap,cols:cap>=100?maxMobCols(bossIndex):0}}
 const MOB_W={shield:40,dodge:22,qiSingle:18,qiShield:12,qiArea:6};
 function rollKit(bossIndex){
  const T=mobTierRange(bossIndex),r=Math.random();let stars=0,cnt=0;
  if(r<.10){stars=Math.max(8,1+Math.floor(Math.random()*T.b));cnt=1+Math.floor(Math.random()*3)}
  else if(r<.10+1/3){stars=Math.max(3,1+Math.floor(Math.random()*T.a));cnt=1}
+ if(stars&&T.cols>0&&Math.random()<.3)return{stars:100,techs:['shield','dodge','qiSingle','qiArea','qiShield','stun','heal'],columns:1+Math.floor(Math.random()*T.cols)};
  if(!stars)return{stars:0,techs:[]};
  let techs=[];
  if(stars>=60){techs=['shield','dodge','qiSingle','qiArea'];if(Math.random()<.4)techs.push('qiShield')}
@@ -30,7 +33,8 @@ const ENT_RANGE={mob:{single:300,area:350,stun:500},boss:{single:600,area:450,st
 function entCost(e,t){return t==='dodge'?Math.ceil(.05*e.maxQi):t==='qiShield'?0:Math.ceil(TECH_COST[t]+.3*(e.stars||0))}
 /* здоровье, сила и запас Ци — по тем же формулам, что у игрока (bodyHp / bodyStr / bodyQi) */
 function applyKit(e,kit){
- const S=kit.stars,C=e.core>0?e.core:1,mh=bodyHp(S)*C,mq=bodyQi(S,e.columns||0,e.isBoss?PILLAR_Q[0][2]:0)*C;
+ if(kit.columns!=null)e.columns=kit.columns;
+ const S=kit.stars,C=e.core>0?e.core:1,mh=bodyHp(S)*C,mq=bodyQi(S,e.columns||0,(e.isBoss||e.columns>0)?PILLAR_Q[0][2]:0)*C;
  Object.assign(e,{v:ENT_V,stars:S,str:bodyStr(S)*C,techs:kit.techs,technique:kit.techs[0]||null,hp:mh,maxHp:mh,qi:mq,maxQi:mq,shield:0,shieldMax:0,qiShieldOn:kit.techs.includes('qiShield'),qsFlash:0,wind:null,mcd:0,cd:{atk:e.isBoss?.8:1+Math.random()*1.5,sh:0,dash:1+Math.random()*2,stun:2,area:0}});
  return e;
 }
@@ -45,7 +49,7 @@ function entTick(e,dt){
 function makeMob(x,y,bossIndex){return applyKit({id:nid(),x,y,r:20,s:(45+Math.random()*25),ang:0,hit:0,seenT:0,wanderT:0},rollKit(bossIndex))}
 function rerollLiveMobs(bossIndex){
  const s=arenaState;if(!s)return;
- for(const e of s.enemies){if(e.hp<=0)continue;const k=rollKit(bossIndex);applyKit(e,k);e.s=(45+Math.random()*25)*(1+k.stars/500)}
+ for(const e of s.enemies){if(e.hp<=0)continue;const k=rollKit(bossIndex);applyKit(e,k);if(!k.columns)e.columns=0;e.s=(45+Math.random()*25)*(1+k.stars/500)}
 }
 function damageEnemy(e,damage){
  if(e.hp<=0)return false;const raw=damage/entToughness(e);let dmg=raw;
@@ -113,7 +117,7 @@ function stunPlayer(dur){
 }
 function playerStunned(){const s=arenaState;return !!(s&&s.stun>0)}
 function drawMobTelegraphs(time){
- const s=arenaState,W=aw/devicePixelRatio,list=s.boss&&s.boss.hp>0?s.enemies.concat([s.boss]):s.enemies;
+ const s=arenaState,W=aw/devicePixelRatio,list=s.enemies.concat(aliveBosses(s));
  for(const e of list){
   if(e.hp<=0||!e.wind)continue;const w=e.wind,p=worldToScreen(e.x,e.y),k=Math.min(1,w.t/w.dur),R=w.range||(w.type==='single'?300:350);
   if(p.x<-R-100||p.x>W+R+100)continue;
@@ -144,7 +148,7 @@ function drawEnemy(e,W,H,time){
  if(e.stun>0){ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y,30,'#8fb8ff',.4);ax.globalCompositeOperation='source-over';ax.fillStyle='#fff3a0';for(let i=0;i<3;i++){const a=time*3.4+i*TAU/3;star4(ax,p.x+Math.cos(a)*14,p.y-28+Math.sin(a)*4,4.2);ax.fill()}}
  if(e.shield>0){ax.save();ax.strokeStyle='rgba(99,233,255,.55)';ax.lineWidth=1.8;ax.setLineDash([5,5]);ax.lineDashOffset=-time*14;ax.beginPath();ax.arc(p.x,p.y,30,0,TAU);ax.stroke();ax.restore()}
  drawBar(ax,p.x,p.y-40,36,e.hp/(e.maxHp||100),5);
- if(st>0){outText(ax,'★'+st,p.x-2,p.y-46,'#ffd85b',10);const ts=e.techs||[];ts.slice(0,5).forEach((tt,i)=>{ax.fillStyle=MOB_DOT[tt]||'#fff';ax.beginPath();ax.arc(p.x+13+i*6,p.y-50,2.6,0,TAU);ax.fill()})}
+ if(st>0){outText(ax,'★'+st+(e.columns?' · '+e.columns+' КОЛ.':''),p.x-2,p.y-46,'#ffd85b',10);const ts=e.techs||[];ts.slice(0,5).forEach((tt,i)=>{ax.fillStyle=MOB_DOT[tt]||'#fff';ax.beginPath();ax.arc(p.x+13+i*6,p.y-50,2.6,0,TAU);ax.fill()})}
  if(e.stun>0)outText(ax,e.stun.toFixed(1)+'с',p.x,p.y-56-(st>0?4:-4),'#c9a8ff',10);
 }
 function mobDrop(e){
