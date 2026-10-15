@@ -6,7 +6,8 @@ const SCROLLS={
   effect:()=>'переключатель на арене, жёлтое свечение по силуэту. Пока включён, после обычного щита урон поглощается за счёт запаса Ци: 1 урона за 0,5 Ци. Когда Ци кончается, щит гаснет.'}
 };
 const BOSS_SCROLL={1:'stun',2:'qiShield'};
-function hasScroll(id){return save.scrolls.includes(id)}
+/* чертежи больше не нужны: любую технику можно собрать самому, а чертёж (выпадение с босса) лишь собирает её автоматически */
+function hasScroll(id){return true}
 function grantScroll(id){if(hasScroll(id))return false;save.scrolls.push(id);persist();return true}
 function techniqueZones(nodes){return new Set(nodes.map(i=>starZone(save.starPts[i])))}
 function pointInTriangle(p,a,b,c){
@@ -46,6 +47,42 @@ function techniqueDescription(type,n){
  if(type==='qiArea')return 'Держи для набора силы (0,4-1,5x, до 1,2 с) · радиус 600 · общий урон '+fmt(techDamage(t))+' на полной силе, делится между целями · перезарядка '+AREA_CD.qiArea+' с · минимум 15 ★ · Ци '+techCost(t)+' на полной силе.';
  return 'Нужна подходящая геометрия звёзд.';
 }
+/* какие зоны тела допустимы в маршруте техники (торс разрешён всегда как соединительная зона) */
+const TECH_ZONES={shield:{head:1},dodge:{leg:1},qiSingle:{hand:1},qiArea:{hand:1},stun:{head:1,leg:1},qiShield:{head:1,hand:1},heal:{},blade:{hand:1,leg:1},repel:{head:1,hand:1,leg:1},pull:{},mirage:{leg:1},poison:{hand:1}};
+/* самый длинный допустимый маршрут по звёздам и меридианам игрока для типа техники (поиск в глубину с ограничением шагов) */
+function findBestChain(type,cap=PATH_CAP){
+ const zs=TECH_ZONES[type];if(!zs)return null;
+ const N=save.starPts.length;if(N<(MIN_STARS[type]||1))return null;
+ const adj=Array.from({length:N},()=>[]);
+ for(const e of save.meridianEdges){if(e[0]!==e[1]){adj[e[0]].push(e[1]);adj[e[1]].push(e[0])}}
+ const single=type==='qiSingle'||type==='poison',sides=single?['leftHand','rightHand']:[null];
+ const lim=Math.min(cap,N);let best=null,validations=0;
+ for(const side of sides){
+  const allowed=i=>{const z=starZone(save.starPts[i]);if(z==='body')return true;if(z==='head')return !!zs.head;if(z.includes('Hand'))return !!zs.hand&&(!side||z===side);if(z.includes('Leg'))return !!zs.leg;return false};
+  const pri=i=>starZone(save.starPts[i])==='body'?1:0;for(const l of adj)l.sort((a,b)=>pri(a)-pri(b));
+  let steps=0,stepsStart=0;const path=[],used=new Uint8Array(N),minN=MIN_STARS[type]||1;
+  const dfs=i=>{
+   path.push(i);used[i]=1;
+   if(path.length>(best?best.length:0)&&path.length>=minN&&validations<20000){validations++;const v=validateTechnique(path,true);if(!v.err&&v.type===type)best=path.slice()}
+   if(path.length<lim&&steps++<150000&&stepsStart++<12000&&!(best&&best.length>=lim)){for(const j of adj[i]){if(used[j]||!allowed(j))continue;dfs(j);if(best&&best.length>=lim)break}}
+   path.pop();used[i]=0;
+  };
+  const starts=[];for(let i=0;i<N;i++)if(allowed(i)&&adj[i].length)starts.push(i);starts.sort((a,b)=>pri(a)-pri(b)||adj[b].length-adj[a].length);
+  for(const s0 of starts){if(steps>=150000||(best&&best.length>=lim))break;stepsStart=0;dfs(s0)}
+ }
+ return best;
+}
+/* автосборка техники при выпадении: игра сама подбирает наилучший (самый длинный) маршрут из звёзд игрока. Если типа ещё нет — создаётся,
+   если есть — заменяется только более длинным маршрутом. Если маршрута нет совсем — выдаётся чертёж-подсказка. */
+function autoFormTechnique(type){
+ const path=findBestChain(type);
+ if(!path){addBlueprint({type,n:PATH_CAP,tier:'high',src:'boss'});return{mode:'bp'}}
+ const tech={type,name:techniqueName(type),nodes:path};if(type==='stun')tech.cast=5;
+ const ex=save.techniques.findIndex(t=>t.type===type);
+ if(ex<0){save.techniques.push(tech);persist();return{mode:'new',n:path.length}}
+ if(save.techniques[ex].nodes.length>=path.length){persist();return{mode:'kept',n:save.techniques[ex].nodes.length}}
+ save.techniques[ex]=tech;persist();return{mode:'upgraded',n:path.length};
+}
 function validateTechnique(nodes,dantian){
  if(!dantian)return{err:'Техника должна начинаться с Дан-тяня.'};
  const type=getTechniqueType(nodes);
@@ -54,7 +91,7 @@ function validateTechnique(nodes,dantian){
  const zc=zoneCounts(nodes);
  if(type==='dodge'&&(zc.leftLeg<1||zc.rightLeg<1))return{err:'Рывок: нужна хотя бы одна звезда на каждой ноге (сейчас '+zc.leftLeg+' и '+zc.rightLeg+').'};
  const sc=SCROLLS[type];
- if(sc){if(!hasScroll(type))return{err:'Нужен чертёж «'+sc.name+'» — он выпадает из '+sc.from+'.'};if(!sc.check(zc))return{err:sc.name+': '+sc.geo+'.'}}
+ if(sc){if(!sc.check(zc))return{err:sc.name+': '+sc.geo+'.'}}
  return{type};
 }
 function finishTechnique(){

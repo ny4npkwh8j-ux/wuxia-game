@@ -27,9 +27,13 @@ function onBossDefeated(b){
  persist();
 }
 function dropBossScroll(b,tier){
- const id=BOSS_SCROLL[tier];if(!id)return;
- addBlueprint({type:id,n:PATH_CAP,tier:'high',src:'boss'});
- showBanner('📜 Выпал чертёж техники\n«'+SCROLLS[id].name+'» · высокое качество\nКультивация → Свитки');burst(b.x,b.y,30,'#c58cff',280,1.1,3.2);floatText(b.x,b.y-100,'📜 '+SCROLLS[id].name,'#e6d0ff',17);
+ const ids=[].concat(BOSS_SCROLL[tier]||[]);
+ for(const id of ids){
+  const r=autoFormTechnique(id),nm=techniqueName(id);
+  const msg=r.mode==='new'?'Техника «'+nm+'» сформировалась сама\nмаршрут: '+r.n+' ★ (лучший из возможных)':r.mode==='upgraded'?'Техника «'+nm+'» улучшена\nновый маршрут: '+r.n+' ★':r.mode==='kept'?'Техника «'+nm+'»: твой маршрут ('+r.n+' ★) уже лучший':'Для техники «'+nm+'» не нашлось маршрута\nвыпал чертёж: Культивация → Свитки';
+  if(r.mode==='kept')toast('📜 '+msg.replace('\n',' · '));else showBanner('📜 '+msg);burst(b.x,b.y,30,'#c58cff',280,1.1,3.2);floatText(b.x,b.y-100,'📜 '+nm,'#e6d0ff',17);
+  if(typeof renderTechList==='function')try{renderTechList()}catch(e){}
+ }
 }
 /* ---- stun (hold to cast) ---- */
 /* ---- boss ---- */
