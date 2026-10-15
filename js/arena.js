@@ -29,7 +29,7 @@ function freshArenaField(){
  for(let i=0;i<10;i++)state.points.push({x:400+Math.random()*9200,y:400+Math.random()*9200,r:25,value:25});
  for(let i=0;i<7;i++){const pw=[3,3,3,5,5,8,8][i];state.hazards.push({x:500+Math.random()*9000,y:500+Math.random()*9000,r:100+Math.random()*130,pw})}
  state.springs=[];for(let i=0;i<3;i++){const pw=[3,5,8][i];state.springs.push({x:500+Math.random()*9000,y:500+Math.random()*9000,r:90+Math.random()*70,pw})}
- for(let i=0;i<65;i++){const o={x:250+Math.random()*9500,y:250+Math.random()*9500,w:55+Math.random()*100,h:45+Math.random()*90,type:Math.random()<.5?'tree':'rock'};if(Math.hypot(o.x-5000,o.y-5000)<650||circleRectRaw(o.x,o.y,60,{x:5000,y:3400,w:150,h:150})){i--;continue}state.obstacles.push(o)}
+ for(let i=0;i<65;i++){const o={x:250+Math.random()*9500,y:250+Math.random()*9500,w:55+Math.random()*100,h:45+Math.random()*90,type:Math.random()<.5?'tree':'rock'};if(Math.hypot(o.x-5000,o.y-5000)<650||Math.hypot(o.x-5000,o.y-5320)<200||circleRectRaw(o.x,o.y,60,{x:5000,y:3400,w:150,h:150})){i--;continue}state.obstacles.push(o)}
  state.springs=state.springs||[];for(const z of state.hazards)z.pw=z.pw||3;
  migrateArenaEntities(state);initFx(state);return state;
 }
@@ -158,6 +158,7 @@ function drawArena(time){
  for(const c of s.corpses)drawCorpse(c);
  for(const e of s.enemies){if(e.hp>0)drawEnemy(e,W,H,time)}
  drawBoss(W,H,time);
+ drawNpcs(time);
  drawPlayer(time);
  for(const fx of s.qiEffects)drawQiFx(fx,time);
  for(const sl of s.slashes)drawSlash(sl);

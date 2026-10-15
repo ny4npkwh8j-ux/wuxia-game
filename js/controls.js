@@ -49,6 +49,7 @@ function techIndexOfKey(code){const m=/^(?:Digit|Numpad)(\d)$/.exec(code);if(!m)
 window.addEventListener('keydown',e=>{
  if(!arenaActive()||e.ctrlKey||e.metaKey||e.altKey)return;
  if(MOVE_KEYS[e.code]){e.preventDefault();kb.keys.add(e.code);applyKbMove();return}
+ if(e.code==='KeyE'){e.preventDefault();if(!e.repeat)openNpc();return}
  const i=techIndexOfKey(e.code);
  if(i>=0){e.preventDefault();if(e.repeat||kb.held.has(e.code))return;if(techKeyDown(i))kb.held.set(e.code,i)}
 });
