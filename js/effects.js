@@ -241,7 +241,7 @@ function shieldBubble(c,x,y,R,k,flash,time){
 }
 function drawBar(c,x,y,w,r,h){r=Math.max(0,Math.min(1,r));c.fillStyle='rgba(8,12,22,.85)';c.beginPath();c.roundRect(x-w/2-1.5,y-1.5,w+3,h+3,(h+3)/2);c.fill();const col=r>.5?'#63e07f':r>.25?'#f0c24a':'#ea5a4a';c.fillStyle=col;c.beginPath();c.roundRect(x-w/2,y,Math.max(h,w*r),h,h/2);c.fill();c.fillStyle='rgba(255,255,255,.28)';c.beginPath();c.roundRect(x-w/2,y,Math.max(h,w*r),h/2,h/4);c.fill()}
 /* ---- sprites (embedded art) ---- */
-const SPR_SRC={beam:'assets/beam.webp',player:'assets/player.webp',enemy:'assets/enemy.webp',boss:'assets/boss.webp',star:'assets/star.webp',column:'assets/column.webp',core:'assets/core.webp',colAnim:'assets/col_anim.webp',coreAnim:'assets/core_anim.webp'};
+const SPR_SRC={beam:'assets/beam.webp',player:'assets/player.webp',enemy:'assets/enemy.webp',boss:'assets/boss.webp',star:'assets/star.webp',column:'assets/column.webp',core:'assets/core.webp',colAnim:'assets/col_anim.webp',coreAnim:'assets/core_anim.webp',coreFinal:'assets/core_final.webp'};
 const SPR={};
 function loadSprites(){for(const k in SPR_SRC){const im=new Image(),o={img:im,ok:false,tint:{}};SPR[k]=o;im.onload=()=>{o.ok=true;if($('cult').classList.contains('active'))drawCult();if($('techModal').classList.contains('show'))drawTech()};im.src=SPR_SRC[k]}}
 loadSprites();

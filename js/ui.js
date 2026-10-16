@@ -47,8 +47,8 @@ function updateUI(){
   $('nextCost').textContent=starsLocked()?(hasCore()?'Новые звёзды закрыты (есть ядро)':'Новые звёзды закрыты (есть колонна)'):(save.stars<100?('Следующая звезда: '+currentStarCost()+' Ци'):'Все 100 звёзд');
  $('starBtn').style.display=starsLocked()?'none':'flex';$('starBtn').disabled=save.stars>=100;$('starBtnCost').textContent=save.stars<100?currentStarCost():'MAX';
  $('meridianBtn').disabled=save.stars<2||save.meridians>=200;$('merBtnCost').textContent=currentStarCost();
- $('pillarBtn').style.display=(!hasCore()&&(save.stars>=FIRST_PILLAR_STARS||save.pillars>0))?'flex':'none';$('coreBtn').style.display=(hasCore()||coreUnlocked())?'flex':'none';$('coreBtnTxt').textContent=hasCore()?'×'+save.coreCoef:'Ядро';$('pillarBtnTxt').textContent=save.pillars+'/'+MAX_PILLARS;$('pillarBtn').disabled=false;
- $('stageText').textContent=hasCore()?('Ядро · '+save.coreQuality+' ×'+save.coreCoef):save.pillars?('Колонн '+save.pillars+'/'+MAX_PILLARS+' · '+save.pillarQuality+' ×'+save.pillarCoef.toFixed(2)):'Формирование звёзд';
+ $('pillarBtn').style.display=(!hasCore()&&(save.stars>=FIRST_PILLAR_STARS||save.pillars>0))?'flex':'none';$('coreBtn').style.display=(hasCore()||coreUnlocked())?'flex':'none';$('coreBtnTxt').textContent=hasCore()?'×'+myCore().toFixed(1):'Ядро';$('pillarBtnTxt').textContent=save.pillars+'/'+MAX_PILLARS;$('pillarBtn').disabled=false;
+ $('stageText').textContent=hasCore()?('Ядро · '+save.coreQuality+' ×'+myCore().toFixed(2)+(save.coreDens?' · уплотнение '+save.coreDens+'/5':'')):save.pillars?('Колонн '+save.pillars+'/'+MAX_PILLARS+' · '+save.pillarQuality+' ×'+save.pillarCoef.toFixed(2)):'Формирование звёзд';
 $('techOpenBtn').style.display='block';$('techOpenBtn').textContent='☯ Техника'+(save.techniques.length?' ('+save.techniques.length+')':'');drawCult();
 }
 function openEvent(title,text){$('modalTitle').textContent=title;$('modalText').textContent=text;$('modal').classList.add('show')}

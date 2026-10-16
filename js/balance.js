@@ -52,7 +52,8 @@ function colFactor(cols,M){return cols>0?Math.pow(M||1,cols):1}
 /* множитель стадии: ядро (если есть) вместо колонн; ядро усиливает всё: здоровье, силу, Ци, силу техник и стойкость */
 function stageFactor(cols,M,core){return core>0?core:colFactor(cols,M)}
 function powerMult(pathLen,stars,cols,M,core){return techniquePower(pathLen,stars)*bodyHp(stars)*stageFactor(cols,M,core)}
-function myCore(){return save.coreCoef>0?save.coreCoef:0}
+/* уплотнение ядра (0–5): каждая стадия усиливает ядро ещё на 10% от его множителя */
+function myCore(){return save.coreCoef>0?save.coreCoef*(1+.1*(save.coreDens||0)):0}
 function myStage(){return stageFactor(save.pillars,save.pillarCoef,myCore())}
 function myQiVol(){return qiVolume(save.maxQi,save.stars)}
 function myQiCol(){return qiColVolume(save.maxQi,save.stars,myCore())}

@@ -22,11 +22,22 @@ function drawColumnsAt(c,n,x,y,u,hh,t,alpha=1){
   else{c.globalCompositeOperation='source-over';c.fillStyle='#ffd45b';c.globalAlpha=alpha;c.fillRect(px-w/4,y-h,w/2,h);c.globalAlpha=1}
   c.globalCompositeOperation='source-over'}
 }
-function drawCoreAt(c,x,y,sz,t,alpha=1){
- const o=SPR.core,p=1+.05*Math.sin(t*2.4);
- c.globalCompositeOperation='lighter';glowDisc(c,x,y,sz*.9*p,'#ffb84a',.55*alpha);
- if(o&&o.ok){const h=sz*p,w=h*o.img.naturalWidth/o.img.naturalHeight;c.globalAlpha=alpha;c.drawImage(o.img,x-w/2,y-h/2,w,h);c.globalAlpha=1}
- else{c.fillStyle='#ffe08a';c.globalAlpha=alpha;c.beginPath();c.arc(x,y,sz*.3,0,7);c.fill();c.globalAlpha=1}
+/* ядро: чем выше уплотнение (0–5), тем оно меньше и плотнее — завихрения втягиваются внутрь, на 5-й стадии остаётся огранённый шар */
+/* финальное ядро (картинка): круглая маска с мягким краем, чтобы рисовать обычным наложением и сохранить огранку */
+let _coreFinalM=null;
+function coreFinalMasked(img){
+ if(_coreFinalM)return _coreFinalM;
+ const n=256,cv=document.createElement('canvas');cv.width=cv.height=n;const g=cv.getContext('2d');g.drawImage(img,0,0,n,n);
+ g.globalCompositeOperation='destination-in';const gr=g.createRadialGradient(n/2,n/2,n*.36,n/2,n/2,n*.5);gr.addColorStop(0,'rgba(0,0,0,1)');gr.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gr;g.fillRect(0,0,n,n);
+ return _coreFinalM=cv;
+}
+function drawCoreAt(c,x,y,sz,t,alpha=1,dens){
+ if(dens==null)dens=save.coreDens||0;
+ const o=SPR.core,f=SPR.coreFinal,k=Math.max(0,Math.min(1,dens/5)),p=1+.05*Math.sin(t*2.4),size=sz*(1-.16*k);
+ c.globalCompositeOperation='lighter';glowDisc(c,x,y,size*(.9-.3*k)*p,'#ffb84a',(.5*(1-k*.8))*alpha);
+ if(o&&o.ok&&k<1){const h=size*(1-.4*k)*p,w=h*o.img.naturalWidth/o.img.naturalHeight;c.save();c.translate(x,y);c.rotate(t*.6*k);c.globalAlpha=alpha*(1-k*k);c.drawImage(o.img,-w/2,-h/2,w,h);c.restore();c.globalAlpha=1}
+ if(f&&f.ok&&k>0){const m=coreFinalMasked(f.img),h=size*1.3*(.7+.3*k)*p;c.globalCompositeOperation='source-over';c.save();c.translate(x,y);c.rotate(t*.1*k);c.globalAlpha=alpha*Math.pow(k,1.2);c.drawImage(m,-h/2,-h/2,h,h);c.restore();c.globalAlpha=1;c.globalCompositeOperation='lighter'}
+ if(!(o&&o.ok)&&!(f&&f.ok)){c.fillStyle='#ffe08a';c.globalAlpha=alpha;c.beginPath();c.arc(x,y,size*.3,0,7);c.fill();c.globalAlpha=1}
  c.globalCompositeOperation='source-over';
 }
 function drawDantianScene(cv,t,mode){
@@ -57,7 +68,10 @@ function closeCore(){$('coreModal').classList.remove('show')}
 function renderCore(){
  if(hasCore()){
   $('coreForm').style.display='none';
-  $('coreInfo').innerHTML='Ядро: <b>'+save.coreQuality+'</b> · множитель <b>×'+save.coreCoef+'</b> ко всему: здоровье, сила, Ци, мощь техник и стойкость. Колонны слились в ядро.';return}
+  const d=save.coreDens||0;
+  $('coreInfo').innerHTML='Ядро: <b>'+save.coreQuality+'</b> · множитель <b>×'+myCore().toFixed(2)+'</b> ко всему: здоровье, сила, Ци, мощь техник и стойкость. Уплотнение: <b>'+d+'/'+CORE_DENS_MAX+'</b>'+(d>=CORE_DENS_MAX?' — ядро уплотнено полностью.':' · каждая стадия делает ядро плотнее и сильнее на 10% от множителя.');
+  renderDens();return}
+ $('coreDens').style.display='none';
  $('coreForm').style.display='block';
  const sc=save.pillars*(save.pillarCoef||1),q=coreQualityFor(save.pillars,save.pillarCoef||1),chance=coreChance(),bal=save.rewards2,left=coreShardsLeft(),canQ=coreUnlocked();
  $('coreInfo').innerHTML=canQ?('Колонн: <b>'+save.pillars+'</b> · качество колонн ×'+(save.pillarCoef||0).toFixed(2)+'. Ожидаемое ядро: <b>'+q.name+'</b> (×'+q.coef+'). Шанс успеха: <b>'+chance+'%</b>.'+hintText('core')):('Ядро открывается после '+CORE_MIN_PILLARS+'-й колонны.');
@@ -109,7 +123,7 @@ function attemptCore(payFn){
 /* ---------- анимация перехода между стадиями ---------- */
 let stageAnimState=null;
 function playStageAnimation(o){
- const cv=$('stageAnimCv'),dur=o.kind==='core'?(o.success?7:5):5;
+ const cv=$('stageAnimCv'),dur=o.kind==='dens'?4:o.kind==='core'?(o.success?7:5):5;
  stageAnimState={o,t0:performance.now(),dur,done:false,parts:[],seed:Math.random()};
  $('stageAnimTitle').textContent=' ';$('stageAnimText').textContent=' ';$('stageAnimBtn').textContent='Пропустить';
  $('stageAnim').classList.add('show');
@@ -133,7 +147,13 @@ function drawStageAnim(cv,st,t){
  if(cv.width!==Math.round(W*d)){cv.width=Math.round(W*d);cv.height=Math.round(H*d)}
  const c=cv.getContext('2d');c.setTransform(d,0,0,d,0,0);c.fillStyle='#060a18';c.fillRect(0,0,W,H);
  const cx=W/2,cy=H*.55,rnd=i=>{const x=Math.sin((i+1)*12.9898+st.seed*78.233)*43758.5453;return x-Math.floor(x)};
- if(o.kind==='core'){
+ if(o.kind==='dens'){
+  const k=Math.min(1,t/3),e=k*k*(3-2*k);
+  drawFrameCover(c,'coreAnim',4,W,H,1);c.globalCompositeOperation='lighter';
+  for(let i=0;i<24;i++){const a=rnd(i)*6.283,r=W*(.55+rnd(i+40)*.35)*(1-e*.9);glowDisc(c,cx+Math.cos(a+e*2)*r,cy+Math.sin(a+e*2)*r*.9,5,'#ffd45b',.85*(1-e*.8))}
+  c.globalCompositeOperation='source-over';drawCoreAt(c,cx,cy,H*.62,t,1,o.d0+e);
+  if(t>3){const fl=Math.max(0,1-(t-3)/1);c.globalCompositeOperation='lighter';glowDisc(c,cx,cy,H*.5,'#ffe9a8',.6*fl);c.globalCompositeOperation='source-over'}
+ }else if(o.kind==='core'){
   /* кадры листа: 0..4 — колонны → ядро; успех проходит все, неудача останавливается на 2 */
   const maxF=o.success?4:2,tEnd=o.success?4.4:2.2,f=Math.min(maxF,t/tEnd*maxF),i0=Math.floor(f),fr=f-i0;
   drawFrameCover(c,'coreAnim',i0,W,H,1);if(i0<maxF)drawFrameCover(c,'coreAnim',i0+1,W,H,fr);
@@ -170,4 +190,45 @@ function dropHint(e){
  const id=left[Math.floor(Math.random()*left.length)];
  save.hints=(save.hints||[]).concat(id);persist();
  showBanner('💡 Подсказка по культивации\n«'+HINTS[id].name+'»\nОткрыта в меню формирования');
+}
+
+/* ---------- уплотнение ядра: 5 стадий, без риска; Ци и осколки 2 этапа можно сочетать ---------- */
+const CORE_DENS_MAX=5;
+function densQiCost(){return 50000*((save.coreDens||0)+1)}
+function densShardCost(){return 500*((save.coreDens||0)+1)}
+function densQiFraction(){return Math.min(1,(save.coreDeposit||0)/densQiCost())}
+function densShardsLeft(){return Math.max(0,Math.ceil(densShardCost()*(1-densQiFraction())-1e-9))}
+function renderDens(){
+ const box=$('coreDens'),d=save.coreDens||0,done=d>=CORE_DENS_MAX;
+ box.style.display=done?'none':'block';if(done)return;
+ const left=densShardsLeft(),bal=save.rewards2;
+ $('densBarFill').style.width=(densQiFraction()*100)+'%';
+ $('densProgress').textContent='Стадия '+(d+1)+' из '+CORE_DENS_MAX+' · Ци: '+fmt(save.coreDeposit||0)+' / '+fmt(densQiCost())+' · Осколки 2 этапа: '+fmt(bal)+' · не хватает '+fmt(left)+' осколков';
+ $('densDepositBtn').disabled=save.qi<100||(save.coreDeposit||0)>=densQiCost();$('densDepositBtn').textContent='Внести '+fmt(CORE_DEPOSIT_STEP)+' Ци';
+ $('densQiBtn').disabled=(save.coreDeposit||0)<densQiCost();$('densQiBtn').textContent='Уплотнить за Ци ('+fmt(densQiCost())+')';
+ $('densShBtn').disabled=left<=0||bal<left;$('densShBtn').textContent=((save.coreDeposit||0)>0?'Доплатить ':'Оплатить ')+fmt(left)+' осколков';
+}
+function contributeDensQi(){
+ if(!hasCore()||(save.coreDens||0)>=CORE_DENS_MAX)return;const need=densQiCost()-(save.coreDeposit||0);if(need<=0)return;
+ const n=Math.min(Math.floor(save.qi),need,CORE_DEPOSIT_STEP);if(n<100)return toast('Нужно хотя бы 100 Ци.');
+ save.qi-=n;save.coreDeposit=(save.coreDeposit||0)+n;persist();renderCore();
+}
+async function densifyFromQi(){
+ if(!hasCore()||(save.coreDens||0)>=CORE_DENS_MAX||(save.coreDeposit||0)<densQiCost())return;
+ if(!await confirmDialog('Уплотнить ядро? Риска нет.','Уплотнить'))return;
+ densify(()=>{save.coreDeposit-=densQiCost()});
+}
+async function densifyFromShards(){
+ const left=densShardsLeft();if(!hasCore()||(save.coreDens||0)>=CORE_DENS_MAX||left<=0)return;
+ if(save.rewards2<left)return toast('Нужно '+fmt(left)+' осколков 2 этапа.');
+ if(!await confirmDialog('Уплотнить ядро? Риска нет.','Уплотнить'))return;
+ densify(()=>{save.rewards2-=left;save.coreDeposit=0});
+}
+function densify(payFn){
+ payFn();const d0=save.coreDens||0,r=(1+.1*(d0+1))/(1+.1*d0);
+ save.coreDens=d0+1;save.coreDeposit=0;
+ /* запас Ци и здоровье растут вместе с множителем ядра */
+ save.maxQi=Math.round(save.maxQi*r);save.health=Math.round(save.health*r);save.qi=Math.min(save.qi,save.maxQi);
+ persist();updateUI();closeCore();
+ playStageAnimation({kind:'dens',d0,success:true,title:'Уплотнение ядра '+save.coreDens+'/'+CORE_DENS_MAX,text:save.coreDens>=CORE_DENS_MAX?'Ядро уплотнилось полностью. Сила: ×'+myCore().toFixed(2):'Ядро сжалось и стало плотнее. Сила: ×'+myCore().toFixed(2),onClose:openCore});
 }
