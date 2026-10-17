@@ -66,10 +66,11 @@ function releaseAllKeys(){
 window.addEventListener('blur',releaseAllKeys);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)releaseAllKeys()});
 /* мышь: поворот и прицел следуют за курсором, ЛКМ — удар (удержание — серия ударов с кулдауном замаха) */
-window.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||!arenaState)return;kb.mx=e.clientX;kb.my=e.clientY;arenaState.kbAim=true;updateMouseAim()},{passive:true});
-window.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'&&arenaState)arenaState.kbAim=false},true);
+window.addEventListener('pointermove',e=>{if(e.pointerType!=='mouse'||!arenaState||performance.now()-(kb.touchT||-1e9)<2000)return;kb.mx=e.clientX;kb.my=e.clientY;arenaState.kbAim=true;updateMouseAim()},{passive:true});
+window.addEventListener('pointerdown',e=>{if(e.pointerType==='touch'){kb.touchT=performance.now();kb.mouseDown=false;if(arenaState)arenaState.kbAim=false}},true);
+window.addEventListener('pointercancel',()=>{kb.mouseDown=false});
 $('arena').addEventListener('pointerdown',e=>{
- if(e.pointerType!=='mouse'||e.button!==0||!arenaState||e.target.closest('button,#joy,.card,#techCol,.leave'))return;
+ if(e.pointerType!=='mouse'||performance.now()-(kb.touchT||-1e9)<2000||e.button!==0||!arenaState||e.target.closest('button,#joy,.card,#techCol,.leave'))return;
  kb.mx=e.clientX;kb.my=e.clientY;arenaState.kbAim=true;updateMouseAim();kb.mouseDown=true;arenaAttack();
 });
 window.addEventListener('pointerup',e=>{if(e.pointerType==='mouse'&&e.button===0)kb.mouseDown=false});
