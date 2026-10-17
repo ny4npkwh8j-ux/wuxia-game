@@ -142,7 +142,7 @@ function arenaLoop(t){
   if(seePlayer&&d<45&&e.mcd<=0){takeDamage(entMelee(e),'melee');e.mcd=.65;e.atk=.32}
   e.hit=Math.max(0,e.hit-dt);
  }
- bossLoop(dt);warTick(dt);lootPickups(dt);collect();updateHeal(dt);pillTick(dt);
+ bossLoop(dt);warTick(dt);lootPickups(dt);collect();updateHeal(dt);pillTick(dt);mapTick(dt);
  if(s.channel){const ch=s.channel;ch.t+=dt;if(ch.t>=ch.dur){s.channel=null;const st=ch.tech,cost=techCost(st);if(save.qi>=cost){save.qi-=cost;s.cdStun=AREA_CD.stun;applyStun(st)}else toast('Недостаточно Ци. Нужно '+cost)}}
  save.qi=Math.max(0,Math.min(save.maxQi,save.qi));
  updateFx(dt);emitFx(dt,m<=.08);
