@@ -79,8 +79,8 @@ function beginChannel(t){
  s.channel={t:0,dur:castTime(t.cast||5),tech:t};
 }
 function endChannel(){const s=arenaState;if(!s||!s.channel)return;s.channel=null;toast('Оцепенение прервано');burst(s.px,s.py,8,'#c58cff',130,.4,2.4)}
-function takeDamage(amount){
- const s=arenaState;if(s.invuln>0)return;interruptArenaMeditation();amount/=myToughness();
+function takeDamage(amount,kind){
+ const s=arenaState;if(s.invuln>0)return;interruptArenaMeditation();amount/=myToughness();if(kind==='melee')amount*=1-armorCut();
  if(s.shield>0){const ab=Math.min(s.shield,amount);s.shield-=ab;amount-=ab;if(ab>0){floatText(s.px,s.py-32,'-'+fmt(ab),'#63e9ff',13);s.shieldFlash=1;burst(s.px,s.py,10,'#63e9ff',170,.4,2.4)}}
  if(amount>0&&s.qiShieldOn&&save.qi>0){
   const ab=Math.min(amount,save.qi/QI_SHIELD_RATIO);save.qi=Math.max(0,save.qi-ab*QI_SHIELD_RATIO);amount-=ab;
@@ -96,7 +96,7 @@ function arenaAttack(){
  const s=arenaState;if(!s)return;if(stunBlock()||s.punchCd>0)return;interruptArenaMeditation();s.punchCd=.32;
  s.attackAnim=.32;s.punchDur=.32;s.aimT=.55;s.punchSide=Math.random()<.5?1:0;s.slashes.push({x:s.px,y:s.py,ang:s.shootAng,t:0,max:.24,side:s.punchSide});
  let hits=0;
- const bl=s.bladeT>0,rng=bl?TECH2.blade.range:48,cn=bl?TECH2.blade.cone:1.35,dm=bl?Math.max(playerStr(),s.bladeDmg||0):playerStr();
+ const bl=s.bladeT>0,rng=(bl?TECH2.blade.range:48)+weaponRange(),cn=bl?TECH2.blade.cone:1.35,dm=(bl?Math.max(playerStr(),s.bladeDmg||0):playerStr())+weaponDmg();
  if(bl){s.qiEffects.push({type:'single',x:s.px,y:s.py,ang:s.shootAng,life:0,duration:.25,range:rng,cone:cn*.5})}
  for(const e of s.enemies.concat(aliveBosses(s))){if(e.hp<=0)continue;const dx=e.x-s.px,dy=e.y-s.py,d=Math.hypot(dx,dy),a=Math.atan2(dy,dx);if(d<=rng&&Math.abs(angDiff(a,s.shootAng))<=cn){hits++;if(damageEnemy(e,dm))killReward(e)}}
  if(hits){shake(3);persist()}

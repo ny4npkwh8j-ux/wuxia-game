@@ -139,7 +139,7 @@ function arenaLoop(t){
   }
   for(const o of s.enemies){if(o===e||o.hp<=0)continue;const sx=e.x-o.x,sy=e.y-o.y,sd=Math.hypot(sx,sy)||1,mn=e.r+o.r+3;if(sd<mn){e.x+=sx/sd*(mn-sd)*.5;e.y+=sy/sd*(mn-sd)*.5}}
   const md=Math.hypot(e.x-ox,e.y-oy);e.mv=(e.mv||0)+((md>.05?1:0)-(e.mv||0))*Math.min(1,dt*8);e.wp=(e.wp||0)+md*.13;e.atk=Math.max(0,(e.atk||0)-dt);
-  if(seePlayer&&d<45&&e.mcd<=0){takeDamage(entMelee(e));e.mcd=.65;e.atk=.32}
+  if(seePlayer&&d<45&&e.mcd<=0){takeDamage(entMelee(e),'melee');e.mcd=.65;e.atk=.32}
   e.hit=Math.max(0,e.hit-dt);
  }
  bossLoop(dt);warTick(dt);lootPickups(dt);collect();updateHeal(dt);
