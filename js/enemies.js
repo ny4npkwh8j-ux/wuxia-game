@@ -51,7 +51,8 @@ function rerollLiveMobs(bossIndex){
  const s=arenaState;if(!s)return;
  for(const e of s.enemies){if(e.hp<=0)continue;const k=rollKit(bossIndex);applyKit(e,k);if(!k.columns)e.columns=0;e.s=(45+Math.random()*25)*(1+k.stars/500)}
 }
-function damageEnemy(e,damage){
+function damageEnemy(e,damage,src){
+ if(src!=='ent')provoke(e);
  if(e.hp<=0)return false;const raw=damage/entToughness(e);let dmg=raw;
  if(e.shield>0){const a=Math.min(e.shield,dmg);e.shield-=a;dmg-=a}
  if(dmg>0&&e.qiShieldOn&&e.qi>0){const a=Math.min(dmg,e.qi/QI_SHIELD_RATIO);e.qi=Math.max(0,e.qi-a*QI_SHIELD_RATIO);dmg-=a;e.qsFlash=1;if(e.qi<=0)e.qiShieldOn=false}
@@ -192,11 +193,12 @@ function nearestBossZone(x,y){let best=null,bd=1e9;for(const z of (arenaState.sp
 function mobIdle(e,dt){
  if(e.zoneBound==null)e.zoneBound=(e.stars||0)>0&&Math.random()<.6;
  e.wanderT=(e.wanderT||0)-dt;if(e.wanderT<=0||e.wanderAng==null){e.wanderAng=Math.random()*TAU;e.wanderT=1.5+Math.random()*2.5}
- let sp=.35;e.cult=false;
+ let sp=.35;e.cult=false;if(e.team&&!e.zoneBound)e.team=null;
  const z=e.zoneBound&&(e.stars||0)>0?nearestBossZone(e.x,e.y):null;
  if(z){const dz=Math.hypot(e.x-z.x,e.y-z.y);
+  if(dz>z.r*1.5)e.team=null;
   if(dz>z.r*.7){e.wanderAng=Math.atan2(z.y-e.y,z.x-e.x);sp=.6}
-  if(dz<=z.r){e.cult=true;e.growT=(e.growT||0)+dt;if(e.growT>=MOB_GROW_SEC){e.growT=0;growMob(e)}}}
+  if(dz<=z.r){e.team=z.bz;e.cult=true;e.growT=(e.growT||0)+dt;if(e.growT>=MOB_GROW_SEC){e.growT=0;growMob(e)}}}
  e.ang=e.wanderAng;moveEnemy(e,Math.cos(e.ang)*e.s*sp*dt,Math.sin(e.ang)*e.s*sp*dt);
 }
 /* рост на одну звезду: все параметры пересчитываются по тем же формулам, доля здоровья и Ци сохраняется */
@@ -216,3 +218,22 @@ function tryBreakthrough(i){
  const nb=newBoss(b.index||i+1);nb.x=best.x;nb.y=best.y;best.hp=0;best.removed=true;s.bosses[i]=nb;
  burst(nb.x,nb.y,40,'#ffd85b',320,1,3.4);toast('Моб совершил прорыв и стал боссом '+nb.index+'!');return true;
 }
+
+/* ---- отношение к игроку: заметив игрока, противник с шансом AGGRO_CHANCE невзлюбит его и нападёт; иначе игнорирует, пока его не тронут ---- */
+const AGGRO_CHANCE=.4;
+function aggroCheck(e,d,dt){
+ const near=canSeePlayer(d);
+ if(near){e.noSeeT=0;if(e.hostile==null)e.hostile=!!e.provoked||Math.random()<AGGRO_CHANCE}
+ else{e.noSeeT=(e.noSeeT||0)+dt;if(e.noSeeT>8){e.hostile=null;e.provoked=false}}
+ if(!e.hostile&&e.team&&teamAlert(e.team))e.hostile=true;
+ return near&&!!e.hostile;
+}
+/* игрок ударил противника: тот и его команда теперь враждебны */
+function provoke(e){
+ e.hostile=true;e.provoked=true;e.noSeeT=0;
+ const s=arenaState;if(!s)return;
+ if(e.team){const b=aliveBosses(s).find(q=>(q.index||0)===e.team);if(b){b.hostile=true;b.provoked=true;b.noSeeT=0}}
+ if(e.isBoss){const t=e.index;for(const m of s.enemies)if(m.hp>0&&m.team===t){m.hostile=true;m.noSeeT=0}}
+}
+/* команда: мобы, которые культивируют в зоне босса, помогают ему, когда он воюет с игроком */
+function teamAlert(t){const s=arenaState,b=aliveBosses(s).find(q=>(q.index||0)===t);return !!(b&&b.hostile&&b.engagedT>0)}
