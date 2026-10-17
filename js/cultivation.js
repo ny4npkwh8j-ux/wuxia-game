@@ -128,7 +128,9 @@ function cultDantianTap(x,y){
 function renderScrolls(){
  const el=$('scrollList');el.innerHTML='';
  for(const id in SCROLLS){
-  const sc=SCROLLS[id],has=hasScroll(id),made=save.techniques.some(t=>t.type===sc.type),d=document.createElement('div');d.className='scrollcard'+(has?'':' locked');
+  const sc=SCROLLS[id],has=true,made=save.techniques.some(t=>t.type===sc.type);
+  if(!(save.scrolls||[]).includes(id)&&!made)continue; /* неполученные свитки скрыты: только полученные или уже созданные самим игроком */
+  const d=document.createElement('div');d.className='scrollcard'+(has?'':' locked');
   if(has){
    d.innerHTML='<div class="sc-head"><b>📜 '+sc.name+'</b><span class="sc-tag">'+(made?'техника создана':'не создана')+'</span></div>'
     +'<p><b>Геометрия:</b> минимум '+sc.minStars+' звёзд по цепочке от Дан-тяня; '+sc.geo+'. Звёзды тела и Дан-тяня подходят любые и никогда не мешают технике.</p>'
@@ -137,6 +139,7 @@ function renderScrolls(){
   }else d.innerHTML='<div class="sc-head"><b>🔒 Неизвестный свиток</b><span class="sc-tag">выпадает из '+sc.from+'</span></div><p>Победи босса, чтобы получить инструкцию новой техники.</p>';
   el.appendChild(d);
  }
+ if(!el.children.length)el.innerHTML='<p class="sc-empty">Свитков пока нет. Новые техники приходят от боссов и торговцев — тогда они появятся здесь.</p>';
  renderBlueprints(el);
 }
 const SLOTS={

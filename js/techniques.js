@@ -18,7 +18,7 @@ const SCROLLS={
 const BOSS_SCROLL={1:'stun',2:'qiShield',3:'blade',4:'pull',5:'repel',6:['mirage','poison']};
 /* чертежи больше не нужны: любую технику можно собрать самому, а чертёж (выпадение с босса) лишь собирает её автоматически */
 function hasScroll(id){return true}
-function grantScroll(id){if(hasScroll(id))return false;save.scrolls.push(id);persist();return true}
+function grantScroll(id){save.scrolls=save.scrolls||[];if(save.scrolls.includes(id))return false;save.scrolls.push(id);persist();return true}
 function techniqueZones(nodes){return new Set(nodes.map(i=>starZone(save.starPts[i])))}
 function pointInTriangle(p,a,b,c){
  const s=(a.y-c.y)*(p.x-c.x)+(c.x-a.x)*(p.y-c.y),t=(b.y-a.y)*(p.x-a.x)+(a.x-b.x)*(p.y-a.y),u=(c.y-b.y)*(p.x-b.x)+(b.x-c.x)*(p.y-b.x===undefined?0:p.y-b.y);
