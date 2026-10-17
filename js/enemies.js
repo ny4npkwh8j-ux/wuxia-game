@@ -279,3 +279,78 @@ function evolveTick(e,dt){
   else entRebuild(e,100,C-1,'потерял колонну при неудаче');
  }
 }
+
+/* ---- войны между противниками: за места медитации и осколки ----
+   Бой идёт напрямую между двумя существами (foeId — id соперника). Победитель получает осколки по схеме игрока:
+   за слабого — осколки души = звёзды, за существо с колоннами — осколки 2 этапа = колонны (за ядро — 10). Осколки идут в эволюцию. */
+function findEnt(id){const s=arenaState;if(!s||id==null)return null;return aliveBosses(s).find(b=>b.id===id)||s.enemies.find(m=>m.hp>0&&m.id===id)||null}
+function startDuel(a,b){
+ a.foeId=b.id;b.foeId=a.id;
+ /* команды вступаются за своих */
+ for(const x of [a,b]){const other=x===a?b:a;if(x.isBoss)for(const m of arenaState.enemies)if(m.hp>0&&m.team===x.index&&!m.foeId&&m!==other&&Math.hypot(m.x-x.x,m.y-x.y)<1500)m.foeId=other.id}
+}
+function duelStep(e,dt){
+ const f=e.foeId!=null?findEnt(e.foeId):null;
+ if(!f){e.foeId=null;e.challenge=false;return false}
+ const s=arenaState,dx=f.x-e.x,dy=f.y-e.y,d=Math.hypot(dx,dy)||1;
+ if(d>2600){e.foeId=null;e.challenge=false;return false}
+ if(e.hostile&&Math.hypot(s.px-e.x,s.py-e.y)<350)return false;
+ const boss=!!e.isBoss,R=boss?ENT_RANGE.boss:ENT_RANGE.mob,cd=e.cd,tc=e.techs||[],cost=t=>entCost(e,t);
+ e.ang=Math.atan2(dy,dx);e.wind=null;
+ if(tc.includes('shield')&&e.shield<=0&&cd.sh<=0&&d<500&&e.qi>=cost('shield')){e.qi-=cost('shield');e.shieldMax=entShieldMax(e);e.shield=e.shieldMax;cd.sh=boss?4:6;burst(e.x,e.y,8,'#63e9ff',150,.4,2.4)}
+ const M=entMult(e);let fired=false;
+ if(cd.atk<=0){
+  if(tc.includes('qiArea')&&cd.area<=0&&d<R.area*.9&&e.qi>=cost('qiArea')){
+   e.qi-=cost('qiArea');cd.area=AREA_CD.qiArea;cd.atk=1.6+Math.random()*1.4;fired=true;
+   s.qiEffects.push({type:'area',hostile:true,x:e.x,y:e.y,life:0,duration:.5,radius:R.area});
+   if(damageEnemy(f,TECH_BASE.qiArea*M,'ent')){entKill(e,f);return true}
+  }else if(tc.includes('qiSingle')&&d<R.single*.9&&e.qi>=cost('qiSingle')){
+   e.qi-=cost('qiSingle');cd.atk=1.4+Math.random()*1.4;fired=true;
+   s.qiEffects.push({type:'single',x:e.x,y:e.y,ang:e.ang,life:0,duration:.38,range:R.single,cone:Math.PI/7,hostile:true});
+   if(damageEnemy(f,TECH_BASE.qiSingle*M,'ent')){entKill(e,f);return true}
+  }
+ }
+ const mover=boss?moveBoss:moveEnemy;
+ if(d>55&&!(fired&&d<R.single*.5)){const ox=e.x,oy=e.y;mover(e,Math.cos(e.ang)*e.s*dt,Math.sin(e.ang)*e.s*dt);const md=Math.hypot(e.x-ox,e.y-oy);e.mv=(e.mv||0)+((md>.05?1:0)-(e.mv||0))*Math.min(1,dt*8);e.wp=(e.wp||0)+md*(boss?.09:.13)}
+ else if(d<=60&&e.mcd<=0){e.mcd=.65;if(damageEnemy(f,entMelee(e),'ent')){entKill(e,f);return true}}
+ return true;
+}
+function entKill(k,v){
+ const s=arenaState;
+ if(v.core>0)k.sh2=(k.sh2||0)+10;else if((v.columns||0)>0)k.sh2=(k.sh2||0)+v.columns;else k.sh1=(k.sh1||0)+Math.floor(v.stars||0);
+ k.foeId=null;
+ if(v.isBoss){
+  v.respawnT=BOSS_RESPAWN;
+  if(k.challenge&&!k.isBoss){
+   const i=s.bosses.indexOf(v),nb=newBoss(v.index||i+1);nb.x=v.x;nb.y=v.y;s.bosses[i]=nb;k.hp=0;
+   burst(nb.x,nb.y,40,'#ffd85b',320,1,3.4);toast('Моб победил босса и занял его место — новый Босс '+nb.index+'!');
+  }else toast('Босс '+v.index+' пал в бою с '+(k.isBoss?'Боссом '+k.index:'врагом'));
+ }
+ k.challenge=false;
+}
+function skirmishRoll(){
+ const s=arenaState,near=m=>m.hostile&&Math.hypot(m.x-s.px,m.y-s.py)<700;
+ const free=s.enemies.filter(m=>m.hp>0&&(m.stars||0)>0&&m.foeId==null&&!near(m)).concat(aliveBosses(s).filter(b=>b.foeId==null&&!near(b)));
+ /* 1) чужаки в зоне босса */
+ for(const b of aliveBosses(s)){if(b.foeId!=null)continue;const z=(s.springs||[]).find(q=>q.bz===b.index);if(!z)continue;
+  for(const x of free){if(x===b||x.foeId!=null||x.team===b.index)continue;if(Math.hypot(x.x-z.x,x.y-z.y)<z.r&&Math.random()<.5){startDuel(b,x);break}}}
+ /* 2) случайные встречи: пары рядом, не из одной команды */
+ for(let i=0;i<free.length;i++){const a=free[i];if(a.foeId!=null)continue;
+  for(let j=i+1;j<free.length;j++){const b=free[j];if(b.foeId!=null)continue;if(a.team&&a.team===b.team)continue;
+   if(Math.hypot(a.x-b.x,a.y-b.y)<260&&Math.random()<.15){startDuel(a,b);break}}}
+ /* 3) набеги боссов друг на друга при близких силах */
+ const bs=aliveBosses(s).filter(b=>b.foeId==null&&!near(b));
+ for(const a of bs){if(a.foeId!=null)continue;let t=null,td=1e9;for(const b of bs){if(b===a||b.foeId!=null)continue;const d=Math.hypot(a.x-b.x,a.y-b.y);if(d<td){td=d;t=b}}
+  if(t&&entMult(a)/entMult(t)>=.8&&Math.random()<.04)startDuel(a,t)}
+}
+function challengeRoll(){
+ const s=arenaState;
+ for(const b of aliveBosses(s)){if(b.foeId!=null)continue;const bm=entMult(b);let best=null;
+  for(const m of s.enemies){if(m.hp<=0||m.team!==b.index||m.foeId!=null)continue;const r=entMult(m)/bm;if(r>=.9&&(!best||r>best.r))best={m,r}}
+  if(best&&Math.random()<.05){best.m.challenge=true;startDuel(best.m,b);toast('Моб бросил вызов Боссу '+b.index+'!')}}
+}
+function warTick(dt){
+ const s=arenaState;if(!s)return;s.warT=(s.warT||0)+dt;s.chalT=(s.chalT||0)+dt;
+ if(s.warT>=5){s.warT=0;skirmishRoll()}
+ if(s.chalT>=30){s.chalT=0;challengeRoll()}
+}

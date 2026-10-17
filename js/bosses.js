@@ -49,6 +49,7 @@ function bossStep(b,dt){
  const s=arenaState;
  b.invuln=Math.max(0,(b.invuln||0)-dt);b.hit=Math.max(0,(b.hit||0)-dt);entTick(b,dt);
  if(b.stun>0){b.stun-=dt;b.mv=0;b.wind=null;return}
+ if(duelStep(b,dt)){b.cult=false;return}
  const dx=s.px-b.x,dy=s.py-b.y,d=Math.hypot(dx,dy)||1,seePlayer=aggroCheck(b,d,dt);
  if(seePlayer){b.seenT=TARGET_MEMORY_TIME;b.lastX=s.px;b.lastY=s.py}else b.seenT=Math.max(0,(b.seenT||0)-dt);
  b.engagedT=seePlayer?3:Math.max(0,(b.engagedT||0)-dt);

@@ -113,6 +113,7 @@ function arenaLoop(t){
   if(e.hp<=0)continue;
   entTick(e,dt);
   if(e.stun>0){e.stun-=dt;e.mv=0;e.hit=Math.max(0,e.hit-dt);continue}
+  if(duelStep(e,dt)){e.hit=Math.max(0,e.hit-dt);continue}
   const dx=s.px-e.x,dy=s.py-e.y,d=Math.hypot(dx,dy)||1,seePlayer=aggroCheck(e,d,dt);
   if(seePlayer){e.seenT=TARGET_MEMORY_TIME;e.lastX=s.px;e.lastY=s.py}else e.seenT=Math.max(0,(e.seenT||0)-dt);
   const engaged=seePlayer||e.seenT>0;
@@ -128,7 +129,7 @@ function arenaLoop(t){
   if(seePlayer&&d<45&&e.mcd<=0){takeDamage(entMelee(e));e.mcd=.65;e.atk=.32}
   e.hit=Math.max(0,e.hit-dt);
  }
- bossLoop(dt);collect();updateHeal(dt);
+ bossLoop(dt);warTick(dt);collect();updateHeal(dt);
  if(s.channel){const ch=s.channel;ch.t+=dt;if(ch.t>=ch.dur){s.channel=null;const st=ch.tech,cost=techCost(st);if(save.qi>=cost){save.qi-=cost;s.cdStun=AREA_CD.stun;applyStun(st)}else toast('Недостаточно Ци. Нужно '+cost)}}
  save.qi=Math.max(0,Math.min(save.maxQi,save.qi));
  updateFx(dt);emitFx(dt,m<=.08);
