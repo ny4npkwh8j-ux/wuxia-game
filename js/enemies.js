@@ -149,7 +149,7 @@ function drawEnemy(e,W,H,time){
  if(e.stun>0){ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y,30,'#8fb8ff',.4);ax.globalCompositeOperation='source-over';ax.fillStyle='#fff3a0';for(let i=0;i<3;i++){const a=time*3.4+i*TAU/3;star4(ax,p.x+Math.cos(a)*14,p.y-28+Math.sin(a)*4,4.2);ax.fill()}}
  if(e.shield>0){ax.save();ax.strokeStyle='rgba(99,233,255,.55)';ax.lineWidth=1.8;ax.setLineDash([5,5]);ax.lineDashOffset=-time*14;ax.beginPath();ax.arc(p.x,p.y,30,0,TAU);ax.stroke();ax.restore()}
  drawBar(ax,p.x,p.y-40,36,e.hp/(e.maxHp||100),5);
- if(st>0){outText(ax,'★'+st+(e.core?' · ЯДРО':(e.columns?' · '+e.columns+' КОЛ.':'')),p.x-2,p.y-46,'#ffd85b',10);const ts=e.techs||[];ts.slice(0,5).forEach((tt,i)=>{ax.fillStyle=MOB_DOT[tt]||'#fff';ax.beginPath();ax.arc(p.x+13+i*6,p.y-50,2.6,0,TAU);ax.fill()})}
+ if(st>0){outText(ax,'★'+st+(e.core?' · ЯДРО'+(e.dens?' '+e.dens+'/5':''):(e.columns?' · '+e.columns+' КОЛ.':'')),p.x-2,p.y-46,'#ffd85b',10);const ts=e.techs||[];ts.slice(0,5).forEach((tt,i)=>{ax.fillStyle=MOB_DOT[tt]||'#fff';ax.beginPath();ax.arc(p.x+13+i*6,p.y-50,2.6,0,TAU);ax.fill()})}
  if(e.stun>0)outText(ax,e.stun.toFixed(1)+'с',p.x,p.y-56-(st>0?4:-4),'#c9a8ff',10);
 }
 function mobDrop(e){
@@ -163,7 +163,7 @@ function mobDrop(e){
 }
 function moveEnemy(e,dx,dy){let nx=Math.max(70,Math.min(9930,e.x+dx)),ny=Math.max(70,Math.min(9930,e.y+dy));if(!blocked(nx,e.y,e.r,e.id))e.x=nx;if(!blocked(e.x,ny,e.r,e.id))e.y=ny}
 function spawnEnemy(){
- if(!arenaState||arenaState.enemies.filter(e=>e.hp>0).length>=50)return;
+ if(!arenaState||arenaState.enemies.filter(e=>e.hp>0).length>=MOB_MAX)return;
  const side=Math.floor(Math.random()*4), margin=450;
  let x=arenaState.px,y=arenaState.py;
  if(side===0){x=Math.max(margin,arenaState.px-(900+Math.random()*1400));y=Math.max(margin,Math.min(10000-margin,arenaState.py+(Math.random()-.5)*1800))}
@@ -241,7 +241,7 @@ function teamAlert(t){const s=arenaState,b=aliveBosses(s).find(q=>(q.index||0)==
 /* ---- эволюция противников по схеме игрока: звёзды → колонны → ядро ----
    Идёт, пока противник культивирует в зоне Ци. Платит осколками (e.sh1 — души, e.sh2 — 2 этапа, их приносят победы) или временем.
    Шансы и цены — те же, что у игрока; неудача: первая колонна — минус 20 звёзд, дальше — минус колонна, ядро — потеря всех колонн. */
-const EVO_COL_SEC=300,EVO_CORE_SEC=900,FULL_KIT=['shield','dodge','qiSingle','qiArea','qiShield','stun','heal'];
+const EVO_DENS_SEC=600,EVO_COL_SEC=300,EVO_CORE_SEC=900,FULL_KIT=['shield','dodge','qiSingle','qiArea','qiShield','stun','heal'];
 function entMaxCols(e){return e.isBoss?MAX_PILLARS:maxMobCols(arenaTier(arenaState))}
 function entRebuild(e,stars,cols,note){
  const r=e.maxHp?e.hp/e.maxHp:1,q=e.maxQi?e.qi/e.maxQi:1;
@@ -250,8 +250,17 @@ function entRebuild(e,stars,cols,note){
  if(arenaState)burst(e.x,e.y,e.isBoss?30:14,'#ffd85b',260,.9,3);
 }
 function evolveTick(e,dt){
- if(e.core>0||!arenaState)return;
+ if(!arenaState)return;
  e.growT=(e.growT||0)+dt;
+ if(e.core>0){
+  const d=e.dens||0;if(d>=CORE_DENS_MAX)return;
+  const cost=500*(d+1);
+  if((e.sh2||0)>=cost||e.growT>=EVO_DENS_SEC){
+   if((e.sh2||0)>=cost)e.sh2-=cost;e.growT=0;
+   const r=(1+.1*(d+1))/(1+.1*d);e.dens=d+1;e.core*=r;entRebuild(e,100,0,'уплотнил ядро ('+e.dens+'/'+CORE_DENS_MAX+')');
+  }
+  return;
+ }
  const S=e.stars||0,C=e.columns||0;
  if(S<100){
   const cap=e.isBoss?100:Math.min(100,maxMobStars(arenaTier(arenaState)));if(S>=cap)return;

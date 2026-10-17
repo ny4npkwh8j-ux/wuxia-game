@@ -31,7 +31,7 @@ function resizeArena(){const r=$('arena').getBoundingClientRect();aw=ac.width=Ma
 function stopArena(){if(raf)cancelAnimationFrame(raf);raf=0;arenaState=null}
 function freshArenaField(){
  const state={world:10000,px:5000,py:5000,camx:5000,camy:5000,hp:save.health,maxHp:save.health,enemies:[],orbs:[],chests:[],points:[],hazards:[],obstacles:[],bosses:[],bossIndex:1,springs:[],dx:0,dy:0,lastMoveX:0,lastMoveY:1,shootAng:0,attackAnim:0,qiEffects:[],invuln:0,dashCd:0,dashTime:0,dashDuration:.18,dashSpeed:1350,contactCd:0,spawnTimer:4,checkpointTimer:2,last:performance.now()};
- for(let i=0;i<20;i++)state.enemies.push(makeMob(1000+Math.random()*8000,1000+Math.random()*8000,0));
+ for(let i=0;i<MOB_START;i++)state.enemies.push(makeMob(1000+Math.random()*8000,1000+Math.random()*8000,0));
  for(let i=0;i<40;i++)state.orbs.push({x:300+Math.random()*9400,y:300+Math.random()*9400,r:11,value:10});
  for(let i=0;i<14;i++)state.chests.push({x:400+Math.random()*9200,y:400+Math.random()*9200,r:18,value:50});
  for(let i=0;i<10;i++)state.points.push({x:400+Math.random()*9200,y:400+Math.random()*9200,r:25,value:25});
@@ -98,7 +98,7 @@ function arenaLoop(t){
  const dt=Math.max(0,Math.min(.035,(t-s.last)/1000));s.last=t;s.t+=dt;
  s.invuln=Math.max(0,s.invuln-dt);s.dashCd=Math.max(0,s.dashCd-dt);s.contactCd=Math.max(0,s.contactCd-dt);s.punchCd=Math.max(0,(s.punchCd||0)-dt);s.cdArea=Math.max(0,(s.cdArea||0)-dt);s.cdStun=Math.max(0,(s.cdStun||0)-dt);tech2Tick(dt);s.spawnTimer-=dt;s.checkpointTimer-=dt;
  s.hitFlash=Math.max(0,s.hitFlash-dt*3.5);s.hurt=Math.max(0,s.hurt-dt*2.2);s.shake=Math.max(0,s.shake-dt*30);s.aimT=Math.max(0,s.aimT-dt);s.castAnim=Math.max(0,s.castAnim-dt);s.qiCast=Math.max(0,(s.qiCast||0)-dt);s.shieldFlash=Math.max(0,s.shieldFlash-dt*3);s.qiShieldFlash=Math.max(0,(s.qiShieldFlash||0)-dt*3);
- if(s.spawnTimer<=0){spawnEnemy();s.spawnTimer=4+Math.random()*3}
+ if(s.spawnTimer<=0){spawnEnemy();s.spawnTimer=2+Math.random()*1.5}
  if(s.checkpointTimer<=0){saveArenaCheckpoint();s.checkpointTimer=2}
  if(!arenaMeditation.active&&save.stars>0&&save.qi<save.maxQi)save.qi=Math.min(save.maxQi,save.qi+starRegen()*dt);
  applyQiZones(dt);

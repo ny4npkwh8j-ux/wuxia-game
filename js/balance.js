@@ -4,6 +4,7 @@ function pillarCost(n){return 10000*n}
 function activeColumnCost(){return pillarCost(save.pillars+1)}
 function pillarChance(extra){return Math.min(90,30+10*Math.floor(Math.max(0,extra)/10000))}
 function currentQualityCoef(){return save.pillars>0?save.pillarCoef:pillarQualityFor(save.stars).coef}
+const MOB_START=40,MOB_MAX=200;
 const VISION_RADIUS=520,TARGET_MEMORY_TIME=4,MAX_BOSS_INDEX=MAX_PILLARS+1;
 const CHARGE_MAX=1.2,CHARGE_MIN_F=.4,CHARGE_MAX_F=1.5;
 function chargeFactor(held){held=Math.max(0,Math.min(CHARGE_MAX,held||0));return CHARGE_MIN_F+(CHARGE_MAX_F-CHARGE_MIN_F)*(held/CHARGE_MAX)}

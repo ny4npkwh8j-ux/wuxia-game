@@ -100,5 +100,5 @@ function drawBossOne(b,W,H,time){
  ax.globalCompositeOperation='lighter';for(let i=0;i<3;i++){const a=time*1.4+i*TAU/3;glow(ax,p.x+Math.cos(a)*54,p.y+Math.sin(a)*46,9,aur,.9)}ax.globalCompositeOperation='source-over';
  if(b.shield>0)shieldBubble(ax,p.x,p.y,62,1,0,time);
  drawBar(ax,p.x,p.y-72,78,b.hp/b.maxHp,7);
- outText(ax,(t2?'ПРАКТИК':'БОСС')+' · 100 ★'+(b.core?' · ЯДРО ×'+b.core:(b.columns?' · '+b.columns+' КОЛОННА':''))+(b.cult?' · КУЛЬТИВИРУЕТ':''),p.x,p.y-80,'#fff',11);
+ outText(ax,(t2?'ПРАКТИК':'БОСС')+' · 100 ★'+(b.core?' · ЯДРО ×'+b.core.toFixed(1)+(b.dens?' ('+b.dens+'/5)':''):(b.columns?' · '+b.columns+' КОЛОННА':''))+(b.cult?' · КУЛЬТИВИРУЕТ':''),p.x,p.y-80,'#fff',11);
 }
