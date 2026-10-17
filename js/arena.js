@@ -42,6 +42,19 @@ function freshArenaField(){
  state.loot=(save.lostLoot||[]).slice();save.lostLoot=[];
  migrateArenaEntities(state);initFx(state);return state;
 }
+/* тихое место для возрождения: из набора случайных точек берём ту, где рядом меньше всего мобов/боссов, вне препятствий, опасных зон и зон боссов */
+function quietSpot(s){
+ let best=null;const foes=s.enemies.filter(e=>e.hp>0).concat(aliveBosses(s));
+ for(let i=0;i<80;i++){
+  const x=700+Math.random()*8600,y=700+Math.random()*8600;
+  if(blocked(x,y,40,'player'))continue;
+  if((s.hazards||[]).some(z=>Math.hypot(x-z.x,y-z.y)<z.r+60))continue;
+  if(BOSS_HOMES.some(h=>Math.hypot(x-h[0],y-h[1])<BOSS_ZONE_R+400))continue;
+  let n=0,md=1e9;for(const e of foes){const d=Math.hypot(e.x-x,e.y-y);if(d<1000)n++;if(d<md)md=d}
+  const sc=n*10000-Math.min(md,3000);if(!best||sc<best.sc)best={x,y,sc}
+ }
+ return best||{x:5000,y:5000};
+}
 function circleRectRaw(x,y,r,o){const cx=Math.max(o.x-o.w/2,Math.min(x,o.x+o.w/2)),cy=Math.max(o.y-o.h/2,Math.min(y,o.y+o.h/2));return Math.hypot(x-cx,y-cy)<r}
 function saveArenaCheckpoint(){
  if(!arenaState)return;
@@ -133,7 +146,8 @@ function arenaLoop(t){
  if(s.channel){const ch=s.channel;ch.t+=dt;if(ch.t>=ch.dur){s.channel=null;const st=ch.tech,cost=techCost(st);if(save.qi>=cost){save.qi-=cost;s.cdStun=AREA_CD.stun;applyStun(st)}else toast('Недостаточно Ци. Нужно '+cost)}}
  save.qi=Math.max(0,Math.min(save.maxQi,save.qi));
  updateFx(dt);emitFx(dt,m<=.08);
- if(s.hp<=0){save.qi=0;const lost=Math.floor(save.rewards*.3);save.rewards-=lost;save.lostLoot=(save.lostLoot||[]).concat(lost>0?[{x:s.px,y:s.py,k:1,v:lost}]:[]);save.arenaCheckpoint=null;persist();stopArena();show('home');toast('Ты пал на арене. Вся Ци утрачена, потеряно '+fmt(lost)+' осколков души. Поле открыто заново.');return}
+ if(s.hp<=0){save.qi=0;const lost=Math.floor(save.rewards*.3);save.rewards-=lost;if(lost>0)(s.loot=s.loot||[]).push({x:s.px,y:s.py,k:1,v:lost});/* карта постоянна: остаётся как есть, игрок возрождается там, где меньше всего мобов */
+  const q=quietSpot(s);s.px=s.camx=q.x;s.py=s.camy=q.y;s.hp=s.maxHp=save.health;s.shield=0;s.invuln=2;persist();saveArenaCheckpoint();stopArena();show('home');toast('Ты пал на арене. Вся Ци утрачена, потеряно '+fmt(lost)+' осколков души (они лежат на месте гибели). Ты возродишься в тихом месте карты.');return}
  updateArenaUI();drawArena(t/1000);raf=requestAnimationFrame(arenaLoop);
 }
 /* ---- arena UI ---- */
