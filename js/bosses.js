@@ -19,7 +19,7 @@ function ensureBossZones(state){
 }
 function onBossDefeated(b){
  const s=arenaState;if(!s||!b)return;
- const fi=b.index||1;b.respawnT=BOSS_RESPAWN;
+ const fi=b.index||1;b.respawnT=BOSS_RESPAWN;releaseArmy(fi,null);
  if(BOSS_SCROLL[fi])dropBossScroll(b,fi);
  const next=Math.min(MAX_BOSS_INDEX+1,fi+1);
  if(next>(s.bossIndex||1)){s.bossIndex=next;rerollLiveMobs(next);toast('Босс '+fi+' повержен. Воскреснет через '+Math.round(BOSS_RESPAWN/60)+' мин. Мобы стали сильнее.')}
@@ -100,5 +100,5 @@ function drawBossOne(b,W,H,time){
  ax.globalCompositeOperation='lighter';for(let i=0;i<3;i++){const a=time*1.4+i*TAU/3;glow(ax,p.x+Math.cos(a)*54,p.y+Math.sin(a)*46,9,aur,.9)}ax.globalCompositeOperation='source-over';
  if(b.shield>0)shieldBubble(ax,p.x,p.y,62,1,0,time);
  drawBar(ax,p.x,p.y-72,78,b.hp/b.maxHp,7);
- outText(ax,(t2?'ПРАКТИК':'БОСС')+' · 100 ★'+(b.core?' · ЯДРО ×'+b.core.toFixed(1)+(b.dens?' ('+b.dens+'/5)':''):(b.columns?' · '+b.columns+' КОЛОННА':''))+(b.cult?' · КУЛЬТИВИРУЕТ':''),p.x,p.y-80,'#fff',11);
+ outText(ax,(t2?'ПРАКТИК':'БОСС')+' · 100 ★'+(b.core?' · ЯДРО ×'+b.core.toFixed(1)+(b.dens?' ('+b.dens+'/5)':''):(b.columns?' · '+b.columns+' КОЛОННА':''))+(b.cult?' · КУЛЬТИВИРУЕТ':'')+(arenaState&&arenaState.enemies.some(m=>m.lord===b.index)?' · армия '+arenaState.enemies.filter(m=>m.hp>0&&m.lord===b.index).length:''),p.x,p.y-80,'#fff',11);
 }

@@ -194,12 +194,12 @@ function mobIdle(e,dt){
  if(e.zoneBound==null)e.zoneBound=(e.stars||0)>0&&Math.random()<.6;
  e.wanderT=(e.wanderT||0)-dt;if(e.wanderT<=0||e.wanderAng==null){e.wanderAng=Math.random()*TAU;e.wanderT=1.5+Math.random()*2.5}
  let sp=.35;e.cult=false;
- const lt=(e.stars||0)>0?nearestLoot(e,320):null;if(lt){e.ang=Math.atan2(lt.y-e.y,lt.x-e.x);e.wanderAng=e.ang;e.wanderT=.5;moveEnemy(e,Math.cos(e.ang)*e.s*.7*dt,Math.sin(e.ang)*e.s*.7*dt);e.cult=false;return}if(e.team&&!e.zoneBound)e.team=null;
- const z=e.zoneBound&&(e.stars||0)>0?nearestBossZone(e.x,e.y):null;
+ const lt=(e.stars||0)>0?nearestLoot(e,320):null;if(lt){e.ang=Math.atan2(lt.y-e.y,lt.x-e.x);e.wanderAng=e.ang;e.wanderT=.5;moveEnemy(e,Math.cos(e.ang)*e.s*.7*dt,Math.sin(e.ang)*e.s*.7*dt);e.cult=false;return}
+ /* солдат армии держится зоны своего босса; свободный культиватор идёт к ближайшей зоне */
+ const z=e.lord?(arenaState.springs||[]).find(q=>q.bz===e.lord):(e.zoneBound&&(e.stars||0)>0?nearestBossZone(e.x,e.y):null);
  if(z){const dz=Math.hypot(e.x-z.x,e.y-z.y);
-  if(dz>z.r*1.5)e.team=null;
   if(dz>z.r*.7){e.wanderAng=Math.atan2(z.y-e.y,z.x-e.x);sp=.6}
-  if(dz<=z.r){e.team=z.bz;e.cult=true;evolveTick(e,dt)}}
+  if(dz<=z.r){e.cult=true;evolveTick(e,dt)}}
  e.ang=e.wanderAng;moveEnemy(e,Math.cos(e.ang)*e.s*sp*dt,Math.sin(e.ang)*e.s*sp*dt);
 }
 /* рост на одну звезду: все параметры пересчитываются по тем же формулам, доля здоровья и Ци сохраняется */
@@ -331,6 +331,7 @@ function entKill(k,v){
  k.foeId=null;
  if(v.isBoss){
   v.respawnT=BOSS_RESPAWN;
+  if(!(k.challenge&&!k.isBoss))releaseArmy(v.index,k.isBoss?k:null);
   if(k.challenge&&!k.isBoss){
    const i=s.bosses.indexOf(v),nb=newBoss(v.index||i+1);nb.x=v.x;nb.y=v.y;s.bosses[i]=nb;k.hp=0;
    burst(nb.x,nb.y,40,'#ffd85b',320,1,3.4);toast('Моб победил босса и занял его место — новый Босс '+nb.index+'!');
@@ -360,7 +361,8 @@ function challengeRoll(){
   if(best&&Math.random()<.05){best.m.challenge=true;startDuel(best.m,b);toast('Моб бросил вызов Боссу '+b.index+'!')}}
 }
 function warTick(dt){
- const s=arenaState;if(!s)return;s.warT=(s.warT||0)+dt;s.chalT=(s.chalT||0)+dt;
+ const s=arenaState;if(!s)return;s.warT=(s.warT||0)+dt;s.chalT=(s.chalT||0)+dt;s.recT=(s.recT||0)+dt;
+ if(s.recT>=8){s.recT=0;recruitTick()}
  if(s.warT>=5){s.warT=0;skirmishRoll()}
  if(s.chalT>=30){s.chalT=0;challengeRoll()}
 }
@@ -395,4 +397,25 @@ function drawLoot(time){
   ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y+bob,16+Math.min(14,Math.sqrt(q.v)),col,.55);ax.globalCompositeOperation='source-over';
   ax.fillStyle=col;ax.beginPath();ax.moveTo(p.x,p.y-8+bob);ax.lineTo(p.x+5,p.y+bob);ax.lineTo(p.x,p.y+8+bob);ax.lineTo(p.x-5,p.y+bob);ax.closePath();ax.fill();
   outText(ax,fmt(q.v),p.x,p.y-12+bob,col,10)}
+}
+
+/* ---- армии боссов: босс держит под контролем мобов (e.lord = номер босса, e.team — то же для боевых проверок) ---- */
+function armyCap(b){return 6+4*(b.index||1)}
+function armyOf(idx){return arenaState.enemies.filter(m=>m.hp>0&&m.lord===idx)}
+function recruitTick(){
+ const s=arenaState,pl=m=>Math.hypot(m.x-s.px,m.y-s.py);
+ for(const b of aliveBosses(s)){
+  let n=armyOf(b.index).length;if(n>=armyCap(b))continue;const h=b.home||b;
+  const cand=s.enemies.filter(m=>m.hp>0&&(m.stars||0)>0&&!m.lord&&m.foeId==null&&!(m.hostile&&pl(m)<700)&&Math.hypot(m.x-h.x,m.y-h.y)<1600)
+   .sort((a,c)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(c.x-h.x,c.y-h.y));
+  for(const m of cand){if(n>=armyCap(b))break;m.lord=m.team=b.index;m.zoneBound=true;n++}
+ }
+}
+/* босс пал: его солдаты освобождаются; если его убил другой босс — забирает их себе (в пределах своего лимита) */
+function releaseArmy(idx,taker){
+ const s=arenaState;let room=taker?armyCap(taker)-armyOf(taker.index).length:0;
+ for(const m of armyOf(idx)){
+  if(taker&&room>0){m.lord=m.team=taker.index;room--;m.foeId=null}
+  else{m.lord=null;m.team=null}
+ }
 }
