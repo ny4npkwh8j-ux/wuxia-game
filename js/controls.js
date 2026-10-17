@@ -18,8 +18,10 @@ function arenaActive(){return !!arenaState&&$('arena').classList.contains('activ
 function updateMouseAim(){
  const s=arenaState;if(!s||!s.kbAim)return;
  const r=$('arena').getBoundingClientRect(),p=worldToScreen(s.px,s.py),ang=Math.atan2(kb.my-r.top-p.y,kb.mx-r.left-p.x);
- s.shootAng=ang;s.facing=ang;
+ s.shootAng=ang;if(!bodyFollowsMove(s))s.facing=ang;
 }
+/* на ходу без прицеливания тело смотрит по движению (бег вверх — видна спина), к курсору — когда стоит, бьёт или заряжает */
+function bodyFollowsMove(s){return Math.hypot(s.dx,s.dy)>.08&&!(s.aimT>0)&&!s.qiCharge&&!s.channel&&!kb.mouseDown}
 function applyKbMove(){
  const s=arenaState;if(!s)return;let x=0,y=0;
  for(const k of kb.keys){const v=MOVE_KEYS[k];if(v){x+=v[0];y+=v[1]}}

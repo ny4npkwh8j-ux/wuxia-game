@@ -104,7 +104,7 @@ function arenaLoop(t){
  applyQiZones(dt);
  if(s.stun>0){s.stun-=dt;if(s.stun<=0){s.stun=0;s.stunImm=3}}else if(s.stunImm>0)s.stunImm=Math.max(0,s.stunImm-dt);
  const m=s.stun>0?0:Math.hypot(s.dx,s.dy);let moved=0;
- if(m>.08){s.lastMoveX=s.dx/m;s.lastMoveY=s.dy/m;const ox=s.px,oy=s.py;movePlayer(s.dx*260*dt,s.dy*260*dt);moved=Math.hypot(s.px-ox,s.py-oy);if(!s.kbAim)s.facing=lerpAng(s.facing,Math.atan2(s.dy,s.dx),dt*16)}
+ if(m>.08){s.lastMoveX=s.dx/m;s.lastMoveY=s.dy/m;const ox=s.px,oy=s.py;movePlayer(s.dx*260*dt,s.dy*260*dt);moved=Math.hypot(s.px-ox,s.py-oy);if(!s.kbAim||bodyFollowsMove(s))s.facing=lerpAng(s.facing,Math.atan2(s.dy,s.dx),dt*16)}
  if(s.kbAim)updateMouseAim();
  if(s.dashTime>0){const ox=s.px,oy=s.py,step=s.dashSpeed*dt;movePlayer(s.lastMoveX*step,s.lastMoveY*step);moved+=Math.hypot(s.px-ox,s.py-oy);s.dashTime=Math.max(0,s.dashTime-dt);s.ghostAcc+=dt;if(s.ghostAcc>.028){s.ghostAcc=0;s.ghosts.push({x:s.px,y:s.py,ang:s.facing,wp:s.wp,t:0,max:.32})}}
  s.mv+=((moved>.05?1:0)-s.mv)*Math.min(1,dt*10);s.wp+=moved*.11;
