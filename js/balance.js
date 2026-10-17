@@ -71,7 +71,7 @@ function entMult(e){return powerMult(Math.min(PATH_CAP,e.stars||0),e.stars||0,e.
 /* сила игрока как цели оглушения (максимальная техника по его звёздам) */
 function playerRefMult(){return techniquePower(Math.min(PATH_CAP,save.stars),save.stars)*bodyHp(save.stars)*myStage()*myQiCol()}
 /* сила обычного удара кулаком: привязана к звёздам (100 звёзд = 100 урона) */
-function playerStr(){return bodyStr(save.stars)*myStage()}
+function playerStr(){return bodyStr(save.stars)*myStage()*(typeof pillPower==='function'?pillPower():1)}
 /* удар кулаком противника: колонны усиливают его так же, как удар игрока (ядро уже учтено в e.str) */
 function entMelee(e){return (e.str??bodyStr(e.stars||0))*colFactor(e.columns||0,entCoef(e))}
 function techDamage(t){return TECH_BASE[t.type]*myMult(t)}

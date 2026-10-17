@@ -17,9 +17,7 @@ function drawNpcs(time){
 }
 function openNpc(){const n=npcNear();if(!n)return;arenaMeditation.active&&interruptArenaMeditation();renderNpc();$('npcModal').classList.add('show')}
 function closeNpc(){$('npcModal').classList.remove('show')}
-function renderNpc(){
- $('npcBal').textContent='Осколки души: '+fmt(save.rewards)+' · Осколки 2 этапа: '+fmt(save.rewards2);
- const el=$('npcList');el.innerHTML='';
+function renderExchange(el){
  for(const n of EXCH_STEPS){const c=exchCostShards1(n),b=document.createElement('button');b.className='bigbtn secondary';b.disabled=save.rewards<c;b.textContent='Отдать '+fmt(c)+' души → получить '+n+' 2 этапа';b.onclick=()=>{if(save.rewards<c)return;save.rewards-=c;save.rewards2+=n;persist();renderNpc()};el.appendChild(document.createElement('div')).className='row';el.lastChild.appendChild(b)}
  for(const n of EXCH_STEPS){const g=exchBackShards1(n),b=document.createElement('button');b.className='bigbtn secondary';b.disabled=save.rewards2<n;b.textContent='Отдать '+n+' 2 этапа → получить '+fmt(g)+' души';b.onclick=()=>{if(save.rewards2<n)return;save.rewards2-=n;save.rewards+=g;persist();renderNpc()};el.appendChild(document.createElement('div')).className='row';el.lastChild.appendChild(b)}
 }

@@ -80,7 +80,7 @@ function beginChannel(t){
 }
 function endChannel(){const s=arenaState;if(!s||!s.channel)return;s.channel=null;toast('Оцепенение прервано');burst(s.px,s.py,8,'#c58cff',130,.4,2.4)}
 function takeDamage(amount,kind){
- const s=arenaState;if(s.invuln>0)return;interruptArenaMeditation();amount/=myToughness();if(kind==='melee')amount*=1-armorCut();
+ const s=arenaState;if(s.invuln>0)return;interruptArenaMeditation();amount/=myToughness();if(kind==='melee')amount*=1-armorCut();if(s.buffGuard>0)amount*=.75;
  if(s.shield>0){const ab=Math.min(s.shield,amount);s.shield-=ab;amount-=ab;if(ab>0){floatText(s.px,s.py-32,'-'+fmt(ab),'#63e9ff',13);s.shieldFlash=1;burst(s.px,s.py,10,'#63e9ff',170,.4,2.4)}}
  if(amount>0&&s.qiShieldOn&&save.qi>0){
   const ab=Math.min(amount,save.qi/QI_SHIELD_RATIO);save.qi=Math.max(0,save.qi-ab*QI_SHIELD_RATIO);amount-=ab;
