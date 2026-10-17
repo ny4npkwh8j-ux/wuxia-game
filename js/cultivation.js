@@ -7,7 +7,7 @@ function starZone(p){
  if(y<-.31&&ax<.16)return 'head';                                   // head, neck, top of trapezius (down to the collarbones)
  if(y>=-.335&&y<=.14&&ax>=armSeamX(y))return x<0?'leftHand':'rightHand';    // shoulders, arms, hands (seam follows the armpit gap)
  if(y<-.335)return 'head';
- if(y>=-.07)return x<0?'leftLeg':'rightLeg';                        // pelvis, thighs, shins, feet
+ if(y>=0)return x<0?'leftLeg':'rightLeg';                          // ноги начинаются у паха (ниже дантяня остаётся зона торса — для треугольника «Лечения»)
  return 'body';                                                     // torso between collarbones and pelvis
 }
 function zoneKey(z){return z==='head'?'head':z.includes('Hand')?'hand':z.includes('Leg')?'leg':'body'}
