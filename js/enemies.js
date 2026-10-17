@@ -193,7 +193,8 @@ function nearestBossZone(x,y){let best=null,bd=1e9;for(const z of (arenaState.sp
 function mobIdle(e,dt){
  if(e.zoneBound==null)e.zoneBound=(e.stars||0)>0&&Math.random()<.6;
  e.wanderT=(e.wanderT||0)-dt;if(e.wanderT<=0||e.wanderAng==null){e.wanderAng=Math.random()*TAU;e.wanderT=1.5+Math.random()*2.5}
- let sp=.35;e.cult=false;if(e.team&&!e.zoneBound)e.team=null;
+ let sp=.35;e.cult=false;
+ const lt=(e.stars||0)>0?nearestLoot(e,320):null;if(lt){e.ang=Math.atan2(lt.y-e.y,lt.x-e.x);e.wanderAng=e.ang;e.wanderT=.5;moveEnemy(e,Math.cos(e.ang)*e.s*.7*dt,Math.sin(e.ang)*e.s*.7*dt);e.cult=false;return}if(e.team&&!e.zoneBound)e.team=null;
  const z=e.zoneBound&&(e.stars||0)>0?nearestBossZone(e.x,e.y):null;
  if(z){const dz=Math.hypot(e.x-z.x,e.y-z.y);
   if(dz>z.r*1.5)e.team=null;
@@ -326,7 +327,7 @@ function duelStep(e,dt){
 }
 function entKill(k,v){
  const s=arenaState;
- if(v.core>0)k.sh2=(k.sh2||0)+10;else if((v.columns||0)>0)k.sh2=(k.sh2||0)+v.columns;else k.sh1=(k.sh1||0)+Math.floor(v.stars||0);
+ dropVictimLoot(v);
  k.foeId=null;
  if(v.isBoss){
   v.respawnT=BOSS_RESPAWN;
@@ -362,4 +363,36 @@ function warTick(dt){
  const s=arenaState;if(!s)return;s.warT=(s.warT||0)+dt;s.chalT=(s.chalT||0)+dt;
  if(s.warT>=5){s.warT=0;skirmishRoll()}
  if(s.chalT>=30){s.chalT=0;challengeRoll()}
+}
+
+/* ---- лут осколков: всё, что получают за убийство, падает на землю; подобрать может игрок или любой противник ---- */
+function dropLoot(x,y,k,v){
+ const s=arenaState;v=Math.floor(v);if(!s||v<=0)return;s.loot=s.loot||[];
+ const near=s.loot.find(q=>q.k===k&&Math.hypot(q.x-x,q.y-y)<60);
+ if(near){near.v+=v;return}
+ if(s.loot.length>=300)s.loot.shift();
+ s.loot.push({x:x+rnd(-14,14),y:y+rnd(-14,14),k,v});
+}
+/* что падает с убитого: награда по его культивации + всё, что он сам успел накопить */
+function dropVictimLoot(v){
+ const cols=v.columns||0,stage2=cols>0||v.core>0,rw=v.core>0?10:(stage2?cols:Math.floor(v.stars||0));
+ if(stage2)dropLoot(v.x,v.y,2,rw);else dropLoot(v.x,v.y,1,rw);
+ if(v.sh1>0){dropLoot(v.x,v.y,1,v.sh1);v.sh1=0}if(v.sh2>0){dropLoot(v.x,v.y,2,v.sh2);v.sh2=0}
+ return{k:stage2?2:1,v:rw};
+}
+function lootPickups(dt){
+ const s=arenaState;if(!s||!s.loot||!s.loot.length)return;s.lootT=(s.lootT||0)+dt;if(s.lootT<.25)return;s.lootT=0;
+ for(const e of s.enemies.concat(aliveBosses(s))){
+  if(e.hp<=0||!((e.stars||0)>0))continue;
+  for(let i=s.loot.length-1;i>=0;i--){const q=s.loot[i];if(Math.hypot(q.x-e.x,q.y-e.y)<46){if(q.k===2)e.sh2=(e.sh2||0)+q.v;else e.sh1=(e.sh1||0)+q.v;s.loot.splice(i,1)}}
+ }
+}
+function nearestLoot(e,r){const s=arenaState;let best=null,bd=r;for(const q of (s.loot||[])){const d=Math.hypot(q.x-e.x,q.y-e.y);if(d<bd){bd=d;best=q}}return best}
+function drawLoot(time){
+ const s=arenaState;if(!s||!s.loot)return;const W=aw/devicePixelRatio,H=ah/devicePixelRatio;
+ for(const q of s.loot){const p=worldToScreen(q.x,q.y);if(p.x<-40||p.x>W+40||p.y<-40||p.y>H+40)continue;
+  const col=q.k===2?'#c9a8ff':'#ffd85b',bob=Math.sin(time*3+q.x)*2;
+  ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y+bob,16+Math.min(14,Math.sqrt(q.v)),col,.55);ax.globalCompositeOperation='source-over';
+  ax.fillStyle=col;ax.beginPath();ax.moveTo(p.x,p.y-8+bob);ax.lineTo(p.x+5,p.y+bob);ax.lineTo(p.x,p.y+8+bob);ax.lineTo(p.x-5,p.y+bob);ax.closePath();ax.fill();
+  outText(ax,fmt(q.v),p.x,p.y-12+bob,col,10)}
 }

@@ -39,12 +39,13 @@ function freshArenaField(){
  state.springs=[];for(let i=0;i<3;i++){const pw=[3,5,8][i];state.springs.push({x:500+Math.random()*9000,y:500+Math.random()*9000,r:90+Math.random()*70,pw})}
  for(let i=0;i<65;i++){const o={x:250+Math.random()*9500,y:250+Math.random()*9500,w:55+Math.random()*100,h:45+Math.random()*90,type:Math.random()<.5?'tree':'rock'};if(Math.hypot(o.x-5000,o.y-5000)<650||Math.hypot(o.x-5000,o.y-5320)<200||BOSS_HOMES.some(h=>Math.hypot(o.x-h[0],o.y-h[1])<BOSS_ZONE_R+120)||circleRectRaw(o.x,o.y,60,{x:5000,y:3400,w:150,h:150})){i--;continue}state.obstacles.push(o)}
  state.springs=state.springs||[];for(const z of state.hazards)z.pw=z.pw||3;
+ state.loot=(save.lostLoot||[]).slice();save.lostLoot=[];
  migrateArenaEntities(state);initFx(state);return state;
 }
 function circleRectRaw(x,y,r,o){const cx=Math.max(o.x-o.w/2,Math.min(x,o.x+o.w/2)),cy=Math.max(o.y-o.h/2,Math.min(y,o.y+o.h/2));return Math.hypot(x-cx,y-cy)<r}
 function saveArenaCheckpoint(){
  if(!arenaState)return;
- const cp={world:arenaState.world,px:arenaState.px,py:arenaState.py,camx:arenaState.camx,camy:arenaState.camy,hp:arenaState.hp,maxHp:arenaState.maxHp,enemies:arenaState.enemies,orbs:arenaState.orbs,chests:arenaState.chests,points:arenaState.points,hazards:arenaState.hazards,obstacles:arenaState.obstacles,bosses:arenaState.bosses};
+ const cp={world:arenaState.world,px:arenaState.px,py:arenaState.py,camx:arenaState.camx,camy:arenaState.camy,hp:arenaState.hp,maxHp:arenaState.maxHp,enemies:arenaState.enemies,orbs:arenaState.orbs,chests:arenaState.chests,points:arenaState.points,hazards:arenaState.hazards,obstacles:arenaState.obstacles,bosses:arenaState.bosses,loot:arenaState.loot||[]};
  save.arenaCheckpoint=JSON.parse(JSON.stringify(cp));
  try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);localStorage.setItem('wuxiaSaveSchema',SAVE_SCHEMA)}catch(e){}
 }
@@ -56,7 +57,7 @@ function restoreArenaCheckpoint(){
  state.px=Number.isFinite(state.px)?state.px:5000; state.py=Number.isFinite(state.py)?state.py:5000;
  state.camx=Number.isFinite(state.camx)?state.camx:state.px; state.camy=Number.isFinite(state.camy)?state.camy:state.py;
  state.hp=Number.isFinite(state.hp)?state.hp:save.health; state.maxHp=Number.isFinite(state.maxHp)?state.maxHp:save.health;
- for(const k of ['enemies','orbs','chests','points','hazards','obstacles'])if(!Array.isArray(state[k]))state[k]=[];
+ for(const k of ['enemies','orbs','chests','points','hazards','obstacles','loot'])if(!Array.isArray(state[k]))state[k]=[];
  for(const k of ['springs'])if(!Array.isArray(state[k]))state[k]=[];
  for(const z of state.hazards)z.pw=z.pw||3;
  Object.assign(state,{dx:0,dy:0,lastMoveX:0,lastMoveY:1,shootAng:0,attackAnim:0,qiEffects:[],invuln:0,dashCd:0,dashTime:0,dashDuration:.18,dashSpeed:1350,contactCd:0,spawnTimer:4,checkpointTimer:2,last:performance.now()});
@@ -86,11 +87,10 @@ function worldToScreen(x,y){return{x:x-arenaState.camx+aw/devicePixelRatio/2,y:y
 /* награда привязана к культивации противника: этап I — осколки души = число звёзд; этап II (есть колонны) — осколки 2 этапа = число колонн */
 function killReward(e){
  const s=arenaState;if(!s)return;
- const cols=e.columns||0,stage2=cols>0||e.core>0,rw=e.core>0?10:(stage2?cols:Math.floor(e.stars||0));
+ const L=dropVictimLoot(e),stage2=L.k===2,rw=L.v;
  dropHint(e);
- if(stage2)save.rewards2+=rw;else save.rewards+=rw;
- if(e.isBoss){toast('Босс повержен: +'+fmt(rw)+(stage2?' осколков 2 этапа':' осколков души'));floatText(e.x,e.y-84,'+'+fmt(rw),stage2?'#c9a8ff':'#ffd85b',20);shake(12);onBossDefeated(e)}
- else{if(rw>0)floatText(e.x,e.y-28,'+'+fmt(rw),stage2?'#c9a8ff':'#ffd85b',12);mobDrop(e)}
+ if(e.isBoss){toast('Босс повержен: выпало '+fmt(rw)+(stage2?' осколков 2 этапа':' осколков души')+' — подбери');floatText(e.x,e.y-84,'+'+fmt(rw),stage2?'#c9a8ff':'#ffd85b',20);shake(12);onBossDefeated(e)}
+ else{if(rw>0)floatText(e.x,e.y-28,'💎'+fmt(rw),stage2?'#c9a8ff':'#ffd85b',12);mobDrop(e)}
 }
 /* ---- main loop ---- */
 function arenaLoop(t){
@@ -129,15 +129,15 @@ function arenaLoop(t){
   if(seePlayer&&d<45&&e.mcd<=0){takeDamage(entMelee(e));e.mcd=.65;e.atk=.32}
   e.hit=Math.max(0,e.hit-dt);
  }
- bossLoop(dt);warTick(dt);collect();updateHeal(dt);
+ bossLoop(dt);warTick(dt);lootPickups(dt);collect();updateHeal(dt);
  if(s.channel){const ch=s.channel;ch.t+=dt;if(ch.t>=ch.dur){s.channel=null;const st=ch.tech,cost=techCost(st);if(save.qi>=cost){save.qi-=cost;s.cdStun=AREA_CD.stun;applyStun(st)}else toast('Недостаточно Ци. Нужно '+cost)}}
  save.qi=Math.max(0,Math.min(save.maxQi,save.qi));
  updateFx(dt);emitFx(dt,m<=.08);
- if(s.hp<=0){save.qi=0;const lost=Math.floor(save.rewards*.3);save.rewards-=lost;save.arenaCheckpoint=null;persist();stopArena();show('home');toast('Ты пал на арене. Вся Ци утрачена, потеряно '+fmt(lost)+' осколков души. Поле открыто заново.');return}
+ if(s.hp<=0){save.qi=0;const lost=Math.floor(save.rewards*.3);save.rewards-=lost;save.lostLoot=(save.lostLoot||[]).concat(lost>0?[{x:s.px,y:s.py,k:1,v:lost}]:[]);save.arenaCheckpoint=null;persist();stopArena();show('home');toast('Ты пал на арене. Вся Ци утрачена, потеряно '+fmt(lost)+' осколков души. Поле открыто заново.');return}
  updateArenaUI();drawArena(t/1000);raf=requestAnimationFrame(arenaLoop);
 }
 /* ---- arena UI ---- */
-function collect(){let changed=false;for(let i=arenaState.orbs.length-1;i>=0;i--){const q=arenaState.orbs[i];if(Math.hypot(q.x-arenaState.px,q.y-arenaState.py)<42){save.qi=Math.min(save.maxQi,save.qi+q.value);arenaState.orbs.splice(i,1);changed=true;toast('Сфера Ци: +'+q.value)}}for(let i=arenaState.chests.length-1;i>=0;i--){const q=arenaState.chests[i];if(Math.hypot(q.x-arenaState.px,q.y-arenaState.py)<48){save.rewards+=q.value;arenaState.chests.splice(i,1);changed=true;toast('Сундук: +'+q.value+' осколков в резерв')}}for(let i=arenaState.points.length-1;i>=0;i--){const q=arenaState.points[i];if(Math.hypot(q.x-arenaState.px,q.y-arenaState.py)<52){save.rewards+=q.value;arenaState.points.splice(i,1);changed=true;toast('Точка силы: +'+q.value+' осколков')}}if(changed)persist()}
+function collect(){let changed=false;for(let i=arenaState.orbs.length-1;i>=0;i--){const q=arenaState.orbs[i];if(Math.hypot(q.x-arenaState.px,q.y-arenaState.py)<42){save.qi=Math.min(save.maxQi,save.qi+q.value);arenaState.orbs.splice(i,1);changed=true;toast('Сфера Ци: +'+q.value)}}for(let i=arenaState.chests.length-1;i>=0;i--){const q=arenaState.chests[i];if(Math.hypot(q.x-arenaState.px,q.y-arenaState.py)<48){save.rewards+=q.value;arenaState.chests.splice(i,1);changed=true;toast('Сундук: +'+q.value+' осколков в резерв')}}for(let i=(arenaState.loot||[]).length-1;i>=0;i--){const q=arenaState.loot[i];if(Math.hypot(q.x-arenaState.px,q.y-arenaState.py)<50){if(q.k===2)save.rewards2+=q.v;else save.rewards+=q.v;arenaState.loot.splice(i,1);changed=true;toast('Подобрано '+fmt(q.v)+(q.k===2?' осколков 2 этапа':' осколков души'))}}for(let i=arenaState.points.length-1;i>=0;i--){const q=arenaState.points[i];if(Math.hypot(q.x-arenaState.px,q.y-arenaState.py)<52){save.rewards+=q.value;arenaState.points.splice(i,1);changed=true;toast('Точка силы: +'+q.value+' осколков')}}if(changed)persist()}
 function qiZoneDelta(x,y){
  const s=arenaState;let d=0;
  for(const z of s.hazards)if(Math.hypot(x-z.x,y-z.y)<=z.r)d-=z.pw||3;
@@ -160,6 +160,7 @@ function drawArena(time){
  for(const q of s.points)drawPoint(q,W,H,time);
  for(const q of s.orbs)drawOrb(q,W,H,time);
  for(const q of s.chests)drawChest(q,W,H,time);
+ drawLoot(time);
  for(const o of s.obstacles){const p=worldToScreen(o.x,o.y);if(p.x>-130&&p.x<W+130&&p.y>-130&&p.y<H+130)drawObstacle(ax,p.x,p.y,o,time)}
  for(const g of s.ghosts)drawGhost(g);
  for(const c of s.corpses)drawCorpse(c);
