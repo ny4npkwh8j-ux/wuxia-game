@@ -45,7 +45,9 @@
 .pbar{height:10px;border-radius:8px;background:#26334e;overflow:hidden;margin:8px 0}.pbar i{display:block;height:100%;width:0;background:linear-gradient(90deg,#56dcff,#ffd35a)}
 .modal .sheet{max-height:92%;overflow-y:auto}
 .skills{grid-template-columns:64px}.skills #attackBtn{grid-column:auto;order:0}
-#techCol{position:absolute;right:30px;bottom:94px;width:64px;display:flex;flex-direction:column-reverse;align-items:center;gap:7px;z-index:40}
+/* техники — веером (дугами) вокруг кнопки АТАКА: кнопки позиционируются из JS (rebuildTechButtons) */
+#techCol{position:absolute;right:30px;bottom:20px;width:64px;height:64px;display:block;z-index:40;pointer-events:none}
+#techCol .tbtn,#techCol .pager{position:absolute;pointer-events:auto}
 .tbtn{width:58px;height:58px;border-radius:18px}
 .pager{width:46px;height:30px;border-radius:12px;font-size:11px;font-weight:900;flex-direction:row}
 .skill.qis{border-color:#c58cff}.skill.on{box-shadow:0 0 16px #c58cffaa;background:linear-gradient(145deg,#5a3d8a,#241a3d)}

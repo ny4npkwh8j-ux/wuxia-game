@@ -152,18 +152,22 @@ function zoneStar(c,x,y,r,k,rot){
 const TECH_ICON={qiSingle:'⚡',qiArea:'💥',shield:'🛡️',dodge:'➤',stun:'🌀',qiShield:'✨',heal:'✚',blade:'🗡️',pull:'🧲',repel:'💨',mirage:'👤',poison:'☠️'};
 const TECH_SHORT={qiSingle:'УДАР',qiArea:'ВОЛНА',shield:'ЩИТ',dodge:'РЫВОК',stun:'СТАН',qiShield:'ЛИЧНЫЙ',heal:'ЛЕЧЕНИЕ',blade:'КЛИНОК',pull:'ПРИТЯЖ.',repel:'ОТТАЛК.',mirage:'МИРАЖ',poison:'ЯД'};
 let techSig='',techPage=0;
-function techVisible(){const H=$('arena').getBoundingClientRect().height||700;return Math.max(3,Math.min(5,Math.floor((H-66-140-120)/63)))}
+/* веер вокруг кнопки АТАКА: три дуги (радиус, число слотов, размах в градусах от «вверх» до «влево») */
+const TECH_RINGS=[[100,3,90],[168,5,90],[236,3,60]];
+function techSlots(){const out=[];for(const [r,n,span] of TECH_RINGS)for(let i=0;i<n;i++){const a=(n>1?span-span*i/(n-1):0)*Math.PI/180;out.push({x:32-r*Math.sin(a),y:32-r*Math.cos(a)})}return out}
+function techVisible(){return techSlots().length}
 function rebuildTechButtons(force){
- const list=save.techniques,vis=techVisible();techPage=Math.max(0,Math.min(techPage,Math.max(0,list.length-vis)));
- const sig=list.map(t=>t.type).join('|')+'#'+techPage+'#'+vis;if(!force&&sig===techSig)return;techSig=sig;
+ const list=save.techniques,slots=techSlots(),over=list.length>slots.length,vis=over?slots.length-1:slots.length;techPage=Math.max(0,Math.min(techPage,Math.max(0,list.length-vis)));
+ const sig=list.map(t=>t.type).join('|')+'#'+techPage;if(!force&&sig===techSig)return;techSig=sig;
  const col=$('techCol');col.innerHTML='';
  const mk=(cls,html)=>{const b=document.createElement('button');b.className=cls;b.innerHTML=html;return b};
- if(techPage>0){const dn=mk('skill pager','▼');dn.onclick=()=>{techPage--;rebuildTechButtons()};dn.addEventListener('pointerdown',e=>e.stopPropagation());col.appendChild(dn)}
+ const put=(b,s,w,h)=>{b.style.left=(s.x-w/2)+'px';b.style.top=(s.y-h/2)+'px'};
+ let n=0;
  for(let k=techPage;k<Math.min(list.length,techPage+vis);k++){
   const t=list[k],b=mk('skill tbtn'+(t.type==='qiSingle'?' attack':'')+(t.type==='stun'?' stun':'')+(t.type==='qiShield'?' qis':''),TECH_ICON[t.type]+'<small></small>'+(t.type==='qiSingle'?'<span class="aimdot"></span>':'')+'<i class="cdov"></i><em class="hk">'+(k<9?k+1:k===9?'0':'')+'</em>');
-  b.dataset.i=k;bindTechButton(b,k,t.type);col.appendChild(b);
+  b.dataset.i=k;put(b,slots[n++],58,58);bindTechButton(b,k,t.type);col.appendChild(b);
  }
- if(techPage+vis<list.length){const up=mk('skill pager','▲ +'+(list.length-techPage-vis));up.onclick=()=>{techPage++;rebuildTechButtons()};up.addEventListener('pointerdown',e=>e.stopPropagation());col.appendChild(up)}
+ if(over){const pg=mk('skill pager','⟳ '+(techPage>0?Math.ceil(techPage/vis)+1:1)+'/'+Math.ceil(list.length/vis));put(pg,slots[slots.length-1],46,30);pg.onclick=()=>{techPage=techPage+vis>=list.length?0:Math.min(techPage+vis,list.length-vis);rebuildTechButtons()};pg.addEventListener('pointerdown',e=>e.stopPropagation());col.appendChild(pg)}
 }
 function bindTechButton(b,k,type){
  const T=()=>save.techniques[k],stop=e=>{e.preventDefault();e.stopPropagation()};
