@@ -149,7 +149,7 @@ function drawEnemy(e,W,H,time){
  if(e.stun>0){ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y,30,'#8fb8ff',.4);ax.globalCompositeOperation='source-over';ax.fillStyle='#fff3a0';for(let i=0;i<3;i++){const a=time*3.4+i*TAU/3;star4(ax,p.x+Math.cos(a)*14,p.y-28+Math.sin(a)*4,4.2);ax.fill()}}
  if(e.shield>0){ax.save();ax.strokeStyle='rgba(99,233,255,.55)';ax.lineWidth=1.8;ax.setLineDash([5,5]);ax.lineDashOffset=-time*14;ax.beginPath();ax.arc(p.x,p.y,30,0,TAU);ax.stroke();ax.restore()}
  drawBar(ax,p.x,p.y-40,36,e.hp/(e.maxHp||100),5);
- if(st>0){outText(ax,'★'+st+(e.columns?' · '+e.columns+' КОЛ.':''),p.x-2,p.y-46,'#ffd85b',10);const ts=e.techs||[];ts.slice(0,5).forEach((tt,i)=>{ax.fillStyle=MOB_DOT[tt]||'#fff';ax.beginPath();ax.arc(p.x+13+i*6,p.y-50,2.6,0,TAU);ax.fill()})}
+ if(st>0){outText(ax,'★'+st+(e.core?' · ЯДРО':(e.columns?' · '+e.columns+' КОЛ.':'')),p.x-2,p.y-46,'#ffd85b',10);const ts=e.techs||[];ts.slice(0,5).forEach((tt,i)=>{ax.fillStyle=MOB_DOT[tt]||'#fff';ax.beginPath();ax.arc(p.x+13+i*6,p.y-50,2.6,0,TAU);ax.fill()})}
  if(e.stun>0)outText(ax,e.stun.toFixed(1)+'с',p.x,p.y-56-(st>0?4:-4),'#c9a8ff',10);
 }
 function mobDrop(e){
@@ -198,12 +198,12 @@ function mobIdle(e,dt){
  if(z){const dz=Math.hypot(e.x-z.x,e.y-z.y);
   if(dz>z.r*1.5)e.team=null;
   if(dz>z.r*.7){e.wanderAng=Math.atan2(z.y-e.y,z.x-e.x);sp=.6}
-  if(dz<=z.r){e.team=z.bz;e.cult=true;e.growT=(e.growT||0)+dt;if(e.growT>=MOB_GROW_SEC){e.growT=0;growMob(e)}}}
+  if(dz<=z.r){e.team=z.bz;e.cult=true;evolveTick(e,dt)}}
  e.ang=e.wanderAng;moveEnemy(e,Math.cos(e.ang)*e.s*sp*dt,Math.sin(e.ang)*e.s*sp*dt);
 }
 /* рост на одну звезду: все параметры пересчитываются по тем же формулам, доля здоровья и Ци сохраняется */
 function growMob(e){
- if(e.isBoss||(e.columns||0)>0)return;
+ if((e.columns||0)>0||e.core>0)return;
  const cap=Math.min(100,maxMobStars(arenaTier(arenaState)));if((e.stars||0)>=cap)return;
  const r=e.maxHp?e.hp/e.maxHp:1,q=e.maxQi?e.qi/e.maxQi:1;
  applyKit(e,{stars:e.stars+1,techs:(e.techs||[]).slice()});e.hp=Math.max(1,e.maxHp*r);e.qi=e.maxQi*q;
@@ -237,3 +237,45 @@ function provoke(e){
 }
 /* команда: мобы, которые культивируют в зоне босса, помогают ему, когда он воюет с игроком */
 function teamAlert(t){const s=arenaState,b=aliveBosses(s).find(q=>(q.index||0)===t);return !!(b&&b.hostile&&b.engagedT>0)}
+
+/* ---- эволюция противников по схеме игрока: звёзды → колонны → ядро ----
+   Идёт, пока противник культивирует в зоне Ци. Платит осколками (e.sh1 — души, e.sh2 — 2 этапа, их приносят победы) или временем.
+   Шансы и цены — те же, что у игрока; неудача: первая колонна — минус 20 звёзд, дальше — минус колонна, ядро — потеря всех колонн. */
+const EVO_COL_SEC=300,EVO_CORE_SEC=900,FULL_KIT=['shield','dodge','qiSingle','qiArea','qiShield','stun','heal'];
+function entMaxCols(e){return e.isBoss?MAX_PILLARS:maxMobCols(arenaTier(arenaState))}
+function entRebuild(e,stars,cols,note){
+ const r=e.maxHp?e.hp/e.maxHp:1,q=e.maxQi?e.qi/e.maxQi:1;
+ applyKit(e,{stars,techs:FULL_KIT.slice(),columns:cols});e.hp=Math.max(1,e.maxHp*r);e.qi=e.maxQi*q;
+ if(note&&e.isBoss&&arenaState)toast('Босс '+e.index+' '+note);
+ if(arenaState)burst(e.x,e.y,e.isBoss?30:14,'#ffd85b',260,.9,3);
+}
+function evolveTick(e,dt){
+ if(e.core>0||!arenaState)return;
+ e.growT=(e.growT||0)+dt;
+ const S=e.stars||0,C=e.columns||0;
+ if(S<100){
+  const cap=e.isBoss?100:Math.min(100,maxMobStars(arenaTier(arenaState)));if(S>=cap)return;
+  const cost=10+5*S;
+  if((e.sh1||0)>=cost){e.sh1-=cost;e.growT=0;growMob(e);return}
+  if(e.growT>=MOB_GROW_SEC){e.growT=0;growMob(e)}
+  return;
+ }
+ const max=entMaxCols(e);
+ if(C>=max&&C>=CORE_MIN_PILLARS){
+  const pay=(e.sh2||0)>=CORE_SHARD_COST;
+  if(pay||e.growT>=EVO_CORE_SEC){
+   if(pay)e.sh2-=CORE_SHARD_COST;e.growT=0;
+   if(Math.random()*100<coreChanceFor(C,0)){const q=coreQualityFor(C,entCoef(e));e.core=q.coef;entRebuild(e,100,0,'сформировал ядро: '+q.name+'!')}
+   else entRebuild(e,100,0,'потерял все колонны при создании ядра');
+  }
+  return;
+ }
+ if(C>=max)return;
+ const first=C===0,key=first?'sh1':'sh2',cost=first?10000:100*(C+1),pay=(e[key]||0)>=cost;
+ if(pay||e.growT>=EVO_COL_SEC){
+  if(pay)e[key]-=cost;e.growT=0;
+  if(Math.random()*100<pillarChance(0))entRebuild(e,100,C+1,'сформировал колонну ('+(C+1)+')');
+  else if(first)entRebuild(e,80,0,'потерял 20 звёзд при неудаче колонны');
+  else entRebuild(e,100,C-1,'потерял колонну при неудаче');
+ }
+}

@@ -57,7 +57,7 @@ function bossStep(b,dt){
   b.wind=null;
   b.wanderT=(b.wanderT||0)-dt;if(b.wanderT<=0||b.wanderAng==null){b.wanderAng=Math.random()*TAU;b.wanderT=2+Math.random()*3}
   if(hd>BOSS_ZONE_R*.6)b.wanderAng=Math.atan2(b.home.y-b.y,b.home.x-b.x);
-  b.ang=b.wanderAng;b.cult=hd<=BOSS_ZONE_R;
+  b.ang=b.wanderAng;b.cult=hd<=BOSS_ZONE_R;if(b.cult)evolveTick(b,dt);
   const ox=b.x,oy=b.y;moveBoss(b,Math.cos(b.ang)*b.s*(hd>BOSS_ZONE_R*.6?1:.4)*dt,Math.sin(b.ang)*b.s*(hd>BOSS_ZONE_R*.6?1:.4)*dt);
   const md=Math.hypot(b.x-ox,b.y-oy);b.mv=(b.mv||0)+((md>.05?1:0)-(b.mv||0))*Math.min(1,dt*8);b.wp=(b.wp||0)+md*.09;
   /* вне боя босс лечится техникой «Лечение»: 3 Ци = 1 здоровья, скорость как у игрока */
@@ -99,5 +99,5 @@ function drawBossOne(b,W,H,time){
  ax.globalCompositeOperation='lighter';for(let i=0;i<3;i++){const a=time*1.4+i*TAU/3;glow(ax,p.x+Math.cos(a)*54,p.y+Math.sin(a)*46,9,aur,.9)}ax.globalCompositeOperation='source-over';
  if(b.shield>0)shieldBubble(ax,p.x,p.y,62,1,0,time);
  drawBar(ax,p.x,p.y-72,78,b.hp/b.maxHp,7);
- outText(ax,(t2?'ПРАКТИК':'БОСС')+' · 100 ★'+(b.columns?' · '+b.columns+' КОЛОННА':'')+(b.cult?' · КУЛЬТИВИРУЕТ':''),p.x,p.y-80,'#fff',11);
+ outText(ax,(t2?'ПРАКТИК':'БОСС')+' · 100 ★'+(b.core?' · ЯДРО ×'+b.core:(b.columns?' · '+b.columns+' КОЛОННА':''))+(b.cult?' · КУЛЬТИВИРУЕТ':''),p.x,p.y-80,'#fff',11);
 }

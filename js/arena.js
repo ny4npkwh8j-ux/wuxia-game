@@ -86,7 +86,7 @@ function worldToScreen(x,y){return{x:x-arenaState.camx+aw/devicePixelRatio/2,y:y
 /* награда привязана к культивации противника: этап I — осколки души = число звёзд; этап II (есть колонны) — осколки 2 этапа = число колонн */
 function killReward(e){
  const s=arenaState;if(!s)return;
- const cols=e.columns||0,stage2=cols>0,rw=stage2?cols:Math.floor(e.stars||0);
+ const cols=e.columns||0,stage2=cols>0||e.core>0,rw=e.core>0?10:(stage2?cols:Math.floor(e.stars||0));
  dropHint(e);
  if(stage2)save.rewards2+=rw;else save.rewards+=rw;
  if(e.isBoss){toast('Босс повержен: +'+fmt(rw)+(stage2?' осколков 2 этапа':' осколков души'));floatText(e.x,e.y-84,'+'+fmt(rw),stage2?'#c9a8ff':'#ffd85b',20);shake(12);onBossDefeated(e)}
