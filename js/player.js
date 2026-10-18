@@ -23,6 +23,12 @@ function activateQiStrike(t,held){
   for(let i=0;i<34;i++){const aa=rnd(0,TAU),sp=rnd(200,620);addPart({k:'spark',x:s.px,y:s.py,vx:Math.cos(aa)*sp,vy:Math.sin(aa)*sp,t:0,max:rnd(.3,.7),size:rnd(1.6,3.4),col:'#fff0a0',drag:2.2})}
   shake(7);
  }
+ const piercing=(list,total)=>{
+  list.sort((a,b)=>Math.hypot(a.x-s.px,a.y-s.py)-Math.hypot(b.x-s.px,b.y-s.py));
+  let energy=total,hit=0;
+  for(const e of list){if(energy<=1)break;hit++;const stop=entStopPower(e);if(damageEnemy(e,energy))killReward(e);energy-=stop}
+  return hit;
+ };
  if(t.type==='qiSingle'){
   /* как пуля: у удара есть запас силы; первая цель получает его целиком, а каждая цель на пути «съедает» часть
      (столько, сколько нужно, чтобы её пробить: здоровье + щиты с учётом стойкости). Слабых удар пробивает насквозь, сильная цель его останавливает. */
@@ -34,10 +40,10 @@ function activateQiStrike(t,held){
   }
   persist();toast('Одиночный Удар Ци: '+Math.round(f*100)+'% силы · '+fmt(total)+' урона первой цели · пробито целей: '+hit+' из '+targets.length);return;
  }
- const each=targets.length?total/targets.length:0;
- for(const e of targets){if(damageEnemy(e,each))killReward(e)}
+ /* волна по площади идёт от игрока наружу: ближние цели получают весь удар, каждая поглощает часть, до дальних доходит остаток */
+ const hitA=piercing(targets,total);
  persist();
- toast('Удар Ци по площади: '+Math.round(f*100)+'% силы · '+fmt(total)+' урона · '+targets.length+' целей · по '+fmt(each));
+ toast('Удар Ци по площади: '+Math.round(f*100)+'% силы · '+fmt(total)+' урона ближней цели · пробито целей: '+hitA+' из '+targets.length);
 }
 function activateShield(t){
  interruptArenaMeditation();const s=arenaState;if(!s||!t)return;if(stunBlock())return;
