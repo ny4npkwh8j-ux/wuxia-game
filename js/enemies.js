@@ -196,7 +196,8 @@ function mobIdle(e,dt){
  e.wanderT=(e.wanderT||0)-dt;if(e.wanderT<=0||e.wanderAng==null){e.wanderAng=Math.random()*TAU;e.wanderT=1.5+Math.random()*2.5}
  let sp=.35;e.cult=false;
  if(e.shopping&&mobShopStep(e,dt))return;
- const lt=(e.stars||0)>0?nearestLoot(e,320):null;if(lt){e.ang=Math.atan2(lt.y-e.y,lt.x-e.x);e.wanderAng=e.ang;e.wanderT=.5;moveEnemy(e,Math.cos(e.ang)*e.s*.7*dt,Math.sin(e.ang)*e.s*.7*dt);e.cult=false;return}
+ const lt=(e.stars||0)>0?nearestLoot(e,e.hunter?900:500):null;if(lt){e.ang=Math.atan2(lt.y-e.y,lt.x-e.x);e.wanderAng=e.ang;e.wanderT=.5;moveEnemy(e,Math.cos(e.ang)*e.s*.7*dt,Math.sin(e.ang)*e.s*.7*dt);e.cult=false;return}
+ if(huntStep(e,dt))return;
  /* солдат армии держится зоны своего босса; свободный культиватор идёт к ближайшей зоне */
  const z=e.lord?(arenaState.springs||[]).find(q=>q.bz===e.lord):(e.zoneBound&&(e.stars||0)>0?nearestBossZone(e.x,e.y):null);
  if(z){const dz=Math.hypot(e.x-z.x,e.y-z.y);
@@ -224,9 +225,16 @@ function tryBreakthrough(i){
 
 /* ---- отношение к игроку: заметив игрока, противник с шансом AGGRO_CHANCE невзлюбит его и нападёт; иначе игнорирует, пока его не тронут ---- */
 const AGGRO_CHANCE=.4;
+/* ---- отношение по силе (правило игры): цель интересна, только если примерно равна по силе (PW_LO..PW_HI от своей).
+   Слишком слабая и слишком сильная — не интересны; заметно сильнее (PW_FEAR и больше) — слабые мобы её боятся и убегают. ---- */
+const PW_LO=.7,PW_HI=1.4,PW_FEAR=1.8,FEAR_RANGE=450;
+function entPow(e){const s=arenaState,t=s?s.t:0;if(e._pwT==null||t<e._pwT||t-e._pwT>1){e._pw=Math.max(1e-6,entMult(e));e._pwT=t}return e._pw}
+function playerPow(){const s=arenaState,t=s?s.t:0;if(s&&(s._ppwT==null||t<s._ppwT||t-s._ppwT>1)){s._ppw=Math.max(1e-6,playerRefMult());s._ppwT=t}return s?s._ppw:1}
+function isEqualPow(r){return r>=PW_LO&&r<=PW_HI}
+function equalFoes(a,b){return isEqualPow(entPow(b)/entPow(a))}
 function aggroCheck(e,d,dt){
  const near=canSeePlayer(d);
- if(near){e.noSeeT=0;if(e.hostile==null)e.hostile=!!e.provoked||Math.random()<AGGRO_CHANCE}
+ if(near){e.noSeeT=0;if(e.hostile==null)e.hostile=!!e.provoked||(isEqualPow(playerPow()/entPow(e))&&Math.random()<AGGRO_CHANCE)}
  else{e.noSeeT=(e.noSeeT||0)+dt;if(e.noSeeT>8){e.hostile=null;e.provoked=false}}
  if(!e.hostile&&e.team&&teamAlert(e.team))e.hostile=true;
  return near&&!!e.hostile;
@@ -346,21 +354,53 @@ function skirmishRoll(){
  const free=s.enemies.filter(m=>m.hp>0&&(m.stars||0)>0&&m.foeId==null&&!near(m)).concat(aliveBosses(s).filter(b=>b.foeId==null&&!near(b)));
  /* 1) чужаки в зоне босса */
  for(const b of aliveBosses(s)){if(b.foeId!=null)continue;const z=(s.springs||[]).find(q=>q.bz===b.index);if(!z)continue;
-  for(const x of free){if(x===b||x.foeId!=null||x.team===b.index)continue;if(Math.hypot(x.x-z.x,x.y-z.y)<z.r&&Math.random()<.5){startDuel(b,x);break}}}
+  for(const x of free){if(x===b||x.foeId!=null||x.team===b.index)continue;if(Math.hypot(x.x-z.x,x.y-z.y)<z.r&&equalFoes(b,x)&&Math.random()<.5){startDuel(b,x);break}}}
  /* 2) случайные встречи: пары рядом, не из одной команды */
  for(let i=0;i<free.length;i++){const a=free[i];if(a.foeId!=null)continue;
   for(let j=i+1;j<free.length;j++){const b=free[j];if(b.foeId!=null)continue;if(a.team&&a.team===b.team)continue;
-   if(Math.hypot(a.x-b.x,a.y-b.y)<260&&Math.random()<.15){startDuel(a,b);break}}}
+   if(Math.hypot(a.x-b.x,a.y-b.y)<260&&equalFoes(a,b)&&Math.random()<.15){startDuel(a,b);break}}}
  /* 3) набеги боссов друг на друга при близких силах */
  const bs=aliveBosses(s).filter(b=>b.foeId==null&&!near(b));
- for(const a of bs){if(a.foeId!=null)continue;let t=null,td=1e9;for(const b of bs){if(b===a||b.foeId!=null)continue;const d=Math.hypot(a.x-b.x,a.y-b.y);if(d<td){td=d;t=b}}
-  if(t&&entMult(a)/entMult(t)>=.8&&Math.random()<.04)startDuel(a,t)}
+ for(const a of bs){if(a.foeId!=null)continue;let t=null,td=3000;/* боссы охотятся друг на друга и на топовых мобов, равных им по силе */
+  for(const b of bs.concat(s.enemies)){if(b===a||b.hp<=0||b.foeId!=null||(b.team&&b.team===a.index)||(a.index&&b.lord===a.index))continue;const d=Math.hypot(a.x-b.x,a.y-b.y);if(d<td&&equalFoes(a,b)){td=d;t=b}}
+  if(t&&Math.random()<.04)startDuel(a,t)}
 }
 function challengeRoll(){
  const s=arenaState;
  for(const b of aliveBosses(s)){if(b.foeId!=null)continue;const bm=entMult(b);let best=null;
   for(const m of s.enemies){if(m.hp<=0||m.team!==b.index||m.foeId!=null)continue;const r=entMult(m)/bm;if(r>=.9&&(!best||r>best.r))best={m,r}}
   if(best&&Math.random()<.05){best.m.challenge=true;startDuel(best.m,b);toast('Моб бросил вызов Боссу '+b.index+'!')}}
+}
+/* слабые мобы убегают от заметно более сильных (игрока, мобов, боссов) */
+function fearStep(e,dt){
+ if(e.isBoss||(e.lord&&teamAlert(e.lord)))return false;
+ const s=arenaState;e.fearT=(e.fearT||0)-dt;
+ if(e.fearT<=0){
+  e.fearT=.35+Math.random()*.3;let th=null,td=FEAR_RANGE;const my=entPow(e);
+  const dp=Math.hypot(s.px-e.x,s.py-e.y);if(dp<td&&canSeePlayer(dp)&&playerPow()/my>=PW_FEAR){th={x:s.px,y:s.py};td=dp}
+  for(const o of s.enemies){if(o===e||o.hp<=0)continue;const dx=o.x-e.x;if(dx>td||dx<-td)continue;const d=Math.hypot(dx,o.y-e.y);if(d<td&&entPow(o)/my>=PW_FEAR){th={x:o.x,y:o.y};td=d}}
+  for(const b of aliveBosses(s)){const d=Math.hypot(b.x-e.x,b.y-e.y);if(d<td&&entPow(b)/my>=PW_FEAR){th={x:b.x,y:b.y};td=d}}
+  e.fear=th?{x:th.x,y:th.y,t:1.1}:null;
+ }
+ if(!e.fear)return false;
+ e.ang=Math.atan2(e.y-e.fear.y,e.x-e.fear.x);e.cult=false;e.wind=null;
+ const ox=e.x,oy=e.y;moveEnemy(e,Math.cos(e.ang)*e.s*1.2*dt,Math.sin(e.ang)*e.s*1.2*dt);
+ const md=Math.hypot(e.x-ox,e.y-oy);e.mv=(e.mv||0)+((md>.05?1:0)-(e.mv||0))*Math.min(1,dt*8);e.wp=(e.wp||0)+md*.13;e.atk=Math.max(0,(e.atk||0)-dt);e.hit=Math.max(0,e.hit-dt);
+ return true;
+}
+/* равные по силе — добыча: охотник идёт к ближайшему равному и начинает бой */
+function huntStep(e,dt){
+ const s=arenaState;if(e.hunter==null)e.hunter=Math.random()<.5;if(!e.hunter||!((e.stars||0)>0))return false;
+ e.huntT=(e.huntT||0)-dt;
+ if(e.huntT<=0){
+  e.huntT=.8+Math.random()*.6;e.prey=null;let bd=700;
+  const cand=s.enemies.concat(aliveBosses(s));
+  for(const x of cand){if(x===e||x.hp<=0||x.foeId!=null||(e.team&&x.team===e.team)||(e.lord&&x.lord===e.lord))continue;const d=Math.hypot(x.x-e.x,x.y-e.y);if(d<bd&&equalFoes(e,x)){bd=d;e.prey=x.id}}
+ }
+ const f=e.prey!=null?findEnt(e.prey):null;if(!f||f.foeId!=null){e.prey=null;return false}
+ const d=Math.hypot(f.x-e.x,f.y-e.y);
+ if(d<110){e.prey=null;if(Math.random()<.5)startDuel(e,f);return false}
+ e.ang=Math.atan2(f.y-e.y,f.x-e.x);e.wanderAng=e.ang;e.cult=false;moveEnemy(e,Math.cos(e.ang)*e.s*.75*dt,Math.sin(e.ang)*e.s*.75*dt);return true;
 }
 function warTick(dt){
  const s=arenaState;if(!s)return;s.warT=(s.warT||0)+dt;s.chalT=(s.chalT||0)+dt;s.recT=(s.recT||0)+dt;s.shopT=(s.shopT||0)+dt;if(s.shopT>=20){s.shopT=0;mobShopRoll()}

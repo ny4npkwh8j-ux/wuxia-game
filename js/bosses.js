@@ -58,8 +58,9 @@ function bossStep(b,dt){
   b.wind=null;
   b.wanderT=(b.wanderT||0)-dt;if(b.wanderT<=0||b.wanderAng==null){b.wanderAng=Math.random()*TAU;b.wanderT=2+Math.random()*3}
   if(hd>BOSS_ZONE_R*.6)b.wanderAng=Math.atan2(b.home.y-b.y,b.home.x-b.x);
-  b.ang=b.wanderAng;b.cult=hd<=BOSS_ZONE_R;if(b.cult)evolveTick(b,dt);
-  const ox=b.x,oy=b.y;moveBoss(b,Math.cos(b.ang)*b.s*(hd>BOSS_ZONE_R*.6?1:.4)*dt,Math.sin(b.ang)*b.s*(hd>BOSS_ZONE_R*.6?1:.4)*dt);
+  const lt=hd<BOSS_LEASH?nearestLoot(b,1100):null;if(lt)b.wanderAng=Math.atan2(lt.y-b.y,lt.x-b.x);/* босс охотится за осколками рядом с домом */
+  b.ang=b.wanderAng;b.cult=hd<=BOSS_ZONE_R&&!lt;if(b.cult)evolveTick(b,dt);
+  const ox=b.x,oy=b.y;const bsp=(lt||hd>BOSS_ZONE_R*.6)?1:.4;moveBoss(b,Math.cos(b.ang)*b.s*bsp*dt,Math.sin(b.ang)*b.s*bsp*dt);
   const md=Math.hypot(b.x-ox,b.y-oy);b.mv=(b.mv||0)+((md>.05?1:0)-(b.mv||0))*Math.min(1,dt*8);b.wp=(b.wp||0)+md*.09;
   /* вне боя босс лечится техникой «Лечение»: 3 Ци = 1 здоровья, скорость как у игрока */
   if(b.hp<b.maxHp&&b.qi>0){const sp=Math.min(healRate({nodes:{length:PATH_CAP}})*dt,b.qi);b.qi-=sp;b.healAcc=(b.healAcc||0)+sp;const g=Math.floor(b.healAcc/3);if(g>0){b.healAcc-=g*3;b.hp=Math.min(b.maxHp,b.hp+g)}}

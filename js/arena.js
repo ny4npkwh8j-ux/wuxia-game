@@ -127,6 +127,7 @@ function arenaLoop(t){
   entTick(e,dt);
   if(e.stun>0){e.stun-=dt;e.mv=0;e.hit=Math.max(0,e.hit-dt);continue}
   if(duelStep(e,dt)){e.hit=Math.max(0,e.hit-dt);continue}
+  if(fearStep(e,dt))continue;
   const dx=s.px-e.x,dy=s.py-e.y,d=Math.hypot(dx,dy)||1,seePlayer=aggroCheck(e,d,dt);
   if(seePlayer){e.seenT=TARGET_MEMORY_TIME;e.lastX=s.px;e.lastY=s.py}else e.seenT=Math.max(0,(e.seenT||0)-dt);
   const engaged=seePlayer||e.seenT>0;
