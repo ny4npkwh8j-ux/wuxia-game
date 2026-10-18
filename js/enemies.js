@@ -51,8 +51,9 @@ function rerollLiveMobs(bossIndex){
  const s=arenaState;if(!s)return;
  for(const e of s.enemies){if(e.hp<=0)continue;const k=rollKit(bossIndex);applyKit(e,k);if(!k.columns)e.columns=0;e.s=(45+Math.random()*25)*(1+k.stars/500)}
 }
-function damageEnemy(e,damage,src){
+function damageEnemy(e,damage,src,melee){
  if(src!=='ent')provoke(e);
+ if(melee)damage*=1-entArmorCut(e);
  if(e.hp<=0)return false;const raw=damage/entToughness(e);let dmg=raw;
  if(e.shield>0){const a=Math.min(e.shield,dmg);e.shield-=a;dmg-=a}
  if(dmg>0&&e.qiShieldOn&&e.qi>0){const a=Math.min(dmg,e.qi/QI_SHIELD_RATIO);e.qi=Math.max(0,e.qi-a*QI_SHIELD_RATIO);dmg-=a;e.qsFlash=1;if(e.qi<=0)e.qiShieldOn=false}
@@ -194,6 +195,7 @@ function mobIdle(e,dt){
  if(e.zoneBound==null)e.zoneBound=(e.stars||0)>0&&Math.random()<.6;
  e.wanderT=(e.wanderT||0)-dt;if(e.wanderT<=0||e.wanderAng==null){e.wanderAng=Math.random()*TAU;e.wanderT=1.5+Math.random()*2.5}
  let sp=.35;e.cult=false;
+ if(e.shopping&&mobShopStep(e,dt))return;
  const lt=(e.stars||0)>0?nearestLoot(e,320):null;if(lt){e.ang=Math.atan2(lt.y-e.y,lt.x-e.x);e.wanderAng=e.ang;e.wanderT=.5;moveEnemy(e,Math.cos(e.ang)*e.s*.7*dt,Math.sin(e.ang)*e.s*.7*dt);e.cult=false;return}
  /* солдат армии держится зоны своего босса; свободный культиватор идёт к ближайшей зоне */
  const z=e.lord?(arenaState.springs||[]).find(q=>q.bz===e.lord):(e.zoneBound&&(e.stars||0)>0?nearestBossZone(e.x,e.y):null);
@@ -322,7 +324,7 @@ function duelStep(e,dt){
  }
  const mover=boss?moveBoss:moveEnemy;
  if(d>55&&!(fired&&d<R.single*.5)){const ox=e.x,oy=e.y;mover(e,Math.cos(e.ang)*e.s*dt,Math.sin(e.ang)*e.s*dt);const md=Math.hypot(e.x-ox,e.y-oy);e.mv=(e.mv||0)+((md>.05?1:0)-(e.mv||0))*Math.min(1,dt*8);e.wp=(e.wp||0)+md*(boss?.09:.13)}
- else if(d<=60&&e.mcd<=0){e.mcd=.65;if(damageEnemy(f,entMelee(e),'ent')){entKill(e,f);return true}}
+ else if(d<=60&&e.mcd<=0){e.mcd=.65;if(damageEnemy(f,entMelee(e),'ent',true)){entKill(e,f);return true}}
  return true;
 }
 function entKill(k,v){
@@ -361,7 +363,7 @@ function challengeRoll(){
   if(best&&Math.random()<.05){best.m.challenge=true;startDuel(best.m,b);toast('Моб бросил вызов Боссу '+b.index+'!')}}
 }
 function warTick(dt){
- const s=arenaState;if(!s)return;s.warT=(s.warT||0)+dt;s.chalT=(s.chalT||0)+dt;s.recT=(s.recT||0)+dt;
+ const s=arenaState;if(!s)return;s.warT=(s.warT||0)+dt;s.chalT=(s.chalT||0)+dt;s.recT=(s.recT||0)+dt;s.shopT=(s.shopT||0)+dt;if(s.shopT>=20){s.shopT=0;mobShopRoll()}
  if(s.recT>=8){s.recT=0;recruitTick()}
  if(s.warT>=5){s.warT=0;skirmishRoll()}
  if(s.chalT>=30){s.chalT=0;challengeRoll()}
@@ -377,6 +379,7 @@ function dropLoot(x,y,k,v){
 }
 /* что падает с убитого: награда по его культивации + всё, что он сам успел накопить */
 function dropVictimLoot(v){
+ gearDeathDrop(v);
  const cols=v.columns||0,stage2=cols>0||v.core>0,rw=v.core>0?10:(stage2?cols:Math.floor(v.stars||0));
  if(stage2)dropLoot(v.x,v.y,2,rw);else dropLoot(v.x,v.y,1,rw);
  if(v.sh1>0){dropLoot(v.x,v.y,1,v.sh1);v.sh1=0}if(v.sh2>0){dropLoot(v.x,v.y,2,v.sh2);v.sh2=0}
@@ -386,13 +389,14 @@ function lootPickups(dt){
  const s=arenaState;if(!s||!s.loot||!s.loot.length)return;s.lootT=(s.lootT||0)+dt;if(s.lootT<.25)return;s.lootT=0;
  for(const e of s.enemies.concat(aliveBosses(s))){
   if(e.hp<=0||!((e.stars||0)>0))continue;
-  for(let i=s.loot.length-1;i>=0;i--){const q=s.loot[i];if(Math.hypot(q.x-e.x,q.y-e.y)<46){if(q.k===2)e.sh2=(e.sh2||0)+q.v;else e.sh1=(e.sh1||0)+q.v;s.loot.splice(i,1)}}
+  for(let i=s.loot.length-1;i>=0;i--){const q=s.loot[i];if(Math.hypot(q.x-e.x,q.y-e.y)<46){if(q.k===3){if(gearUseful(e,q.item)){entEquip(e,q.item);s.loot.splice(i,1)}}else{if(q.k===2)e.sh2=(e.sh2||0)+q.v;else e.sh1=(e.sh1||0)+q.v;s.loot.splice(i,1)}}}
  }
 }
-function nearestLoot(e,r){const s=arenaState;let best=null,bd=r;for(const q of (s.loot||[])){const d=Math.hypot(q.x-e.x,q.y-e.y);if(d<bd){bd=d;best=q}}return best}
+function nearestLoot(e,r){const s=arenaState;let best=null,bd=r;for(const q of (s.loot||[])){if(q.k===3&&!gearUseful(e,q.item))continue;const d=Math.hypot(q.x-e.x,q.y-e.y);if(d<bd){bd=d;best=q}}return best}
 function drawLoot(time){
  const s=arenaState;if(!s||!s.loot)return;const W=aw/devicePixelRatio,H=ah/devicePixelRatio;
  for(const q of s.loot){const p=worldToScreen(q.x,q.y);if(p.x<-40||p.x>W+40||p.y<-40||p.y>H+40)continue;
+  if(q.k===3){const bob=Math.sin(time*3+q.x)*2;ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y+bob,18,'#7fe0ff',.5);ax.globalCompositeOperation='source-over';ax.font='20px sans-serif';ax.textAlign='center';ax.fillText((GEAR[q.item]||{icon:'?'}).icon,p.x,p.y+7+bob);continue}
   const col=q.k===2?'#c9a8ff':'#ffd85b',bob=Math.sin(time*3+q.x)*2;
   ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y+bob,16+Math.min(14,Math.sqrt(q.v)),col,.55);ax.globalCompositeOperation='source-over';
   ax.fillStyle=col;ax.beginPath();ax.moveTo(p.x,p.y-8+bob);ax.lineTo(p.x+5,p.y+bob);ax.lineTo(p.x,p.y+8+bob);ax.lineTo(p.x-5,p.y+bob);ax.closePath();ax.fill();

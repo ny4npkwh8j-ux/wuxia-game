@@ -73,7 +73,7 @@ function playerRefMult(){return techniquePower(Math.min(PATH_CAP,save.stars),sav
 /* сила обычного удара кулаком: привязана к звёздам (100 звёзд = 100 урона) */
 function playerStr(){return bodyStr(save.stars)*myStage()*(typeof pillPower==='function'?pillPower():1)}
 /* удар кулаком противника: колонны усиливают его так же, как удар игрока (ядро уже учтено в e.str) */
-function entMelee(e){return (e.str??bodyStr(e.stars||0))*colFactor(e.columns||0,entCoef(e))}
+function entMelee(e){return (e.str??bodyStr(e.stars||0))*colFactor(e.columns||0,entCoef(e))+entWeaponDmg(e)}
 function techDamage(t){return TECH_BASE[t.type]*myMult(t)}
 /* Стойкость стадии: колонны усиливают не только атаку (colFactor), но и делят входящий урон на ту же величину.
    Равные по стадии противники дерутся как на этапе I (удар = 30% здоровья), а разница в колоннах даёт двойное преимущество.

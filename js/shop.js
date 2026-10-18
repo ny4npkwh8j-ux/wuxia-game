@@ -46,6 +46,14 @@ function renderShopTech(box){
 function renderShopGear(box){
  for(const id in GEAR){const it=GEAR[id],k=it.tier===1?1:2,has=gearOwned(id);
   shopCard(box,it.icon+' '+it.name,'ур. '+it.tier,it.desc,[[has?'Куплено':'Купить · '+costText(k,it.price),!has&&canPay(k,it.price),()=>{if(!shopPay(k,it.price))return;gearGive(id);toast(it.name+' — в инвентаре (🎒 в меню культивации).');persist();renderNpc()}]])}
+ renderSellGear(box);
+}
+function renderSellGear(box){
+ const g=gearSave(),ids=[...new Set(g.own)].filter(id=>GEAR[id]);
+ const h=document.createElement('h4');h.textContent='Продать (вполовину дешевле покупки)';box.appendChild(h);
+ if(!ids.length){const p=document.createElement('p');p.className='sc-empty';p.textContent='Нечего продавать.';box.appendChild(p);return}
+ for(const id of ids){const it=GEAR[id],k=it.tier===1?1:2,price=Math.floor(it.price/2),cnt=g.own.filter(x=>x===id).length,on=g.weapon===id||g.armor===id;
+  shopCard(box,it.icon+' '+it.name,(on?'надето · ':'')+'×'+cnt,'',[['Продать · +'+costText(k,price),true,()=>{if(!gearTake(id))return;save[k===1?'rewards':'rewards2']+=price;toast('Продано: '+it.name);persist();renderNpc()}]])}
 }
 function pillCount(id){return (gearSave().pills[id]||0)}
 function renderShopPills(box){
