@@ -23,7 +23,7 @@ function pillarQiFraction(){return Math.min(1,(save.pillarQi||0)/activeColumnCos
 function pillarShardsLeft(){return Math.max(0,Math.ceil(activeShardCost()*(1-pillarQiFraction())-1e-9))}
 function pillarBalance(){return save.pillars===0?save.rewards:save.rewards2}
 function pillarChanceCost(){return save.pillars===0?100:1} /* осколками: в 100 раз дешевле, чем раньше */
-function pillarChanceQiCost(){return save.pillars===0?10000:100} /* Ци: цена прежняя */
+function pillarChanceQiCost(){return 10000*(save.pillars+1)} /* Ци: 10 000 × номер колонны (как цена самой колонны) */
 function renderPillar(){
  const done=save.pillars>=MAX_PILLARS,first=save.pillars===0,okStars=save.stars>=FIRST_PILLAR_STARS||!first;
  const qiCost=activeColumnCost(),left=pillarShardsLeft(),chance=pillarChance(save.pillarChanceExtra),bal=pillarBalance(),kind=first?' души':' 2 этапа',chCost=pillarChanceCost();
