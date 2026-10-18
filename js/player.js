@@ -1,6 +1,7 @@
 'use strict';
 /* под оцепенением от босса действовать нельзя */
 function stunBlock(){const s=arenaState;if(s&&s.stun>0){toast('Оцепенён ещё '+s.stun.toFixed(1)+' с');return true}return false}
+const PIERCE=[1,.6,.3]; /* доля урона одиночного Удара Ци на 1-й, 2-й, 3-й цели в линии; 4-я и дальше целы */
 function activateQiStrike(t,held){
  interruptArenaMeditation();const s=arenaState;if(!s||!t||(t.type!=='qiSingle'&&t.type!=='qiArea'))return;if(stunBlock())return;
  if(t.type==='qiArea'&&s.cdArea>0)return toast('Удар по площади перезаряжается: '+s.cdArea.toFixed(1)+' с');
@@ -21,10 +22,16 @@ function activateQiStrike(t,held){
   for(let i=0;i<34;i++){const aa=rnd(0,TAU),sp=rnd(200,620);addPart({k:'spark',x:s.px,y:s.py,vx:Math.cos(aa)*sp,vy:Math.sin(aa)*sp,t:0,max:rnd(.3,.7),size:rnd(1.6,3.4),col:'#fff0a0',drag:2.2})}
   shake(7);
  }
+ if(t.type==='qiSingle'){
+  /* как пуля: первого цель получает полный урон, на каждой следующей удар теряет силу (PIERCE), после последней — гаснет */
+  targets.sort((a,b)=>Math.hypot(a.x-s.px,a.y-s.py)-Math.hypot(b.x-s.px,b.y-s.py));
+  let hit=0;for(let i=0;i<targets.length&&i<PIERCE.length;i++){hit++;if(damageEnemy(targets[i],total*PIERCE[i]))killReward(targets[i])}
+  persist();toast('Одиночный Удар Ци: '+Math.round(f*100)+'% силы · '+fmt(total)+' урона первой цели · поражено '+hit+' из '+targets.length);return;
+ }
  const each=targets.length?total/targets.length:0;
  for(const e of targets){if(damageEnemy(e,each))killReward(e)}
  persist();
- toast((t.type==='qiSingle'?'Одиночный Удар Ци: ':'Удар Ци по площади: ')+Math.round(f*100)+'% силы · '+fmt(total)+' урона · '+targets.length+' целей · по '+fmt(each));
+ toast('Удар Ци по площади: '+Math.round(f*100)+'% силы · '+fmt(total)+' урона · '+targets.length+' целей · по '+fmt(each));
 }
 function activateShield(t){
  interruptArenaMeditation();const s=arenaState;if(!s||!t)return;if(stunBlock())return;
