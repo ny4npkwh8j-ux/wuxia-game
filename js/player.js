@@ -1,7 +1,8 @@
 'use strict';
 /* под оцепенением от босса действовать нельзя */
 function stunBlock(){const s=arenaState;if(s&&s.stun>0){toast('Оцепенён ещё '+s.stun.toFixed(1)+' с');return true}return false}
-const PIERCE=[1,.6,.3]; /* доля урона одиночного Удара Ци на 1-й, 2-й, 3-й цели в линии; 4-я и дальше целы */
+/* сколько «силы» удара поглощает цель, пока её пробивают: здоровье + щиты, умноженные на стойкость (до деления урона) */
+function entStopPower(e){return Math.max(1,((e.hp||0)+(e.shield>0?e.shield:0)+(e.qiShieldOn&&e.qi>0?e.qi/QI_SHIELD_RATIO:0))*entToughness(e))}
 function activateQiStrike(t,held){
  interruptArenaMeditation();const s=arenaState;if(!s||!t||(t.type!=='qiSingle'&&t.type!=='qiArea'))return;if(stunBlock())return;
  if(t.type==='qiArea'&&s.cdArea>0)return toast('Удар по площади перезаряжается: '+s.cdArea.toFixed(1)+' с');
@@ -23,10 +24,15 @@ function activateQiStrike(t,held){
   shake(7);
  }
  if(t.type==='qiSingle'){
-  /* как пуля: первого цель получает полный урон, на каждой следующей удар теряет силу (PIERCE), после последней — гаснет */
+  /* как пуля: у удара есть запас силы; первая цель получает его целиком, а каждая цель на пути «съедает» часть
+     (столько, сколько нужно, чтобы её пробить: здоровье + щиты с учётом стойкости). Слабых удар пробивает насквозь, сильная цель его останавливает. */
   targets.sort((a,b)=>Math.hypot(a.x-s.px,a.y-s.py)-Math.hypot(b.x-s.px,b.y-s.py));
-  let hit=0;for(let i=0;i<targets.length&&i<PIERCE.length;i++){hit++;if(damageEnemy(targets[i],total*PIERCE[i]))killReward(targets[i])}
-  persist();toast('Одиночный Удар Ци: '+Math.round(f*100)+'% силы · '+fmt(total)+' урона первой цели · поражено '+hit+' из '+targets.length);return;
+  let energy=total,hit=0;
+  for(const e of targets){
+   if(energy<=1)break;hit++;const stop=entStopPower(e),dmg=energy;
+   if(damageEnemy(e,dmg))killReward(e);energy-=stop;
+  }
+  persist();toast('Одиночный Удар Ци: '+Math.round(f*100)+'% силы · '+fmt(total)+' урона первой цели · пробито целей: '+hit+' из '+targets.length);return;
  }
  const each=targets.length?total/targets.length:0;
  for(const e of targets){if(damageEnemy(e,each))killReward(e)}
