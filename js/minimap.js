@@ -25,7 +25,7 @@ function drawMiniMap(){
  for(const z of s.springs||[])if(mapSeenAt(z.x,z.y)){g.fillStyle=z.bz?'rgba(255,200,80,.4)':'rgba(90,200,255,.4)';g.beginPath();g.arc(z.x*k,z.y*k,Math.max(3,z.r*k),0,7);g.fill()}
  for(const o of s.obstacles||[])if(mapSeenAt(o.x,o.y)){g.fillStyle=o.type==='tree'?'#2e7a45':'#6b7280';g.fillRect(o.x*k-1.5,o.y*k-1.5,3,3)}
  for(const h of BOSS_HOMES)if(mapSeenAt(h[0],h[1])){g.fillStyle='#ff5a5a';g.font='bold 13px sans-serif';g.textAlign='center';g.fillText('☠',h[0]*k,h[1]*k+4)}
- for(const n of NPCS)if(mapSeenAt(n.x,n.y)){g.fillStyle='#9ff5e8';g.font='bold 13px sans-serif';g.textAlign='center';g.fillText('💱',n.x*k,n.y*k+4)}
+ for(const n of NPCS){g.fillStyle='#9ff5e8';g.font='bold 13px sans-serif';g.textAlign='center';g.fillText('💱',n.x*k,n.y*k+4)}
  for(const l of s.loot||[])if(mapSeenAt(l.x,l.y)){g.fillStyle='#ffd85b';g.beginPath();g.arc(l.x*k,l.y*k,2.5,0,7);g.fill()}
  g.strokeStyle='#4a5878';g.strokeRect(.5,.5,W-1,W-1);
  g.save();g.translate(s.px*k,s.py*k);g.rotate(s.facing||0);g.fillStyle='#fff';g.strokeStyle='#000';g.lineWidth=1.5;g.beginPath();g.moveTo(8,0);g.lineTo(-5,5);g.lineTo(-3,0);g.lineTo(-5,-5);g.closePath();g.fill();g.stroke();g.restore();

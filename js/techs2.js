@@ -2,11 +2,11 @@
 /* ===== новые техники: Ци-клинок, Притяжение, Отталкивание, Мираж, Отравление =====
    Все — «кнопочные» (нажал — сработало), с перезарядкой. Параметры собраны в таблице, чтобы добавлять новые так же. */
 const TECH2={
- blade:{icon:'🗡️',short:'КЛИНОК',cd:14,dur:8,range:130,cone:1.0,base:.35},
+ blade:{icon:'🗡️',short:'КЛИНОК',cd:14,dur:8,range:130,cone:1.0,base:.385},
  pull:{icon:'🧲',short:'ПРИТЯЖ.',cd:15,dur:3,range:800,base:0},
- repel:{icon:'💨',short:'ОТТАЛК.',cd:15,range:450,push:420,base:.15},
+ repel:{icon:'💨',short:'ОТТАЛК.',cd:15,range:450,push:420,base:.165},
  mirage:{icon:'👤',short:'МИРАЖ',cd:20,dur:5,base:0},
- poison:{icon:'☠️',short:'ЯД',cd:8,dur:6,range:450,base:.6}
+ poison:{icon:'☠️',short:'ЯД',cd:8,dur:6,range:450,base:.66}
 };
 const CD_KEY={blade:'cdBlade',pull:'cdPull',repel:'cdRepel',mirage:'cdMirage',poison:'cdPoison'};
 function tech2Ready(t){

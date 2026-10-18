@@ -22,7 +22,8 @@ function activeShardCost(){return save.pillars===0?10000:100*(save.pillars+1)}
 function pillarQiFraction(){return Math.min(1,(save.pillarQi||0)/activeColumnCost())}
 function pillarShardsLeft(){return Math.max(0,Math.ceil(activeShardCost()*(1-pillarQiFraction())-1e-9))}
 function pillarBalance(){return save.pillars===0?save.rewards:save.rewards2}
-function pillarChanceCost(){return save.pillars===0?10000:100}
+function pillarChanceCost(){return save.pillars===0?100:1} /* осколками: в 100 раз дешевле, чем раньше */
+function pillarChanceQiCost(){return save.pillars===0?10000:100} /* Ци: цена прежняя */
 function renderPillar(){
  const done=save.pillars>=MAX_PILLARS,first=save.pillars===0,okStars=save.stars>=FIRST_PILLAR_STARS||!first;
  const qiCost=activeColumnCost(),left=pillarShardsLeft(),chance=pillarChance(save.pillarChanceExtra),bal=pillarBalance(),kind=first?' души':' 2 этапа',chCost=pillarChanceCost();
@@ -42,6 +43,7 @@ function renderPillar(){
  $('pillarFormBtn').disabled=done||!okStars||save.pillarQi<qiCost;
  $('pillarFormBtn').textContent='Сформировать за Ци ('+fmt(qiCost)+')';
  $('pillarChanceBtn').disabled=done||!okStars||chance>=90||bal<chCost;
+ $('pillarChanceQiBtn').disabled=done||!okStars||chance>=90||save.qi<pillarChanceQiCost();$('pillarChanceQiBtn').textContent='Вложить '+fmt(pillarChanceQiCost())+' Ци (+10% шанс, сейчас '+chance+'%)';
  $('pillarChanceBtn').textContent='Вложить '+fmt(chCost)+' осколков'+kind+' (+10% шанс, сейчас '+chance+'%)';
 }
 function removeRandomStars(n){
@@ -102,6 +104,11 @@ async function payPillarRewards(){
  if(bal<left)return toast('Нужно '+fmt(left)+' осколков'+(first?' души':' 2 этапа')+'.');
  if(!await confirmDialog(first?('Сформировать первую колонну? Шанс успеха: '+pillarChance(save.pillarChanceExtra)+'%.'):('Сформировать колонну? Шанс успеха: '+pillarChance(save.pillarChanceExtra)+'%. При неудаче будет разрушена одна из уже сформированных колонн.'),'Сформировать'))return;
  attemptPillar(left,()=>{if(first)save.rewards-=left;else save.rewards2-=left});
+}
+function investPillarChanceQi(){
+ const cost=pillarChanceQiCost();if(pillarChance(save.pillarChanceExtra)>=90)return;
+ if(save.qi<cost)return toast('Нужно ещё '+fmt(cost-save.qi)+' Ци.');
+ save.qi-=cost;save.pillarChanceExtra+=10000;persist();renderPillar();
 }
 function investPillarChance(){
  const first=save.pillars===0,bal=pillarBalance(),cost=pillarChanceCost();
@@ -188,7 +195,7 @@ function cultPointerToWorld(x,y){
          y:((y-r.top-r.height/2+20)/save.zoom-save.panY)/520};
 }
 function starOverlaps(p){return save.starPts.some(q=>Math.hypot((q.x-p.x)*210,(q.y-p.y)*520)<13)}
-function primaryCultAction(){if(starsLocked())return toast('После первой колонны новые звёзды создавать нельзя.');if(save.stars>=100)return toast('Все 100 звёзд уже сформированы.');const cost=currentStarCost();if(!canAfford(cost))return toast('Недостаточно ресурса. Нужно '+cost+' Ци/осколков.');placingStar=true;$('cultHint').classList.add('show');toast('Выбери свободную точку внутри тела')}
+function primaryCultAction(){if(starsLocked())return toast('После первой колонны новые звёзды создавать нельзя.');const cost=currentStarCost();if(!canAfford(cost))return toast('Недостаточно ресурса. Нужно '+cost+' Ци/осколков.');placingStar=true;$('cultHint').classList.add('show');toast('Выбери свободную точку внутри тела')}
 function startMeridianMode(){if(save.meridians>=200)return toast('Лимит 200 меридианов достигнут.');if(save.stars<2)return toast('Нужно минимум 2 звезды.');placingStar=false;$('cultHint').classList.remove('show');meridianPick=null;window.__meridianMode=true;toast('Выбери две звезды. Цена меридиана: '+currentStarCost()+' (Ци и награды).');drawCult()}
 function openScrolls(){renderScrolls();$('scrollModal').classList.add('show')}
 function closeScrolls(){$('scrollModal').classList.remove('show')}
@@ -259,7 +266,7 @@ function drawCult(){
  for(let y=-300;y<=300;y+=40){ctx.beginPath();ctx.moveTo(-210,y);ctx.lineTo(210,y);ctx.stroke()}
  for(let x=-210;x<=210;x+=40){ctx.beginPath();ctx.moveTo(x,-300);ctx.lineTo(x,300);ctx.stroke()}
  drawBody(ctx);
- ctx.strokeStyle='#55ddffbb';ctx.lineWidth=1.2/save.zoom;
+ ctx.strokeStyle='#f0b92ecc';ctx.lineWidth=1.2/save.zoom; /* меридианы того же золотого цвета, что и звёзды */
  for(const [a,b] of save.meridianEdges){
    const p=save.starPts[a],q=save.starPts[b];if(!p||!q)continue;
    ctx.beginPath();ctx.moveTo(p.x*210,p.y*520);ctx.lineTo(q.x*210,q.y*520);ctx.stroke();
