@@ -25,6 +25,7 @@ function currentStarCost(){return 10+5*save.stars}
    при пересечении радиусов надбавки складываются */
 const STAR_CROWD_R=36,STAR_CROWD_W=.325;
 function crowdSurcharge(p){let k=0;for(const q of save.starPts){const d=Math.hypot((q.x-p.x)*210,(q.y-p.y)*520);if(d<STAR_CROWD_R)k+=STAR_CROWD_W*(1-d/STAR_CROWD_R)}return k}
+function meridianCost(){return Math.max(1,Math.ceil(currentStarCost()/5))}
 function starBaseCost(){return Math.ceil(currentStarCost()*(1+save.stars/STAR_COUNT_DIV))}
 function starCostAt(p){const b=starBaseCost();return Math.ceil(b*(1+crowdSurcharge(p)))}
 /* ===== power formula (same for player, mobs and bosses) ===== */
