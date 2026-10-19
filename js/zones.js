@@ -94,7 +94,7 @@ function zoneTick(){
   const r=zoneRing(z,s.px,s.py);if(r>2)continue;
   key=z.id+':'+r;const h=ZH.get(z.id);
   if(r===0&&h&&h.hp>0){/* нападает только на слабого: равный или сильный игрок не вызывает ярости, дальше работает обычное правило отношений */
-   const ratio=playerPow()/entPow(h),weak=ratio<PW_LO;if(weak)provoke(h);
+   const ratio=playerPow()/entPow(h),weak=ratio<PW_LO&&!isMate(h);if(weak)provoke(h);
    if(s.zoneMsgT<=0){s.zoneMsgT=6;toast(weak?(z.bz?'Ты вторгся в центр владений Босса '+h.index+' — слабым здесь не место!':'Ты вторгся в центр чужой зоны — хозяин в ярости!'):(ratio>PW_HI?'Хозяин центра не смеет тебя тронуть.':'Хозяин центра присматривается к тебе.'))}}
   break;
  }
@@ -105,7 +105,7 @@ function zoneSwapIfBetter(k,v){
  const zk=zoneOfBoss(k),zv=zoneOfBoss(v);if(!zk||!zv||zk===zv||zv.pw<=zk.pw)return;
  const kz=k.zone||k.index,vz=v.zone||v.index;k.zone=vz;v.zone=kz;
  k.home={x:zv.x,y:zv.y};v.home={x:zk.x,y:zk.y};
- toast('Босс '+k.index+' захватил более сильную зону Ци у Босса '+v.index+'!');
+ toast('Босс '+k.index+' захватил более сильную зону Ци у Босса '+v.index+'!');chron('Босс '+k.index+' захватил более сильную зону Ци у Босса '+v.index);
 }
 /* зоны карты: боссовые (размер ×2 по радиусу = ×4 по площади, разная сила), свободные (до ZONE_FREE_N) */
 function ensureZones(state){

@@ -222,7 +222,7 @@ function tryBreakthrough(i){
  for(const m of s.enemies){if(m.hp<=0||m.isBoss)continue;if(Math.hypot(m.x-z.x,m.y-z.y)>z.r*RING_MID)continue;if(cultScore(m)<need)continue;if(!best||cultScore(m)>cultScore(best))best=m}
  if(!best)return false;
  const nb=newBoss(b.index||i+1,b.zone);nb.x=best.x;nb.y=best.y;best.hp=0;best.removed=true;s.bosses[i]=nb;
- burst(nb.x,nb.y,40,'#ffd85b',320,1,3.4);toast('Моб совершил прорыв и стал боссом '+nb.index+'!');return true;
+ burst(nb.x,nb.y,40,'#ffd85b',320,1,3.4);toast('Моб совершил прорыв и стал боссом '+nb.index+'!');chron('Моб совершил прорыв и стал Боссом '+nb.index);return true;
 }
 
 /* ---- отношение к игроку: заметив игрока, противник с шансом AGGRO_CHANCE невзлюбит его и нападёт; иначе игнорирует, пока его не тронут ---- */
@@ -235,14 +235,17 @@ function playerPow(){const s=arenaState,t=s?s.t:0;if(s&&(s._ppwT==null||t<s._ppw
 function isEqualPow(r){return r>=PW_LO&&r<=PW_HI}
 function equalFoes(a,b){return isEqualPow(entPow(b)/entPow(a))}
 function aggroCheck(e,d,dt){
+ if(isMate(e)){e.hostile=false;e.provoked=false;return false}/* свои по секте не нападают */
  const near=canSeePlayer(d);
- if(near){e.noSeeT=0;if(e.hostile==null)e.hostile=!!e.provoked||(isEqualPow(playerPow()/entPow(e))&&Math.random()<AGGRO_CHANCE)}
+ if(near){e.noSeeT=0;if(e.hostile==null)e.hostile=!!e.provoked||sectWarWithPlayer(e)||(isEqualPow(playerPow()/entPow(e))&&Math.random()<AGGRO_CHANCE)}
  else{e.noSeeT=(e.noSeeT||0)+dt;if(e.noSeeT>8){e.hostile=null;e.provoked=false}}
  if(!e.hostile&&e.team&&teamAlert(e.team))e.hostile=true;
  return near&&!!e.hostile;
 }
 /* игрок ударил противника: тот и его команда теперь враждебны */
 function provoke(e){
+ if(isMate(e)){const sc=playerSect();save.sectId=null;persist();chron('Игрок ударил своего и изгнан из секты'+(sc?' «'+sc.name+'»':''));toast('Ты ударил своего — тебя изгнали из секты!')}
+ else if(save.sectId!=null)sectAssist(e);
  e.hostile=true;e.provoked=true;e.noSeeT=0;
  const s=arenaState;if(!s)return;
  if(e.team){const b=aliveBosses(s).find(q=>(q.index||0)===e.team);if(b){b.hostile=true;b.provoked=true;b.noSeeT=0}}
@@ -348,8 +351,8 @@ function entKill(k,v){
   if(!(k.challenge&&!k.isBoss))releaseArmy(v.index,k.isBoss?k:null);
   if(k.challenge&&!k.isBoss){
    const i=s.bosses.indexOf(v),nb=newBoss(v.index||i+1,v.zone);nb.x=v.x;nb.y=v.y;s.bosses[i]=nb;k.hp=0;
-   burst(nb.x,nb.y,40,'#ffd85b',320,1,3.4);toast('Моб победил босса и занял его место — новый Босс '+nb.index+'!');
-  }else{toast('Босс '+v.index+' пал в бою с '+(k.isBoss?'Боссом '+k.index:'врагом'));if(k.isBoss)zoneSwapIfBetter(k,v)}
+   burst(nb.x,nb.y,40,'#ffd85b',320,1,3.4);toast('Моб победил босса и занял его место — новый Босс '+nb.index+'!');chron('Моб победил Босса '+nb.index+' и занял его место');
+  }else{toast('Босс '+v.index+' пал в бою с '+(k.isBoss?'Боссом '+k.index:'врагом'));chron('Босс '+v.index+' пал в бою с '+(k.isBoss?'Боссом '+k.index:'врагом'));if(k.isBoss)zoneSwapIfBetter(k,v)}
  }
  k.challenge=false;
 }

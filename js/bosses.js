@@ -41,7 +41,7 @@ function bossLoop(dt){
  for(let i=0;i<s.bosses.length;i++){const b=s.bosses[i];
   if(b.hp<=0){b.respawnT=(b.respawnT==null?BOSS_RESPAWN:b.respawnT)-dt;
    if(b.respawnT<BOSS_RESPAWN-45){b.brkT=(b.brkT||0)+dt;if(b.brkT>=5){b.brkT=0;if(Math.random()<.5&&tryBreakthrough(i))continue}}
-   if(b.respawnT<=0){s.bosses[i]=newBoss(b.index||i+1,b.zone);toast('Босс '+(b.index||i+1)+' возродился');}continue}
+   if(b.respawnT<=0){s.bosses[i]=newBoss(b.index||i+1,b.zone);toast('Босс '+(b.index||i+1)+' возродился');chron('Босс '+(b.index||i+1)+' возродился');}continue}
   bossStep(b,dt)}
 }
 function bossStep(b,dt){

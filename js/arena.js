@@ -58,7 +58,7 @@ function quietSpot(s){
 function circleRectRaw(x,y,r,o){const cx=Math.max(o.x-o.w/2,Math.min(x,o.x+o.w/2)),cy=Math.max(o.y-o.h/2,Math.min(y,o.y+o.h/2));return Math.hypot(x-cx,y-cy)<r}
 function saveArenaCheckpoint(){
  if(!arenaState)return;
- const cp={world:arenaState.world,px:arenaState.px,py:arenaState.py,camx:arenaState.camx,camy:arenaState.camy,hp:arenaState.hp,maxHp:arenaState.maxHp,enemies:arenaState.enemies,orbs:arenaState.orbs,chests:arenaState.chests,points:arenaState.points,hazards:arenaState.hazards,obstacles:arenaState.obstacles,bosses:arenaState.bosses,springs:arenaState.springs||[],sects:arenaState.sects||[],loot:arenaState.loot||[]};
+ const cp={world:arenaState.world,px:arenaState.px,py:arenaState.py,camx:arenaState.camx,camy:arenaState.camy,hp:arenaState.hp,maxHp:arenaState.maxHp,enemies:arenaState.enemies,orbs:arenaState.orbs,chests:arenaState.chests,points:arenaState.points,hazards:arenaState.hazards,obstacles:arenaState.obstacles,bosses:arenaState.bosses,springs:arenaState.springs||[],sects:arenaState.sects||[],chron:arenaState.chron||[],loot:arenaState.loot||[]};
  save.arenaCheckpoint=JSON.parse(JSON.stringify(cp));
  try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);localStorage.setItem('wuxiaSaveSchema',SAVE_SCHEMA)}catch(e){}
 }
@@ -71,7 +71,7 @@ function restoreArenaCheckpoint(){
  state.camx=Number.isFinite(state.camx)?state.camx:state.px; state.camy=Number.isFinite(state.camy)?state.camy:state.py;
  state.hp=Number.isFinite(state.hp)?state.hp:save.health; state.maxHp=Number.isFinite(state.maxHp)?state.maxHp:save.health;
  for(const k of ['enemies','orbs','chests','points','hazards','obstacles','loot'])if(!Array.isArray(state[k]))state[k]=[];
- for(const k of ['springs','sects'])if(!Array.isArray(state[k]))state[k]=[];
+ for(const k of ['springs','sects','chron'])if(!Array.isArray(state[k]))state[k]=[];
  for(const z of state.hazards)z.pw=z.pw||3;
  Object.assign(state,{dx:0,dy:0,lastMoveX:0,lastMoveY:1,shootAng:0,attackAnim:0,qiEffects:[],invuln:0,dashCd:0,dashTime:0,dashDuration:.18,dashSpeed:1350,contactCd:0,spawnTimer:4,checkpointTimer:2,last:performance.now()});
  state.bossIndex=Number.isFinite(state.bossIndex)?state.bossIndex:(state.boss&&state.boss.index?state.boss.index:(state.boss&&state.boss.tier===2?2:(state.firstBossDefeated?2:1)));state.bossIndex=Math.max(state.bossIndex,1);delete state.firstBossDefeated;
@@ -182,7 +182,7 @@ function drawArena(time){
  for(const c of s.corpses)drawCorpse(c);
  for(const e of s.enemies){if(e.hp>0)drawEnemy(e,W,H,time)}
  drawBoss(W,H,time);
- drawNpcs(time);
+ drawNpcs(time);drawTradeHint(time);
  drawPlayer(time);
  drawDecoy(time);
  for(const fx of s.qiEffects)drawQiFx(fx,time);

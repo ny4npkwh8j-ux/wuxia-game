@@ -15,14 +15,16 @@ function mapSeenAt(x,y){const cx=Math.floor(x/MAP_CELL),cy=Math.floor(y/MAP_CELL
 function openMap(){$('mapModal').classList.add('show');drawMiniMap()}
 function closeMap(){$('mapModal').classList.remove('show')}
 function drawMiniMap(){
- const s=arenaState,cv=$('mapCv'),W=Math.min(360,Math.floor(innerWidth-70)),k=W/10000;
+ const s=arenaState,cv=$('mapCv'),chEl=$('mapChron');if(chEl){const a=(s&&s.chron||[]).slice(-12).reverse();chEl.innerHTML=a.length?a.map(x=>'<div>'+new Date(x.t).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})+' · '+x.m+'</div>').join(''):'<div style="opacity:.6">Пока тихо…</div>'}
+ const W=Math.min(360,Math.floor(innerWidth-70)),k=W/10000;
  cv.width=cv.height=W;const g=cv.getContext('2d');
  g.fillStyle='#0a1020';g.fillRect(0,0,W,W);
  const seen=mapSeenArr(),c=MAP_CELL*k;
  g.fillStyle='#24472f';for(let y=0;y<MAP_N;y++)for(let x=0;x<MAP_N;x++)if(seen[y*MAP_N+x]==='1')g.fillRect(x*c,y*c,c+.6,c+.6);
  if(!s){return}
  for(const z of s.hazards||[])if(mapSeenAt(z.x,z.y)){g.fillStyle='rgba(220,70,70,.35)';g.beginPath();g.arc(z.x*k,z.y*k,z.r*k,0,7);g.fill()}
- for(const z of s.springs||[])if(mapSeenAt(z.x,z.y)){g.fillStyle=z.bz?'rgba(255,200,80,.4)':'rgba(90,200,255,.4)';g.beginPath();g.arc(z.x*k,z.y*k,Math.max(3,z.r*k),0,7);g.fill()}
+ for(const z of s.springs||[])if(mapSeenAt(z.x,z.y)){const h=zoneHolder(z),sc=h&&h.sect?sectById(h.sect):null;if(sc){g.globalAlpha=.45;g.fillStyle=sc.col}else g.fillStyle=z.bz?'rgba(255,200,80,.4)':'rgba(90,200,255,.4)';g.beginPath();g.arc(z.x*k,z.y*k,Math.max(3,z.r*k),0,7);g.fill();g.globalAlpha=1}
+ for(const sc of sectList()){const m=SM.get(sc.id);if(m&&mapSeenAt(m.x,m.y)){g.fillStyle=sc.col;g.strokeStyle='#000';g.lineWidth=1;g.beginPath();g.arc(m.x*k,m.y*k,4,0,7);g.fill();g.stroke()}}
  for(const o of s.obstacles||[])if(mapSeenAt(o.x,o.y)){g.fillStyle=o.type==='tree'?'#2e7a45':'#6b7280';g.fillRect(o.x*k-1.5,o.y*k-1.5,3,3)}
  for(const h of BOSS_HOMES)if(mapSeenAt(h[0],h[1])){g.fillStyle='#ff5a5a';g.font='bold 13px sans-serif';g.textAlign='center';g.fillText('☠',h[0]*k,h[1]*k+4)}
  for(const n of NPCS){g.fillStyle='#9ff5e8';g.font='bold 13px sans-serif';g.textAlign='center';g.fillText('💱',n.x*k,n.y*k+4)}
@@ -30,4 +32,4 @@ function drawMiniMap(){
  g.strokeStyle='#4a5878';g.strokeRect(.5,.5,W-1,W-1);
  g.save();g.translate(s.px*k,s.py*k);g.rotate(s.facing||0);g.fillStyle='#fff';g.strokeStyle='#000';g.lineWidth=1.5;g.beginPath();g.moveTo(8,0);g.lineTo(-5,5);g.lineTo(-3,0);g.lineTo(-5,-5);g.closePath();g.fill();g.stroke();g.restore();
 }
-(function(){const m=document.createElement('div');m.id='mapModal';m.className='modal';m.innerHTML='<div class="sheet" style="text-align:center"><h3>🗺 Карта</h3><canvas id="mapCv" style="border-radius:10px"></canvas><p style="font-size:12px;opacity:.8">☠ боссы · 💱 Меняла · красное — опасные зоны · золотое/синее — зоны Ци · показано только то, что ты уже видел</p><div class="row"><button class="bigbtn" onclick="closeMap()">Закрыть</button></div></div>';document.body.appendChild(m)})();
+(function(){const m=document.createElement('div');m.id='mapModal';m.className='modal';m.innerHTML='<div class="sheet" style="text-align:center"><h3>🗺 Карта</h3><canvas id="mapCv" style="border-radius:10px"></canvas><h4 style="margin:8px 0 2px">Летопись</h4><div id="mapChron" style="text-align:left;font-size:12px;max-height:120px;overflow:auto"></div><p style="font-size:12px;opacity:.8">☠ боссы · 💱 Меняла · красное — опасные зоны · золотое/синее — зоны Ци (цвет секты — зона занята сектой, ● глава секты) · показано только то, что ты уже видел</p><div class="row"><button class="bigbtn" onclick="closeMap()">Закрыть</button></div></div>';document.body.appendChild(m)})();

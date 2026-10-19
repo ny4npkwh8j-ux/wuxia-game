@@ -14,10 +14,12 @@ function sectMembers(sc){return arenaState.enemies.filter(m=>m.hp>0&&m.sect===sc
 function sectCap(m){return Math.min(14,3+Math.floor((m.stars||0)/10))}
 function sectZone(e){const sc=sectById(e.sect);return sc&&sc.zid!=null?zoneList().find(q=>q.id===sc.zid)||null:null}
 function sectRefresh(){const nm=new Map();for(const sc of sectList()){const m=findEnt(sc.master);if(m&&m.hp>0)nm.set(sc.id,m)}SM=nm}
-function sectNote(msg,at){const s=arenaState;if(!s||!at)return;if(Math.hypot(at.x-s.px,at.y-s.py)<3000)toast('☯ '+msg)}
+/* летопись мира: последние 40 событий (показывается на карте) */
+function chron(msg){const s=arenaState;if(!s)return;const a=s.chron=Array.isArray(s.chron)?s.chron:[];a.push({t:Date.now(),m:msg});if(a.length>40)a.shift()}
+function sectNote(msg,at){const s=arenaState;if(!s)return;chron(msg);if(at&&Math.hypot(at.x-s.px,at.y-s.py)<3000)toast('☯ '+msg)}
 function sectJoin(m,sc){m.sect=sc.id;m.team=SECT_TEAM+sc.id;m.spot=null;m.zid=null;m.zT=0}
 function sectLeave(m){m.sect=null;if(m.team>=SECT_TEAM)m.team=null}
-function sectDisband(sc){for(const m of arenaState.enemies)if(m.sect===sc.id)sectLeave(m)}
+function sectDisband(sc){for(const m of arenaState.enemies)if(m.sect===sc.id)sectLeave(m);chron('Секта «'+sc.name+'» распалась');if(save.sectId===sc.id){save.sectId=null;persist();toast('Твоя секта распалась.')}}
 function foundSect(m,mates){
  const s=arenaState,sl=sectList();s.sectSeq=Math.max(s.sectSeq||0,...sl.map(q=>q.id))+1;
  const used=new Set(sl.map(q=>q.name)),pool=SECT_NAMES.filter(n=>!used.has(n)),name=(pool.length?pool:SECT_NAMES)[Math.floor(Math.random()*(pool.length||SECT_NAMES.length))];
@@ -29,6 +31,9 @@ function foundSect(m,mates){
 /* раз в ~8 с: судьба глав, вербовка, основание, дань, выбор зоны */
 function sectTick(){
  const s=arenaState;if(!s)return;const sl=sectList();
+ /* вражда: секты, чьи ученики сейчас бьются друг с другом */
+ for(const sc of sl)sc.war={};
+ for(const m of s.enemies){if(m.hp<=0||m.sect==null||m.foeId==null)continue;const f=findEnt(m.foeId);if(f&&f.sect!=null&&f.sect!==m.sect){const a=sectById(m.sect),b=sectById(f.sect);if(a&&b){a.war[b.id]=1;b.war[a.id]=1}}}
  for(let i=sl.length-1;i>=0;i--){
   const sc=sl[i];let m=findEnt(sc.master);const mem=sectMembers(sc);
   if(!m||m.hp<=0||m.sect!==sc.id){
