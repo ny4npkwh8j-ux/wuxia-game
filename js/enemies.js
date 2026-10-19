@@ -150,6 +150,7 @@ function drawEnemy(e,W,H,time){
  if(e.stun>0){ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y,30,'#8fb8ff',.4);ax.globalCompositeOperation='source-over';ax.fillStyle='#fff3a0';for(let i=0;i<3;i++){const a=time*3.4+i*TAU/3;star4(ax,p.x+Math.cos(a)*14,p.y-28+Math.sin(a)*4,4.2);ax.fill()}}
  if(e.shield>0){ax.save();ax.strokeStyle='rgba(99,233,255,.55)';ax.lineWidth=1.8;ax.setLineDash([5,5]);ax.lineDashOffset=-time*14;ax.beginPath();ax.arc(p.x,p.y,30,0,TAU);ax.stroke();ax.restore()}
  drawBar(ax,p.x,p.y-40,36,e.hp/(e.maxHp||100),5);
+ if(e.sect)drawSectMark(e,p);
  if(st>0){outText(ax,'★'+st+(e.core?' · ЯДРО'+(e.dens?' '+e.dens+'/5':''):(e.columns?' · '+e.columns+' КОЛ.':'')),p.x-2,p.y-46,'#ffd85b',10);const ts=e.techs||[];ts.slice(0,5).forEach((tt,i)=>{ax.fillStyle=MOB_DOT[tt]||'#fff';ax.beginPath();ax.arc(p.x+13+i*6,p.y-50,2.6,0,TAU);ax.fill()})}
  if(e.stun>0)outText(ax,e.stun.toFixed(1)+'с',p.x,p.y-56-(st>0?4:-4),'#c9a8ff',10);
 }
@@ -200,6 +201,7 @@ function mobIdle(e,dt){
  if(lt){e.ang=Math.atan2(lt.y-e.y,lt.x-e.x);e.wanderAng=e.ang;e.wanderT=.5;moveEnemy(e,Math.cos(e.ang)*e.s*.7*dt,Math.sin(e.ang)*e.s*.7*dt);e.cult=false;return}
  if(huntStep(e,dt))return;
  /* цель каждого культиватора — зона Ци: сесть в разрешённом круге, расти и когда-нибудь занять центр */
+ if(e.sect&&sectStep(e,dt))return;
  if(zoneStep(e,dt))return;
  /* бродячий моб: в запретные круги не заходит (понимает, что нельзя) */
  if(forbidZone(e,e.x+Math.cos(e.wanderAng)*70,e.y+Math.sin(e.wanderAng)*70)){const fz=forbidZone(e,e.x+Math.cos(e.wanderAng)*70,e.y+Math.sin(e.wanderAng)*70);e.wanderAng=Math.atan2(e.y-fz.y,e.x-fz.x)+(Math.random()-.5);e.wanderT=1.5}
@@ -245,6 +247,7 @@ function provoke(e){
  const s=arenaState;if(!s)return;
  if(e.team){const b=aliveBosses(s).find(q=>(q.index||0)===e.team);if(b){b.hostile=true;b.provoked=true;b.noSeeT=0}}
  if(e.isBoss){const t=e.index;for(const m of s.enemies)if(m.hp>0&&m.team===t){m.hostile=true;m.noSeeT=0}}
+ if(e.sect)for(const m of s.enemies)if(m.hp>0&&m.sect===e.sect){m.hostile=true;m.noSeeT=0}
 }
 /* команда: мобы, которые культивируют в зоне босса, помогают ему, когда он воюет с игроком */
 function teamAlert(t){const s=arenaState,b=aliveBosses(s).find(q=>(q.index||0)===t);return !!(b&&b.hostile&&b.engagedT>0)}
@@ -307,7 +310,8 @@ function findEnt(id){const s=arenaState;if(!s||id==null)return null;return alive
 function startDuel(a,b){
  a.foeId=b.id;b.foeId=a.id;
  /* команды вступаются за своих */
- for(const x of [a,b]){const other=x===a?b:a;if(x.isBoss)for(const m of arenaState.enemies)if(m.hp>0&&m.team===x.index&&!m.foeId&&m!==other&&Math.hypot(m.x-x.x,m.y-x.y)<1500)m.foeId=other.id}
+ for(const x of [a,b]){const other=x===a?b:a;if(x.isBoss){for(const m of arenaState.enemies)if(m.hp>0&&m.team===x.index&&!m.foeId&&m!==other&&Math.hypot(m.x-x.x,m.y-x.y)<1500)m.foeId=other.id}
+  else if(x.sect&&SM.get(x.sect)===x)for(const m of arenaState.enemies)if(m.hp>0&&m.sect===x.sect&&!m.foeId&&m!==other&&m!==x&&Math.hypot(m.x-x.x,m.y-x.y)<1100)m.foeId=other.id}
 }
 function duelStep(e,dt){
  const f=e.foeId!=null?findEnt(e.foeId):null;
@@ -407,7 +411,7 @@ function huntStep(e,dt){
  e.ang=Math.atan2(f.y-e.y,f.x-e.x);e.wanderAng=e.ang;e.cult=false;moveEnemy(e,Math.cos(e.ang)*e.s*.75*dt,Math.sin(e.ang)*e.s*.75*dt);return true;
 }
 function warTick(dt){
- const s=arenaState;if(!s)return;s.warT=(s.warT||0)+dt;s.chalT=(s.chalT||0)+dt;s.recT=(s.recT||0)+dt;s.zoneT=(s.zoneT==null?99:s.zoneT)+dt;if(s.zoneT>=1.5){s.zoneT=0;zoneTick()}s.shopT=(s.shopT||0)+dt;if(s.shopT>=20){s.shopT=0;mobShopRoll()}
+ const s=arenaState;if(!s)return;s.warT=(s.warT||0)+dt;s.chalT=(s.chalT||0)+dt;s.recT=(s.recT||0)+dt;s.sectT=(s.sectT||0)+dt;if(s.sectT>=8){s.sectT=0;sectTick()}s.zoneT=(s.zoneT==null?99:s.zoneT)+dt;if(s.zoneT>=1.5){s.zoneT=0;zoneTick()}s.shopT=(s.shopT||0)+dt;if(s.shopT>=20){s.shopT=0;mobShopRoll()}
  if(s.recT>=8){s.recT=0;recruitTick()}
  if(s.warT>=5){s.warT=0;skirmishRoll()}
  if(s.chalT>=30){s.chalT=0;challengeRoll()}
@@ -454,7 +458,7 @@ function recruitTick(){
  const s=arenaState,pl=m=>Math.hypot(m.x-s.px,m.y-s.py);
  for(const b of aliveBosses(s)){
   let n=armyOf(b.index).length;if(n>=armyCap(b))continue;const h=b.home||b;
-  const cand=s.enemies.filter(m=>m.hp>0&&(m.stars||0)>0&&!m.lord&&m.foeId==null&&!(m.hostile&&pl(m)<700)&&Math.hypot(m.x-h.x,m.y-h.y)<1600)
+  const cand=s.enemies.filter(m=>m.hp>0&&(m.stars||0)>0&&!m.lord&&!m.sect&&m.foeId==null&&!(m.hostile&&pl(m)<700)&&Math.hypot(m.x-h.x,m.y-h.y)<1600)
    .sort((a,c)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(c.x-h.x,c.y-h.y));
   for(const m of cand){if(n>=armyCap(b))break;m.lord=m.team=b.index;m.zoneBound=true;n++}
  }

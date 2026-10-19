@@ -3,7 +3,7 @@
 const BOSS_V=3;
 const BOSS_KIT=['shield','dodge','qiSingle','qiArea','qiShield','stun','heal'];
 /* шесть боссов (0–5 колонн) одновременно на карте, каждый стоит в своей «сверхзоне» Ци; убитый воскресает через BOSS_RESPAWN секунд */
-const BOSS_ZONE_PW=20,BOSS_RESPAWN=180,BOSS_HOMES=[[5000,3300],[7600,4200],[7400,7000],[4600,8300],[2200,6600],[2400,2600]],BOSS_ZONE_R=480,BOSS_INNER_R=168,BOSS_LEASH=1200;
+const BOSS_ZONE_PW=20,BOSS_RESPAWN=180,BOSS_HOMES=[[5000,3300],[7600,4200],[7400,7000],[4600,8300],[2200,6600],[2400,2600]],BOSS_ZONE_R=960,BOSS_INNER_R=336,BOSS_LEASH=1200;
 function newBoss(index=1,zone){
  index=Math.max(1,Math.min(MAX_BOSS_INDEX,index));zone=Math.max(1,Math.min(MAX_BOSS_INDEX,zone||index));
  const cols=index-1,tier=index>=2?2:1,h=BOSS_HOMES[zone-1],b={id:nid(),zone,x:h[0],y:h[1],home:{x:h[0],y:h[1]},r:tier===1?34:38,s:tier===1?72:78,ang:0,hit:0,isBoss:true,tier,index,columns:cols,invuln:0,seenT:0,wanderT:0,mv:0,wp:0};
