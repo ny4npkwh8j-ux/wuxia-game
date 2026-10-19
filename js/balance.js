@@ -19,12 +19,14 @@ function coreQualityFor(pillars,coef){const sc=pillars*coef;for(const q of CORE_
 function coreChanceFor(pillars,extra){return Math.min(90,30+10*Math.max(0,pillars-CORE_MIN_PILLARS)+10*Math.floor(Math.max(0,extra)/CORE_CHANCE_UNIT))}
 function pillarQualityFor(stars){for(const q of PILLAR_Q)if(stars>=q[0])return{name:q[1],qi:q[2],coef:q[3]};return{name:PILLAR_Q[5][1],qi:PILLAR_Q[5][2],coef:PILLAR_Q[5][3]}}
 function stage(){return save.stageLevel>=3?'III':save.stageLevel>=2?'II':'I'}
+const STAR_COUNT_DIV=200;
 function currentStarCost(){return 10+5*save.stars}
 /* мягкий запрет на скученность: вокруг каждой звезды невидимый радиус, звезда внутри него удорожает новую (до +25% при вплотную);
    при пересечении радиусов надбавки складываются */
-const STAR_CROWD_R=36,STAR_CROWD_W=.25;
+const STAR_CROWD_R=36,STAR_CROWD_W=.325;
 function crowdSurcharge(p){let k=0;for(const q of save.starPts){const d=Math.hypot((q.x-p.x)*210,(q.y-p.y)*520);if(d<STAR_CROWD_R)k+=STAR_CROWD_W*(1-d/STAR_CROWD_R)}return k}
-function starCostAt(p){const b=currentStarCost();return Math.ceil(b*(1+crowdSurcharge(p)))}
+function starBaseCost(){return Math.ceil(currentStarCost()*(1+save.stars/STAR_COUNT_DIV))}
+function starCostAt(p){const b=starBaseCost();return Math.ceil(b*(1+crowdSurcharge(p)))}
 /* ===== power formula (same for player, mobs and bosses) ===== */
 const DANTIAN_Y=-.075,QI_SHIELD_RATIO=.5;
 /* TECH_BASE: фиксированная сила техники атакующего (не зависит от здоровья цели), в единицах «здоровье тела с таким же числом звёзд»
