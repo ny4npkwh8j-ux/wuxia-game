@@ -3,10 +3,10 @@
 const BOSS_V=3;
 const BOSS_KIT=['shield','dodge','qiSingle','qiArea','qiShield','stun','heal'];
 /* шесть боссов (0–5 колонн) одновременно на карте, каждый стоит в своей «сверхзоне» Ци; убитый воскресает через BOSS_RESPAWN секунд */
-const BOSS_ZONE_PW=20,BOSS_RESPAWN=180,BOSS_HOMES=[[5000,3300],[7600,4200],[7400,7000],[4600,8300],[2200,6600],[2400,2600]],BOSS_ZONE_R=240,BOSS_LEASH=1200;
-function newBoss(index=1){
- index=Math.max(1,Math.min(MAX_BOSS_INDEX,index));
- const cols=index-1,tier=index>=2?2:1,h=BOSS_HOMES[index-1],b={id:nid(),x:h[0],y:h[1],home:{x:h[0],y:h[1]},r:tier===1?34:38,s:tier===1?72:78,ang:0,hit:0,isBoss:true,tier,index,columns:cols,invuln:0,seenT:0,wanderT:0,mv:0,wp:0};
+const BOSS_ZONE_PW=20,BOSS_RESPAWN=180,BOSS_HOMES=[[5000,3300],[7600,4200],[7400,7000],[4600,8300],[2200,6600],[2400,2600]],BOSS_ZONE_R=480,BOSS_INNER_R=168,BOSS_LEASH=1200;
+function newBoss(index=1,zone){
+ index=Math.max(1,Math.min(MAX_BOSS_INDEX,index));zone=Math.max(1,Math.min(MAX_BOSS_INDEX,zone||index));
+ const cols=index-1,tier=index>=2?2:1,h=BOSS_HOMES[zone-1],b={id:nid(),zone,x:h[0],y:h[1],home:{x:h[0],y:h[1]},r:tier===1?34:38,s:tier===1?72:78,ang:0,hit:0,isBoss:true,tier,index,columns:cols,invuln:0,seenT:0,wanderT:0,mv:0,wp:0};
  /* 100 звёзд + колонны: здоровье, сила, Ци и сила техник — по тем же формулам, что у игрока */
  applyKit(b,{stars:100,techs:BOSS_KIT.slice()});b.v=BOSS_V;
  return b;
@@ -14,8 +14,7 @@ function newBoss(index=1){
 function aliveBosses(s){return (s&&s.bosses?s.bosses:[]).filter(b=>b&&b.hp>0)}
 /* у каждого босса своя зона восстановления Ци */
 function ensureBossZones(state){
- state.springs=state.springs||[];
- BOSS_HOMES.forEach((h,i)=>{{const z=state.springs.find(q=>q.bz===i+1);if(!z)state.springs.push({x:h[0],y:h[1],r:BOSS_ZONE_R,pw:BOSS_ZONE_PW,bz:i+1});else z.pw=BOSS_ZONE_PW}});
+ ensureZones(state);
 }
 function onBossDefeated(b){
  const s=arenaState;if(!s||!b)return;
@@ -42,7 +41,7 @@ function bossLoop(dt){
  for(let i=0;i<s.bosses.length;i++){const b=s.bosses[i];
   if(b.hp<=0){b.respawnT=(b.respawnT==null?BOSS_RESPAWN:b.respawnT)-dt;
    if(b.respawnT<BOSS_RESPAWN-45){b.brkT=(b.brkT||0)+dt;if(b.brkT>=5){b.brkT=0;if(Math.random()<.5&&tryBreakthrough(i))continue}}
-   if(b.respawnT<=0){s.bosses[i]=newBoss(b.index||i+1);toast('Босс '+(b.index||i+1)+' возродился');}continue}
+   if(b.respawnT<=0){s.bosses[i]=newBoss(b.index||i+1,b.zone);toast('Босс '+(b.index||i+1)+' возродился');}continue}
   bossStep(b,dt)}
 }
 function bossStep(b,dt){
@@ -57,10 +56,10 @@ function bossStep(b,dt){
  if(!engaged){
   b.wind=null;
   b.wanderT=(b.wanderT||0)-dt;if(b.wanderT<=0||b.wanderAng==null){b.wanderAng=Math.random()*TAU;b.wanderT=2+Math.random()*3}
-  if(hd>BOSS_ZONE_R*.6)b.wanderAng=Math.atan2(b.home.y-b.y,b.home.x-b.x);
+  if(hd>BOSS_INNER_R*.8)b.wanderAng=Math.atan2(b.home.y-b.y,b.home.x-b.x);
   const lt=hd<BOSS_LEASH?nearestLoot(b,1100):null;if(lt)b.wanderAng=Math.atan2(lt.y-b.y,lt.x-b.x);/* босс охотится за осколками рядом с домом */
-  b.ang=b.wanderAng;b.cult=hd<=BOSS_ZONE_R&&!lt;if(b.cult)evolveTick(b,dt);
-  const ox=b.x,oy=b.y;const bsp=(lt||hd>BOSS_ZONE_R*.6)?1:.4;moveBoss(b,Math.cos(b.ang)*b.s*bsp*dt,Math.sin(b.ang)*b.s*bsp*dt);
+  b.ang=b.wanderAng;b.cult=hd<=BOSS_INNER_R&&!lt;if(b.cult)evolveTick(b,dt*zoneGrow(zoneOfBoss(b),0));
+  const ox=b.x,oy=b.y;const bsp=(lt||hd>BOSS_INNER_R*.8)?1:.4;moveBoss(b,Math.cos(b.ang)*b.s*bsp*dt,Math.sin(b.ang)*b.s*bsp*dt);
   const md=Math.hypot(b.x-ox,b.y-oy);b.mv=(b.mv||0)+((md>.05?1:0)-(b.mv||0))*Math.min(1,dt*8);b.wp=(b.wp||0)+md*.09;
   /* вне боя босс лечится техникой «Лечение»: 3 Ци = 1 здоровья, скорость как у игрока */
   if(b.hp<b.maxHp&&b.qi>0){const sp=Math.min(healRate({nodes:{length:PATH_CAP}})*dt,b.qi);b.qi-=sp;b.healAcc=(b.healAcc||0)+sp;const g=Math.floor(b.healAcc/3);if(g>0){b.healAcc-=g*3;b.hp=Math.min(b.maxHp,b.hp+g)}}

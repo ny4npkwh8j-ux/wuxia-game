@@ -118,8 +118,8 @@ function drawSpring(z,W,H,time){
  ax.save();ax.translate(p.x,p.y);ax.scale(1,.72);
  const g=ax.createRadialGradient(0,0,z.r*.08,0,0,z.r);g.addColorStop(0,'rgba(16,70,60,.75)');g.addColorStop(.62,'rgba(30,140,120,.42)');g.addColorStop(1,'rgba(60,200,170,0)');
  ax.fillStyle=g;ax.beginPath();ax.arc(0,0,z.r,0,TAU);ax.fill();
- ax.strokeStyle='rgba(140,255,225,.55)';ax.lineWidth=2;ax.setLineDash([12,9]);ax.lineDashOffset=time*20;ax.beginPath();ax.arc(0,0,z.r*.8,0,TAU);ax.stroke();
- ax.lineDashOffset=-time*14;ax.strokeStyle='rgba(180,255,235,.35)';ax.beginPath();ax.arc(0,0,z.r*.55,0,TAU);ax.stroke();ax.setLineDash([]);
+ ax.strokeStyle='rgba(140,255,225,.55)';ax.lineWidth=2;ax.setLineDash([12,9]);ax.lineDashOffset=time*20;ax.beginPath();ax.arc(0,0,z.r*.7,0,TAU);ax.stroke();
+ ax.lineDashOffset=-time*14;ax.strokeStyle=z.bz?'rgba(255,216,91,.5)':'rgba(180,255,235,.45)';ax.beginPath();ax.arc(0,0,z.r*.35,0,TAU);ax.stroke();ax.setLineDash([]);
  ax.strokeStyle='rgba(160,255,220,.3)';ax.lineWidth=1.5;ax.rotate(-time*.25);
  for(let k=0;k<6;k++){ax.rotate(TAU/6);ax.beginPath();ax.moveTo(z.r*.72,0);ax.quadraticCurveTo(z.r*.45,z.r*.14,z.r*.18,0);ax.stroke()}
  ax.restore();

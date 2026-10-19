@@ -19,8 +19,8 @@ function migrateArenaEntities(state){
  for(let i=1;i<=MAX_BOSS_INDEX;i++){
   let b=oldB.find(q=>q&&(q.index||(q.tier===2?2:1))===i);
   if(!b)b=newBoss(i);
-  else if(b.v!==BOSS_V){const r=b.maxHp?Math.min(1,Math.max(0,b.hp)/b.maxHp):1,nb=newBoss(i);nb.x=b.x;nb.y=b.y;nb.hp=b.hp<=0?0:Math.max(1,Math.round(nb.maxHp*r));if(b.respawnT!=null)nb.respawnT=b.respawnT;b=nb}
-  if(b.id==null)b.id=nid();if(!b.home)b.home={x:BOSS_HOMES[i-1][0],y:BOSS_HOMES[i-1][1]};
+  else if(b.v!==BOSS_V){const r=b.maxHp?Math.min(1,Math.max(0,b.hp)/b.maxHp):1,nb=newBoss(i,b.zone);nb.x=b.x;nb.y=b.y;nb.hp=b.hp<=0?0:Math.max(1,Math.round(nb.maxHp*r));if(b.respawnT!=null)nb.respawnT=b.respawnT;b=nb}
+  if(b.id==null)b.id=nid();if(!b.zone)b.zone=i;if(!b.home)b.home={x:BOSS_HOMES[i-1][0],y:BOSS_HOMES[i-1][1]};
   if(b.hp<=0&&b.respawnT==null)b.respawnT=BOSS_RESPAWN;
   state.bosses.push(b)}
  ensureBossZones(state);
@@ -58,7 +58,7 @@ function quietSpot(s){
 function circleRectRaw(x,y,r,o){const cx=Math.max(o.x-o.w/2,Math.min(x,o.x+o.w/2)),cy=Math.max(o.y-o.h/2,Math.min(y,o.y+o.h/2));return Math.hypot(x-cx,y-cy)<r}
 function saveArenaCheckpoint(){
  if(!arenaState)return;
- const cp={world:arenaState.world,px:arenaState.px,py:arenaState.py,camx:arenaState.camx,camy:arenaState.camy,hp:arenaState.hp,maxHp:arenaState.maxHp,enemies:arenaState.enemies,orbs:arenaState.orbs,chests:arenaState.chests,points:arenaState.points,hazards:arenaState.hazards,obstacles:arenaState.obstacles,bosses:arenaState.bosses,loot:arenaState.loot||[]};
+ const cp={world:arenaState.world,px:arenaState.px,py:arenaState.py,camx:arenaState.camx,camy:arenaState.camy,hp:arenaState.hp,maxHp:arenaState.maxHp,enemies:arenaState.enemies,orbs:arenaState.orbs,chests:arenaState.chests,points:arenaState.points,hazards:arenaState.hazards,obstacles:arenaState.obstacles,bosses:arenaState.bosses,springs:arenaState.springs||[],loot:arenaState.loot||[]};
  save.arenaCheckpoint=JSON.parse(JSON.stringify(cp));
  try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);localStorage.setItem('wuxiaSaveSchema',SAVE_SCHEMA)}catch(e){}
 }
@@ -156,7 +156,7 @@ function collect(){let changed=false;for(let i=arenaState.orbs.length-1;i>=0;i--
 function qiZoneDelta(x,y){
  const s=arenaState;let d=0;
  for(const z of s.hazards)if(Math.hypot(x-z.x,y-z.y)<=z.r)d-=z.pw||3;
- for(const z of (s.springs||[]))if(Math.hypot(x-z.x,y-z.y)<=z.r)d+=(z.pw||3)*SPRING_PASSIVE_X;
+ for(const z of (s.springs||[])){const rg=zoneRing(z,x,y);if(rg<3)d+=(z.pw||3)*SPRING_PASSIVE_X*RING_K[rg]}
  return d;
 }
 function applyQiZones(dt){
@@ -199,8 +199,9 @@ function drawArena(time){
 /* медитация: полный набор Ци с нуля — 80 с (вдвое медленнее прежнего), в источнике Ци — вдвое быстрее; время пропорционально недостающей Ци */
 const MEDITATE_FULL_SEC=80,SPRING_PASSIVE_X=3,SPRING_MEDITATE_X=2;
 function inSpring(){const s=arenaState;return !!s&&(s.springs||[]).some(z=>Math.hypot(s.px-z.x,s.py-z.y)<=z.r)}
+function springMedFactor(){const s=arenaState;let f=1;if(s)for(const z of (s.springs||[])){const r=zoneRing(z,s.px,s.py);if(r<3)f=Math.max(f,SPRING_MEDITATE_X*RING_K[r])}return f}
 let arenaMeditation={active:false,start:0,last:0,duration:40000,startQi:0,targetQi:0,progress:0};
 function interruptArenaMeditation(){if(arenaMeditation.active){arenaMeditation.active=false;arenaMeditation.progress=0;const btn=$('arenaMeditateBtn');if(btn)btn.classList.remove('meditating')}}
 function beginArenaMeditation(){if(!arenaState||arenaMeditation.active||arenaState.channel)return;if(save.qi>=save.maxQi)return toast('Ци уже полностью восстановлена.');arenaMeditation.startQi=save.qi;arenaMeditation.targetQi=save.maxQi;arenaMeditation.progress=0;arenaMeditation.active=true;arenaMeditation.start=performance.now();arenaMeditation.last=performance.now();$('arenaMeditateBtn').classList.add('meditating');requestAnimationFrame(arenaMeditationLoop)}
 function stopArenaMeditation(){if(!arenaMeditation.active)return;arenaMeditation.active=false;$('arenaMeditateBtn').classList.remove('meditating');persist();toast(arenaMeditation.progress>=.999?'Медитация завершена':'Медитация прервана')}
-function arenaMeditationLoop(now){if(!arenaMeditation.active||!arenaState)return;const dt=Math.min(.1,Math.max(0,(now-(arenaMeditation.last||now))/1000));arenaMeditation.last=now;const rate=save.maxQi/MEDITATE_FULL_SEC*(inSpring()?SPRING_MEDITATE_X:1);save.qi=Math.min(arenaMeditation.targetQi,save.qi+rate*dt);const span=Math.max(1,arenaMeditation.targetQi-arenaMeditation.startQi);arenaMeditation.progress=Math.min(1,(save.qi-arenaMeditation.startQi)/span);const left=(arenaMeditation.targetQi-save.qi)/rate;$('arenaMedLabel').textContent=arenaMeditation.progress<1?'МЕДИТАЦИЯ '+left.toFixed(1)+'с':'ГОТОВО';if(arenaMeditation.progress<1)requestAnimationFrame(arenaMeditationLoop);else{arenaMeditation.active=false;$('arenaMeditateBtn').classList.remove('meditating');persist();toast('Ци полностью восстановлена')}}
+function arenaMeditationLoop(now){if(!arenaMeditation.active||!arenaState)return;const dt=Math.min(.1,Math.max(0,(now-(arenaMeditation.last||now))/1000));arenaMeditation.last=now;const rate=save.maxQi/MEDITATE_FULL_SEC*springMedFactor();save.qi=Math.min(arenaMeditation.targetQi,save.qi+rate*dt);const span=Math.max(1,arenaMeditation.targetQi-arenaMeditation.startQi);arenaMeditation.progress=Math.min(1,(save.qi-arenaMeditation.startQi)/span);const left=(arenaMeditation.targetQi-save.qi)/rate;$('arenaMedLabel').textContent=arenaMeditation.progress<1?'МЕДИТАЦИЯ '+left.toFixed(1)+'с':'ГОТОВО';if(arenaMeditation.progress<1)requestAnimationFrame(arenaMeditationLoop);else{arenaMeditation.active=false;$('arenaMeditateBtn').classList.remove('meditating');persist();toast('Ци полностью восстановлена')}}
