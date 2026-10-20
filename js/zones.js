@@ -63,7 +63,7 @@ function zoneStep(e,dt){
 /* раз в 1,5 с: владельцы зон, наказание нарушителей, сообщения игроку */
 function zoneTick(){
  const s=arenaState;if(!s)return;
- sectRefresh();const nh=new Map(),zs=zoneList();
+ sectRefresh();s.apexN=s.enemies.filter(m=>m.hp>0&&cultScore(m)>=100).length;const nh=new Map(),zs=zoneList();
  for(const z of zs){
   let h=null;
   if(z.bz){const b=aliveBosses(s).find(q=>(q.zone||q.index)===z.bz);if(b&&Math.hypot(b.x-z.x,b.y-z.y)<=z.r)h=b}

@@ -260,7 +260,7 @@ function teamAlert(t){const s=arenaState,b=aliveBosses(s).find(q=>(q.index||0)==
    Идёт, пока противник культивирует в зоне Ци. Платит осколками (e.sh1 — души, e.sh2 — 2 этапа, их приносят победы) или временем.
    Шансы и цены — те же, что у игрока; неудача: первая колонна — минус 20 звёзд, дальше — минус колонна, ядро — потеря всех колонн. */
 const EVO_DENS_SEC=600,EVO_COL_SEC=150,EVO_CORE_SEC=900,FULL_KIT=['shield','dodge','qiSingle','qiArea','qiShield','stun','heal'];
-function entMaxCols(e){return e.isBoss?MAX_PILLARS:Math.max(maxMobCols(arenaTier(arenaState)),MOB_NAT_COLS)}
+function entMaxCols(e){return MAX_PILLARS}/* потолка у мобов нет: число сильных регулируют бои между ними */
 function entRebuild(e,stars,cols,note){
  const r=e.maxHp?e.hp/e.maxHp:1,q=e.maxQi?e.qi/e.maxQi:1;
  applyKit(e,{stars,techs:FULL_KIT.slice(),columns:cols});e.hp=Math.max(1,e.maxHp*r);e.qi=e.maxQi*q;
@@ -403,12 +403,15 @@ function fearStep(e,dt){
 }
 /* равные по силе — добыча: охотник идёт к ближайшему равному и начинает бой */
 function huntStep(e,dt){
- const s=arenaState;if(e.hunter==null)e.hunter=Math.random()<.5;if(!e.hunter||!((e.stars||0)>0))return false;
+ const s=arenaState;if(e.hunter==null)e.hunter=Math.random()<.5;
+ /* вершина (колонны/ядро): когда таких набралось 4+, они сами ищут друг друга по всей карте и бьются — так их число не разрастается */
+ const apex=cultScore(e)>=100&&(s.apexN||0)>=4;
+ if((!e.hunter&&!apex)||!((e.stars||0)>0))return false;
  e.huntT=(e.huntT||0)-dt;
  if(e.huntT<=0){
-  e.huntT=.8+Math.random()*.6;e.prey=null;let bd=700;
+  e.huntT=.8+Math.random()*.6;e.prey=null;let bd=apex?2600:700;
   const cand=s.enemies.concat(aliveBosses(s));
-  for(const x of cand){if(x===e||x.hp<=0||x.foeId!=null||(e.team&&x.team===e.team)||(e.lord&&x.lord===e.lord))continue;const d=Math.hypot(x.x-e.x,x.y-e.y);if(d<bd&&equalFoes(e,x)){bd=d;e.prey=x.id}}
+  for(const x of cand){if(x===e||x.hp<=0||x.foeId!=null||(e.team&&x.team===e.team)||(e.lord&&x.lord===e.lord))continue;const d=Math.hypot(x.x-e.x,x.y-e.y);if(d<bd&&(apex?(entPow(x)/entPow(e)>=.5&&entPow(x)/entPow(e)<=2):equalFoes(e,x))){bd=d;e.prey=x.id}}
  }
  const f=e.prey!=null?findEnt(e.prey):null;if(!f||f.foeId!=null){e.prey=null;return false}
  const d=Math.hypot(f.x-e.x,f.y-e.y);
