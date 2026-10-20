@@ -49,7 +49,7 @@ function entTick(e,dt){
 function makeMob(x,y,bossIndex){return applyKit({id:nid(),x,y,r:20,s:(45+Math.random()*25),ang:0,hit:0,seenT:0,wanderT:0},rollKit(bossIndex))}
 function rerollLiveMobs(bossIndex){
  const s=arenaState;if(!s)return;
- for(const e of s.enemies){if(e.hp<=0)continue;const k=rollKit(bossIndex);applyKit(e,k);if(!k.columns)e.columns=0;e.s=(45+Math.random()*25)*(1+k.stars/500)}
+ for(const e of s.enemies){if(e.hp<=0)continue;const k=rollKit(bossIndex);if(cultScore(e)>=(k.columns||0)*100+k.stars)continue;/* выросшие сами не сбрасываются */applyKit(e,k);if(!k.columns)e.columns=0;e.s=(45+Math.random()*25)*(1+k.stars/500)}
 }
 function damageEnemy(e,damage,src,melee){
  if(src!=='ent')provoke(e);
@@ -188,7 +188,8 @@ function drawCorpse(c){
 }
 
 /* ---- культивация у зон Ци ---- */
-const MOB_GROW_SEC=45;
+/* естественное развитие мобов не привязано к прогрессу игрока: до 100 звёзд и до 2 колонн (ядро им пока недоступно) */
+const MOB_GROW_SEC=25,MOB_NAT_STARS=100,MOB_NAT_COLS=2;
 /* ближайшая зона Ци босса (она же — место сбора) */
 function nearestBossZone(x,y){let best=null,bd=1e9;for(const z of (arenaState.springs||[])){if(!z.bz)continue;const d=Math.hypot(x-z.x,y-z.y);if(d<bd){bd=d;best=z}}return best}
 /* мирное поведение моба: культиваторы (со звёздами) частью идут к зоне Ци босса, сидят там и медленно растут */
@@ -210,7 +211,7 @@ function mobIdle(e,dt){
 /* рост на одну звезду: все параметры пересчитываются по тем же формулам, доля здоровья и Ци сохраняется */
 function growMob(e){
  if((e.columns||0)>0||e.core>0)return;
- const cap=Math.min(100,maxMobStars(arenaTier(arenaState)));if((e.stars||0)>=cap)return;
+ const cap=MOB_NAT_STARS;if((e.stars||0)>=cap)return;
  const r=e.maxHp?e.hp/e.maxHp:1,q=e.maxQi?e.qi/e.maxQi:1;
  applyKit(e,{stars:e.stars+1,techs:(e.techs||[]).slice()});e.hp=Math.max(1,e.maxHp*r);e.qi=e.maxQi*q;
 }
@@ -258,8 +259,8 @@ function teamAlert(t){const s=arenaState,b=aliveBosses(s).find(q=>(q.index||0)==
 /* ---- эволюция противников по схеме игрока: звёзды → колонны → ядро ----
    Идёт, пока противник культивирует в зоне Ци. Платит осколками (e.sh1 — души, e.sh2 — 2 этапа, их приносят победы) или временем.
    Шансы и цены — те же, что у игрока; неудача: первая колонна — минус 20 звёзд, дальше — минус колонна, ядро — потеря всех колонн. */
-const EVO_DENS_SEC=600,EVO_COL_SEC=300,EVO_CORE_SEC=900,FULL_KIT=['shield','dodge','qiSingle','qiArea','qiShield','stun','heal'];
-function entMaxCols(e){return e.isBoss?MAX_PILLARS:maxMobCols(arenaTier(arenaState))}
+const EVO_DENS_SEC=600,EVO_COL_SEC=150,EVO_CORE_SEC=900,FULL_KIT=['shield','dodge','qiSingle','qiArea','qiShield','stun','heal'];
+function entMaxCols(e){return e.isBoss?MAX_PILLARS:Math.max(maxMobCols(arenaTier(arenaState)),MOB_NAT_COLS)}
 function entRebuild(e,stars,cols,note){
  const r=e.maxHp?e.hp/e.maxHp:1,q=e.maxQi?e.qi/e.maxQi:1;
  applyKit(e,{stars,techs:FULL_KIT.slice(),columns:cols});e.hp=Math.max(1,e.maxHp*r);e.qi=e.maxQi*q;
@@ -280,7 +281,7 @@ function evolveTick(e,dt){
  }
  const S=e.stars||0,C=e.columns||0;
  if(S<100){
-  const cap=e.isBoss?100:Math.min(100,maxMobStars(arenaTier(arenaState)));if(S>=cap)return;
+  const cap=100;if(S>=cap)return;
   const cost=10+5*S;
   if((e.sh1||0)>=cost){e.sh1-=cost;e.growT=0;growMob(e);return}
   if(e.growT>=MOB_GROW_SEC){e.growT=0;growMob(e)}
@@ -300,8 +301,9 @@ function evolveTick(e,dt){
  const first=C===0,key=first?'sh1':'sh2',cost=first?10000:100*(C+1),pay=(e[key]||0)>=cost;
  if(pay||e.growT>=EVO_COL_SEC){
   if(pay)e[key]-=cost;e.growT=0;
-  if(Math.random()*100<pillarChance(0))entRebuild(e,100,C+1,'сформировал колонну ('+(C+1)+')');
-  else if(first)entRebuild(e,80,0,'потерял 20 звёзд при неудаче колонны');
+  /* с каждой неудачей шанс растёт (+10%, до 90%) — иначе у существ колонны почти не появлялись бы */
+  if(Math.random()*100<Math.min(90,pillarChance(0)+10*(e.pity||0))){e.pity=0;entRebuild(e,100,C+1,'сформировал колонну ('+(C+1)+')')}
+  else if(e.pity=(e.pity||0)+1,first)entRebuild(e,80,0,'потерял 20 звёзд при неудаче колонны');
   else entRebuild(e,100,C-1,'потерял колонну при неудаче');
  }
 }
