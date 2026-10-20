@@ -100,6 +100,7 @@ function worldToScreen(x,y){return{x:x-arenaState.camx+aw/devicePixelRatio/2,y:y
 /* награда привязана к культивации противника: этап I — осколки души = число звёзд; этап II (есть колонны) — осколки 2 этапа = число колонн */
 function killReward(e){
  const s=arenaState;if(!s)return;
+ if(e.sect!=null)sectKilledByPlayer(e);
  const L=dropVictimLoot(e),stage2=L.k===2,rw=L.v;
  dropHint(e);
  if(e.isBoss){toast('Босс повержен: выпало '+fmt(rw)+(stage2?' осколков 2 этапа':' осколков души')+' — подбери');floatText(e.x,e.y-84,'+'+fmt(rw),stage2?'#c9a8ff':'#ffd85b',20);shake(12);onBossDefeated(e)}

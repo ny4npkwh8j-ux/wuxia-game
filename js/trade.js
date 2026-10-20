@@ -33,7 +33,32 @@ function drawTradeHint(time){
 }
 function tradeMult(e){return (e.isBoss?1.6:1.25)*(isMate(e)?.8:1)}
 function joinPlayerSect(sc){save.sectId=sc.id;persist();chron('Игрок вступил в секту «'+sc.name+'»');toast('Ты вступил в секту «'+sc.name+'». Свои не тронут тебя и помогут в бою.')}
-function leavePlayerSect(){const sc=playerSect();save.sectId=null;persist();if(sc)chron('Игрок покинул секту «'+sc.name+'»');toast('Ты покинул секту.')}
+function leavePlayerSect(){const sc=playerSect();save.sectId=null;if(sc&&sc.pl)sc.pl=false;persist();if(sc)chron('Игрок покинул секту «'+sc.name+'»');toast('Ты покинул секту.')}
+function playerLeads(){const sc=playerSect();return !!(sc&&sc.pl)}
+/* возглавить секту: убив её главу; ученики признают победителя */
+function sectKilledByPlayer(e){
+ const s=arenaState;if(!s||e.sect==null)return;const sc=sectById(e.sect);if(!sc||sc.pl||playerLeads())return;
+ if(!(SM.get(sc.id)===e||sc.master===e.id))return;
+ const mem=sectMembers(sc).filter(m=>m!==e);if(!mem.length)return;
+ mem.sort((a,b)=>entPow(b)-entPow(a));sc.master=mem[0].id;sc.pl=true;save.sectId=sc.id;persist();
+ for(const m of mem){m.hostile=false;m.provoked=false;m.foeId=null;m.noSeeT=0}
+ chron('Игрок убил главу секты «'+sc.name+'» и возглавил её');toast('☯ Секта «'+sc.name+'» признала тебя главой! Ученики: '+mem.length+'.');
+}
+/* пригласить свободного культиватора в свою секту: идёт за равным или сильным, слабейшему служить не станет */
+function invitePlayer(e){
+ const s=arenaState;if(!s||e.sect!=null||e.lord||e.isBoss)return;
+ if(e._invT&&performance.now()-e._invT<90000)return toast('Он ещё обдумывает прошлое предложение.');
+ e._invT=performance.now();
+ const r=playerPow()/entPow(e);
+ if(r<PW_LO)return toast('«Я не стану служить тому, кто слабее меня.»');
+ if(Math.random()>.7)return toast('«Не сейчас. Предложи позже.»');
+ const sc=playerSect();
+ if(sc&&sc.pl){sectJoin(e,sc);chron('К секте «'+sc.name+'» присоединился ★'+(e.stars||0))}
+ else foundSect(e,[],true);
+ toast('☯ Он принял предложение и вступил в твою секту!');renderTrade();
+}
+function giveShards(e,k,n){const key=k===1?'rewards':'rewards2',ek=k===1?'sh1':'sh2';if(save[key]<n)return;save[key]-=n;e[ek]=(e[ek]||0)+n;persist();renderTrade()}
+function takeShards(e,k,n){const key=k===1?'rewards':'rewards2',ek=k===1?'sh1':'sh2';n=Math.min(n,Math.floor(e[ek]||0));if(n<=0)return;e[ek]-=n;save[key]+=n;persist();renderTrade()}
 function renderTrade(){
  const e=tradeEnt();if(!e)return closeTrade();
  const sc=e.sect?sectById(e.sect):null,mate=isMate(e),mult=tradeMult(e);
@@ -42,10 +67,23 @@ function renderTrade(){
  const box=$('tradeList');box.innerHTML='';let any=false;
  if(sc){any=true;const m=SM.get(sc.id),n=sectMembers(sc).length,ps=playerSect();
   const btns=[];
-  if(mate)btns.push(['Покинуть секту',true,()=>{leavePlayerSect();renderTrade()}]);
+  if(mate)btns.push([sc.pl?'Оставить секту (перейдёт заместителю)':'Покинуть секту',true,()=>{leavePlayerSect();renderTrade()}]);
   else if(!ps)btns.push(['Вступить в секту',true,()=>{joinPlayerSect(sc);renderTrade()}]);
   else btns.push(['Ты уже в другой секте «'+ps.name+'»',false,()=>{}]);
-  shopCard(box,'☯ Секта «'+sc.name+'»',mate?'твоя':'чужая','Глава ★'+(m?m.stars||0:'?')+' · учеников: '+n+'. Члены секты не нападают друг на друга, помогают в бою и торгуют со скидкой.',btns)}
+  shopCard(box,'☯ Секта «'+sc.name+'»',mate?(sc.pl?'ты глава':'твоя'):'чужая',(sc.pl?'Заместитель ★':'Глава ★')+(m?m.stars||0:'?')+' · учеников: '+n+'. Члены секты не нападают друг на друга, помогают в бою и торгуют со скидкой.'+(sc.pl?' Раз в минуту секта приносит тебе дань.':''),btns)}
+ /* приглашение свободного культиватора */
+ if(!e.isBoss&&!e.sect&&!e.lord){const ps=playerSect();any=true;
+  shopCard(box,'🤝 Предложить вступить в твою секту',ps&&sc===null&&!ps.pl?'нельзя':(ps&&ps.pl?'ты глава':'новая секта'),ps&&!ps.pl?'Ты состоишь в чужой секте — сначала покинь её.':ps&&ps.pl?'Он станет твоим учеником: будет приносить дань и драться на твоей стороне.':'Если согласится, ты основешь секту и станешь её главой. Слабейшему себя он служить не станет.',[['Предложить',!(ps&&!ps.pl)&&!(ps&&ps.pl&&sectMembers(ps).length>=sectCapOf(ps,SM.get(ps.id)||e)),()=>invitePlayer(e)]])}
+ /* свои: дать или взять */
+ if(mate){any=true;const lead=playerLeads();
+  shopCard(box,'🎁 Дать осколки','свои','Подарок ученику — ему на рост.',[[ '100 души',canPay(1,100),()=>giveShards(e,1,100)],['1000 души',canPay(1,1000),()=>giveShards(e,1,1000)],['1 (2 этапа)',canPay(2,1),()=>giveShards(e,2,1)],['10 (2 этапа)',canPay(2,10),()=>giveShards(e,2,10)]]);
+  if(lead)shopCard(box,'🤲 Взять осколки','ты глава','Забрать у ученика накопленное.',[['100 души',(e.sh1||0)>=100,()=>takeShards(e,1,100)],['Всё душа ('+fmt(e.sh1||0)+')',(e.sh1||0)>=1,()=>takeShards(e,1,1e12)],['1 (2 этапа)',(e.sh2||0)>=1,()=>takeShards(e,2,1)],['Всё 2 этапа ('+fmt(e.sh2||0)+')',(e.sh2||0)>=1,()=>takeShards(e,2,1e12)]]);
+  else{const p=document.createElement('p');p.className='sc-empty';p.textContent='Забирать у своих может только глава секты.';box.appendChild(p)}
+  for(const slot of ['weapon','armor']){const id=e.gear&&e.gear[slot];if(!id||!GEAR[id]||!lead)continue;const it=GEAR[id];
+   shopCard(box,it.icon+' '+it.name,'у него','',[['Забрать себе',true,()=>{if(!e.gear||e.gear[slot]!==id)return renderTrade();e.gear[slot]=null;gearGive(id,true);toast('Забрано: '+it.name);persist();renderTrade()}]])}
+  for(const id of [...new Set(gearSave().own)]){if(!GEAR[id]||!gearUseful(e,id))continue;const it=GEAR[id];
+   shopCard(box,it.icon+' '+it.name,'из инвентаря','',[['Отдать ему',true,()=>{if(!gearTake(id))return;entEquip(e,id);toast('Отдано: '+it.name);persist();renderTrade()}]])}
+ }
  /* его товар: снаряжение */
  for(const slot of ['weapon','armor']){
   const id=e.gear&&e.gear[slot];if(!id||!GEAR[id])continue;any=true;
@@ -61,7 +99,7 @@ function renderTrade(){
     if(!tradeOk(e))return closeTrade();if(!shopPay(1,price))return;e.sh1=(e.sh1||0)+price;grantScroll(id);toast('Свиток «'+sc2.name+'» получен — смотри «Свитки».');persist();renderTrade()}]])}
  }
  /* твой товар: снаряжение, которое ему пригодится; платит он своими осколками */
- const ids=[...new Set(gearSave().own)].filter(id=>GEAR[id]&&gearUseful(e,id));
+ const ids=mate?[]:[...new Set(gearSave().own)].filter(id=>GEAR[id]&&gearUseful(e,id));
  if(ids.length){
   const h=document.createElement('h4');h.textContent='Продать ему';box.appendChild(h);
   for(const id of ids){
@@ -75,11 +113,11 @@ function renderTrade(){
 function sectAssist(e){
  const s=arenaState,sc=playerSect();if(!s||!sc||e.sect===sc.id||e.foeId!=null)return;
  const now=performance.now();if(e._asT&&now-e._asT<5000)return;e._asT=now;
- let n=0;
+ let n=0;const lim=sc.pl?6:3,rng=sc.pl?1400:900;
  for(const m of s.enemies){
-  if(m.hp<=0||m.sect!==sc.id||m.foeId!=null||Math.hypot(m.x-s.px,m.y-s.py)>900)continue;
+  if(m.hp<=0||m.sect!==sc.id||m.foeId!=null||Math.hypot(m.x-s.px,m.y-s.py)>rng)continue;
   if(entPow(m)/entPow(e)<PW_LO)continue;
-  startDuel(m,e);if(++n>=3)break;
+  startDuel(m,e);if(++n>=lim)break;
  }
 }
 /* вражда сект: секта в бою с другой считает её врагом, а враги секты игрока — враги игрока */

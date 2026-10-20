@@ -20,12 +20,14 @@ function sectNote(msg,at){const s=arenaState;if(!s)return;chron(msg);if(at&&Math
 function sectJoin(m,sc){m.sect=sc.id;m.team=SECT_TEAM+sc.id;m.spot=null;m.zid=null;m.zT=0}
 function sectLeave(m){m.sect=null;if(m.team>=SECT_TEAM)m.team=null}
 function sectDisband(sc){for(const m of arenaState.enemies)if(m.sect===sc.id)sectLeave(m);chron('Секта «'+sc.name+'» распалась');if(save.sectId===sc.id){save.sectId=null;persist();toast('Твоя секта распалась.')}}
-function foundSect(m,mates){
+function sectCapOf(sc,m){return sc.pl?Math.min(20,3+Math.floor((save.stars||0)/10)):sectCap(m)}
+function foundSect(m,mates,pl){
  const s=arenaState,sl=sectList();s.sectSeq=Math.max(s.sectSeq||0,...sl.map(q=>q.id))+1;
  const used=new Set(sl.map(q=>q.name)),pool=SECT_NAMES.filter(n=>!used.has(n)),name=(pool.length?pool:SECT_NAMES)[Math.floor(Math.random()*(pool.length||SECT_NAMES.length))];
  const sc={id:s.sectSeq,name,col:SECT_COLS[s.sectSeq%SECT_COLS.length],master:m.id,zid:null,zT:0,loneT:0};
  sl.push(sc);sectJoin(m,sc);for(const q of mates)sectJoin(q,sc);
- sectNote('Основана секта «'+name+'» — глава ★'+(m.stars||0),m);
+ if(pl){sc.pl=true;save.sectId=sc.id;persist();chron('Игрок основал секту «'+name+'»');toast('☯ Ты основал секту «'+name+'»!')}
+ else sectNote('Основана секта «'+name+'» — глава ★'+(m.stars||0),m);
  return sc;
 }
 /* раз в ~8 с: судьба глав, вербовка, основание, дань, выбор зоны */
@@ -37,23 +39,27 @@ function sectTick(){
  for(let i=sl.length-1;i>=0;i--){
   const sc=sl[i];let m=findEnt(sc.master);const mem=sectMembers(sc);
   if(!m||m.hp<=0||m.sect!==sc.id){
-   if(mem.length<2){sectDisband(sc);sl.splice(i,1);continue}
+   if(mem.length<(sc.pl?1:2)){sectDisband(sc);sl.splice(i,1);continue}
    mem.sort((a,b)=>entPow(b)-entPow(a));m=mem[0];sc.master=m.id;sectNote('В секте «'+sc.name+'» новый глава',m);
   }
-  if(mem.length<2){sc.loneT=(sc.loneT||0)+8;if(sc.loneT>120){sectDisband(sc);sl.splice(i,1);continue}}else sc.loneT=0;
+  if(mem.length<(sc.pl?1:2)){sc.loneT=(sc.loneT||0)+8;if(sc.loneT>120){sectDisband(sc);sl.splice(i,1);continue}}else sc.loneT=0;
   /* вербовка */
-  if(mem.length<sectCap(m)){
+  if(mem.length<sectCapOf(sc,m)){
    const pm=entPow(m);
    for(const q of s.enemies){
-    if(mem.length>=sectCap(m))break;
+    if(mem.length>=sectCapOf(sc,m))break;
     if(q.hp<=0||!((q.stars||0)>0)||q.lord||q.sect||q.foeId!=null||q.hostile)continue;
     if(Math.hypot(q.x-m.x,q.y-m.y)>1100)continue;
     const r=entPow(q)/pm;if(r<.25||r>1)continue;
     sectJoin(q,sc);mem.push(q);
    }
   }
-  /* дань: ученики отдают главе четверть добытых осколков */
-  for(const q of mem){if(q===m)continue;
+  /* дань: ученики отдают главе четверть добытых осколков; если секту возглавляет игрок — пятая часть копится для него и выплачивается раз в минуту */
+  if(sc.pl){
+   for(const q of mem)for(const k of ['sh1','sh2']){const g=Math.floor((q[k]||0)*.2);if(g>0){q[k]-=g;sc[k==='sh1'?'t1':'t2']=(sc[k==='sh1'?'t1':'t2']||0)+g}}
+   sc.payT=(sc.payT||0)+8;
+   if(sc.payT>=60){sc.payT=0;const a=sc.t1||0,b=sc.t2||0;if(a>0||b>0){save.rewards+=a;save.rewards2+=b;sc.t1=sc.t2=0;persist();chron('Секта «'+sc.name+'» принесла дань: '+fmt(a)+' души, '+fmt(b)+' 2 этапа');toast('☯ Секта «'+sc.name+'» принесла дань: +'+fmt(a)+' души'+(b?', +'+fmt(b)+' 2 этапа':''))}}
+  }else for(const q of mem){if(q===m)continue;
    for(const k of ['sh1','sh2']){const g=Math.floor((q[k]||0)*.25);if(g>0){q[k]-=g;m[k]=(m[k]||0)+g}}}
   /* зона: ищем свободную зону Ци без хозяина (или со слабым) */
   sc.zT=Math.max(0,(sc.zT||0)-8);
@@ -88,7 +94,7 @@ function sectStep(e,dt){
 function drawSectMark(e,p){
  const sc=sectById(e.sect);if(!sc)return;const m=SM.get(sc.id),lead=m===e;
  ax.fillStyle=sc.col;ax.beginPath();ax.moveTo(p.x,p.y-64);ax.lineTo(p.x+4,p.y-59);ax.lineTo(p.x,p.y-54);ax.lineTo(p.x-4,p.y-59);ax.closePath();ax.fill();
- if(lead)outText(ax,'♛ Секта '+sc.name,p.x,p.y-70,sc.col,11);
+ if(lead)outText(ax,(sc.pl?'♛ Твоя секта ':'♛ Секта ')+sc.name,p.x,p.y-70,sc.col,11);
 }
 /* знамёна над центрами зон: чья зона */
 function drawZoneMarks(W,H,time){

@@ -237,7 +237,7 @@ function equalFoes(a,b){return isEqualPow(entPow(b)/entPow(a))}
 function aggroCheck(e,d,dt){
  if(isMate(e)){e.hostile=false;e.provoked=false;return false}/* свои по секте не нападают */
  const near=canSeePlayer(d);
- if(near){e.noSeeT=0;if(e.hostile==null)e.hostile=!!e.provoked||sectWarWithPlayer(e)||(isEqualPow(playerPow()/entPow(e))&&Math.random()<AGGRO_CHANCE)}
+ if(near){e.noSeeT=0;if(e.hostile==null)e.hostile=!!e.provoked||sectWarWithPlayer(e)||(isEqualPow(playerPow()/entPow(e))&&Math.random()<AGGRO_CHANCE);if(e.hostile&&save.sectId!=null)sectAssist(e)}
  else{e.noSeeT=(e.noSeeT||0)+dt;if(e.noSeeT>8){e.hostile=null;e.provoked=false}}
  if(!e.hostile&&e.team&&teamAlert(e.team))e.hostile=true;
  return near&&!!e.hostile;
