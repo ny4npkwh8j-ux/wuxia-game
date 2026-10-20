@@ -39,7 +39,7 @@ function updateArenaUI(){
 }
 let tipTimer=0;
 function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>el.classList.remove('show'),1800)}
-function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active')}
+function show(id){cultOnline=false;if(typeof radarMove==='function')radarMove(false);const c=$('cult');c.classList.remove('cult-online');c.style.boxShadow='';const hp=$('cultHpPill');if(hp)hp.style.display='none';const lb=$('cultLeaveBtn');if(lb)lb.textContent='← Выход';document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));$(id).classList.add('active')}
 function goHome(){if(arenaState)saveArenaCheckpoint();stopArena();closeTechnique();closePillar();closeScrolls();closeColumns();closeModal();show('home');updateUI()}
 function openCult(){show('cult');resizeCult();updateUI()}
 function updateUI(){

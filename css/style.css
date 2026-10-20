@@ -67,3 +67,6 @@
 
 /* core / dantian scene */
 .dview{display:block;margin:6px auto 10px;width:min(100%,300px);aspect-ratio:196/234;border-radius:16px;background:#060a18;border:1px solid #3a4a74}
+/* онлайн-культивация: окно поверх идущей арены */
+#cult.cult-online{z-index:80;background:rgba(8,12,22,.84);transition:box-shadow .15s}
+[data-hold].holding{filter:brightness(1.35);transform:scale(.985)}

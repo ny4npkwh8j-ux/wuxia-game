@@ -1,5 +1,5 @@
 'use strict';
-const BUILD_VERSION='0.8.22';
+const BUILD_VERSION='0.8.23';
 const SAVE_KEY='wuxiaSave';
 const SAVE_SCHEMA='cultivation_arena_v2';
 const $=id=>document.getElementById(id);
@@ -14,7 +14,7 @@ try{
  if(raw){Object.assign(save,JSON.parse(raw));}
  save.pillarProgress??=0;save.pillarQi??=0;save.pillarRewards??=0;save.techniques??=[];save.arenaCheckpoint??=null;save.stageLevel??=1;save.rewards??=0;save.scrolls??=[];
  save.hints??=[];save.lostLoot??=[];save.coreDens??=0;save.coreCoef??=0;save.coreQuality??=null;save.coreDeposit??=0;save.coreChanceExtra??=0;
- save.rewards2??=0;save.pillarChanceExtra??=0;save.pillarQuality??=null;save.pillarCoef??=0;save.pillarQiBonus??=0;save.pillarStars??=0;
+ save.rewards2??=0;save.pillarChanceQi??=0;save.pillarChanceExtra??=0;save.pillarQuality??=null;save.pillarCoef??=0;save.pillarQiBonus??=0;save.pillarStars??=0;
  if(save.pillarMult&&!save.pillarCoef){save.pillarCoef=save.pillarMult;delete save.pillarMult}
  if(save.pillars>0&&!save.pillarCoef){const q=pillarQualityFor(save.stars);save.pillarCoef=q.coef;save.pillarQiBonus=q.qi;save.pillarQuality=q.name;save.pillarStars=save.stars}
  if(save.pillars>0&&!save.pillarQiBonus){save.pillarQiBonus=pillarQualityFor(save.pillarStars||save.stars).qi}/* старые сохранения: бонус Ци колонны не был записан */
@@ -31,6 +31,6 @@ try{
 function persist(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);localStorage.setItem('wuxiaSaveSchema',SAVE_SCHEMA)}catch(e){}updateUI()}
 async function resetProgress(){if(!await confirmDialog('Обнулить весь прогресс? Это удалит культивацию, техники, осколки души и сохранённую арену.','Обнулить'))return;for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&(k===SAVE_KEY||k.startsWith('wuxiaSave_')))localStorage.removeItem(k)}save=freshSave();persist();show('home');toast('Прогресс полностью обнулён.');}
 /* ===== multiplayer-ready helpers (no network yet) ===== */
-let ENT_SEQ=1;
+let ENT_SEQ=1,cultOnline=false;
 function nid(){return ENT_SEQ++}
 const NET={enabled:false,room:null,send(){},onState(){}};

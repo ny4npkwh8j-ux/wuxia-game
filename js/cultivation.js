@@ -36,15 +36,15 @@ function renderPillar(){
  $('pillarProgressText').textContent=done?'Все колонны сформированы.':('Ци: '+fmt(save.pillarQi)+' / '+fmt(qiCost)+' · Осколки'+kind+': '+fmt(bal)+' · для полной оплаты не хватает '+fmt(left)+' осколков');
  $('pillarBarFill').style.width=(done?100:pillarQiFraction()*100)+'%';
  $('pillarDepositBtn').style.display='flex';
- $('pillarDepositBtn').disabled=done||!okStars||save.qi<PILLAR_STEP||save.pillarQi>=qiCost;
- $('pillarDepositBtn').textContent='Внести '+PILLAR_STEP+' Ци';
+ $('pillarDepositBtn').disabled=done||!okStars||save.pillarQi>=qiCost;
+ $('pillarDepositBtn').textContent='⏳ Удерживай — вливать Ци ('+pillarHoldRate().toFixed(1)+'/с)';
  $('pillarRewardsBtn').disabled=done||!okStars||left<=0||bal<left;
  $('pillarRewardsBtn').textContent=(save.pillarQi>0?'Доплатить ':'Оплатить ')+fmt(left)+' осколков'+kind;
  $('pillarFormBtn').style.display='flex';
  $('pillarFormBtn').disabled=done||!okStars||save.pillarQi<qiCost;
  $('pillarFormBtn').textContent='Сформировать за Ци ('+fmt(qiCost)+')';
  $('pillarChanceBtn').disabled=done||!okStars||chance>=90||bal<chCost;
- $('pillarChanceQiBtn').disabled=done||!okStars||chance>=90||save.qi<pillarChanceQiCost();$('pillarChanceQiBtn').textContent='Вложить '+fmt(pillarChanceQiCost())+' Ци (+10% шанс, сейчас '+chance+'%)';
+ $('pillarChanceQiBtn').disabled=done||!okStars||chance>=90;$('pillarChanceQiBtn').textContent='⏳ Удерживай: Ци на шанс +10% ('+fmt(save.pillarChanceQi||0)+' / '+fmt(pillarChanceQiCost())+', сейчас '+chance+'%)';
  $('pillarChanceBtn').textContent='Вложить '+fmt(chCost)+' осколков'+kind+' (+10% шанс, сейчас '+chance+'%)';
 }
 function removeRandomStars(n){
@@ -64,7 +64,7 @@ function removeRandomStars(n){
 async function attemptPillar(cost,payFn){
  payFn();
  const chance=pillarChance(save.pillarChanceExtra),wasFirst=save.pillars===0;
- save.pillarChanceExtra=0;save.pillarQi=0;
+ save.pillarChanceExtra=0;save.pillarQi=0;save.pillarChanceQi=0;
  if(Math.random()*100<chance){
   if(wasFirst){
    const q=pillarQualityFor(save.stars);save.pillarQuality=q.name;save.pillarCoef=q.coef;save.pillarQiBonus=q.qi;save.pillarStars=save.stars;placingStar=false;$('cultHint').classList.remove('show');

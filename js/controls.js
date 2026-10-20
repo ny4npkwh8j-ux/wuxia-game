@@ -14,7 +14,7 @@ $('arenaMeditateBtn').addEventListener('pointerdown',e=>{e.preventDefault();e.st
    держи цифру — заряд/каст, отпусти — выстрел в сторону курсора. Сенсорное управление работает как раньше. */
 const kb={keys:new Set(),held:new Map(),mx:0,my:0,mouseDown:false,moving:false};
 const MOVE_KEYS={KeyW:[0,-1],ArrowUp:[0,-1],KeyS:[0,1],ArrowDown:[0,1],KeyA:[-1,0],ArrowLeft:[-1,0],KeyD:[1,0],ArrowRight:[1,0]};
-function arenaActive(){return !!arenaState&&$('arena').classList.contains('active')&&!document.querySelector('.modal.show')}
+function arenaActive(){return !!arenaState&&!cultOnline&&$('arena').classList.contains('active')&&!document.querySelector('.modal.show')}
 function updateMouseAim(){
  const s=arenaState;if(!s||!s.kbAim)return;
  const r=$('arena').getBoundingClientRect(),p=worldToScreen(s.px,s.py),ang=Math.atan2(kb.my-r.top-p.y,kb.mx-r.left-p.x);
@@ -49,6 +49,7 @@ function techKeyUp(i){
 }
 function techIndexOfKey(code){const m=/^(?:Digit|Numpad)(\d)$/.exec(code);if(!m)return -1;const n=+m[1];return n===0?9:n-1}
 window.addEventListener('keydown',e=>{
+ if((e.code==='KeyC'||e.code==='Escape'&&cultOnline)&&!e.repeat&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&arenaState&&$('arena').classList.contains('active')&&!document.querySelector('.modal.show')){e.preventDefault();cultOnline?closeCultOnline():openCultOnline();return}
  if(!arenaActive()||e.ctrlKey||e.metaKey||e.altKey)return;
  if(MOVE_KEYS[e.code]){e.preventDefault();kb.keys.add(e.code);applyKbMove();return}
  if(e.code==='KeyE'){e.preventDefault();if(!e.repeat)openNpc();return}
