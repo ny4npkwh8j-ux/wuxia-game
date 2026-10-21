@@ -58,9 +58,9 @@ function quietSpot(s){
 function circleRectRaw(x,y,r,o){const cx=Math.max(o.x-o.w/2,Math.min(x,o.x+o.w/2)),cy=Math.max(o.y-o.h/2,Math.min(y,o.y+o.h/2));return Math.hypot(x-cx,y-cy)<r}
 function saveArenaCheckpoint(){
  if(!arenaState)return;
- const cp={world:arenaState.world,px:arenaState.px,py:arenaState.py,camx:arenaState.camx,camy:arenaState.camy,hp:arenaState.hp,maxHp:arenaState.maxHp,enemies:arenaState.enemies,orbs:arenaState.orbs,chests:arenaState.chests,points:arenaState.points,hazards:arenaState.hazards,obstacles:arenaState.obstacles,bosses:arenaState.bosses,springs:arenaState.springs||[],sects:arenaState.sects||[],chron:arenaState.chron||[],loot:arenaState.loot||[]};
+ const cp={world:arenaState.world,px:arenaState.px,py:arenaState.py,camx:arenaState.camx,camy:arenaState.camy,hp:arenaState.hp,maxHp:arenaState.maxHp,enemies:arenaState.enemies.filter(e=>e.hp>0),orbs:arenaState.orbs,chests:arenaState.chests,points:arenaState.points,hazards:arenaState.hazards,obstacles:arenaState.obstacles,bosses:arenaState.bosses,springs:arenaState.springs||[],sects:arenaState.sects||[],chron:arenaState.chron||[],loot:arenaState.loot||[]};
  save.arenaCheckpoint=JSON.parse(JSON.stringify(cp));
- try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);localStorage.setItem('wuxiaSaveSchema',SAVE_SCHEMA)}catch(e){}
+ storeSave();try{localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);localStorage.setItem('wuxiaSaveSchema',SAVE_SCHEMA)}catch(e){}
 }
 /* после перезагрузки счётчик id начинался с 1 и новые существа получали id уже существующих — ссылки (бой, секта, хозяин зоны) путались.
    Теперь счётчик продолжается с максимального id, а повторы в старых сохранениях получают новые id (их бои сбрасываются). */

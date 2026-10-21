@@ -424,8 +424,10 @@ function huntStep(e,dt,force){
  if(d<110){e.prey=null;if(Math.random()<.5)startDuel(e,f);return false}
  e.ang=Math.atan2(f.y-e.y,f.x-e.x);e.wanderAng=e.ang;e.cult=false;moveEnemy(e,Math.cos(e.ang)*e.s*.75*dt,Math.sin(e.ang)*e.s*.75*dt);return true;
 }
+/* убитые мобы раньше оставались в массиве навсегда и попадали в сохранение — тысячи записей переполняли память браузера */
+function purgeDead(){const a=arenaState.enemies;for(let i=a.length-1;i>=0;i--)if(a[i].hp<=0)a.splice(i,1)}
 function warTick(dt){
- const s=arenaState;if(!s)return;s.warT=(s.warT||0)+dt;s.chalT=(s.chalT||0)+dt;s.recT=(s.recT||0)+dt;s.sectT=(s.sectT||0)+dt;if(s.sectT>=8){s.sectT=0;sectTick()}s.zoneT=(s.zoneT==null?99:s.zoneT)+dt;if(s.zoneT>=1.5){s.zoneT=0;zoneTick()}s.shopT=(s.shopT||0)+dt;if(s.shopT>=20){s.shopT=0;mobShopRoll()}
+ const s=arenaState;if(!s)return;s.purgeT=(s.purgeT||0)+dt;if(s.purgeT>=5){s.purgeT=0;purgeDead()}s.warT=(s.warT||0)+dt;s.chalT=(s.chalT||0)+dt;s.recT=(s.recT||0)+dt;s.sectT=(s.sectT||0)+dt;if(s.sectT>=8){s.sectT=0;sectTick()}s.zoneT=(s.zoneT==null?99:s.zoneT)+dt;if(s.zoneT>=1.5){s.zoneT=0;zoneTick()}s.shopT=(s.shopT||0)+dt;if(s.shopT>=20){s.shopT=0;mobShopRoll()}
  if(s.recT>=8){s.recT=0;recruitTick()}
  if(s.warT>=5){s.warT=0;skirmishRoll()}
  if(s.chalT>=30){s.chalT=0;challengeRoll()}

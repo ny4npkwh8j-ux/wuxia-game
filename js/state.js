@@ -1,5 +1,5 @@
 'use strict';
-const BUILD_VERSION='0.8.30';
+const BUILD_VERSION='0.8.31';
 const SAVE_KEY='wuxiaSave';
 const SAVE_SCHEMA='cultivation_arena_v2';
 const $=id=>document.getElementById(id);
@@ -12,6 +12,7 @@ function latestLegacySaveKey(){
 try{
  const raw=localStorage.getItem(SAVE_KEY)||localStorage.getItem(latestLegacySaveKey());
  if(raw){Object.assign(save,JSON.parse(raw));}
+ if(save.arenaCheckpoint&&Array.isArray(save.arenaCheckpoint.enemies))save.arenaCheckpoint.enemies=save.arenaCheckpoint.enemies.filter(e=>e&&e.hp>0);/* убитые раньше копились в сохранении и раздували его */
  save.pillarProgress??=0;save.pillarQi??=0;save.pillarRewards??=0;save.techniques??=[];save.arenaCheckpoint??=null;save.stageLevel??=1;save.rewards??=0;save.scrolls??=[];
  save.hints??=[];save.lostLoot??=[];save.coreDens??=0;save.coreCoef??=0;save.coreQuality??=null;save.coreDeposit??=0;save.coreChanceExtra??=0;
  save.rewards2??=0;save.pillarChanceQi??=0;save.pillarChanceExtra??=0;save.pillarQuality??=null;save.pillarCoef??=0;save.pillarQiBonus??=0;save.pillarStars??=0;
@@ -26,9 +27,17 @@ try{
  if(save.healthBalanceV!==3){save.health+=3*save.stars*(save.stageLevel>=2?1.5:1);save.healthBalanceV=3}
  // v0.4.15 balance migration: convert old strength progression (7 + 0.1★) to 10 + 0.9★.
  if(save.strengthBalanceV!==2){save.str=10+save.stars*.9;save.strengthBalanceV=2;}
- localStorage.setItem(SAVE_SCHEMA,'1');localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);localStorage.setItem(SAVE_KEY,JSON.stringify(save));
+ localStorage.setItem(SAVE_SCHEMA,'1');localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);storeSave();
 }catch(e){save=freshSave()}
-function persist(){try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);localStorage.setItem('wuxiaSaveSchema',SAVE_SCHEMA)}catch(e){}updateUI()}
+/* запись сохранения: если память браузера переполнена, прогресс всё равно пишется — без снимка арены (иначе тихий сбой откатывал бы прогресс) */
+let storeWarned=false;
+function storeSave(){
+ try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));return true}catch(e){}
+ const cp=save.arenaCheckpoint;
+ try{save.arenaCheckpoint=null;localStorage.setItem(SAVE_KEY,JSON.stringify(save));if(!storeWarned){storeWarned=true;try{toast('Память браузера заполнена: прогресс сохранён, а положение арены — нет.')}catch(_){}}return true}
+ catch(e){return false}finally{save.arenaCheckpoint=cp}
+}
+function persist(){storeSave();try{localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);localStorage.setItem('wuxiaSaveSchema',SAVE_SCHEMA)}catch(e){}updateUI()}
 async function resetProgress(){if(!await confirmDialog('Обнулить весь прогресс? Это удалит культивацию, техники, осколки души и сохранённую арену.','Обнулить'))return;for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&(k===SAVE_KEY||k.startsWith('wuxiaSave_')))localStorage.removeItem(k)}save=freshSave();persist();show('home');toast('Прогресс полностью обнулён.');}
 /* ===== multiplayer-ready helpers (no network yet) ===== */
 let ENT_SEQ=1,cultOnline=false;
