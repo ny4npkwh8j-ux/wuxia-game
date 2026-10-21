@@ -302,7 +302,7 @@ function evolveTick(e,dt){
   return;
  }
  if(C>=max)return;
- const first=C===0,key=first?'sh1':'sh2',cost=first?10000:100*(C+1),pay=(e[key]||0)>=cost;
+ const first=C===0,key=first?'sh1':'sh2',cost=10000,pay=(e[key]||0)>=cost;
  if(pay||e.growT>=EVO_COL_SEC){
   if(pay)e[key]-=cost;e.growT=0;
   /* с каждой неудачей шанс растёт (+10%, до 90%) — иначе у существ колонны почти не появлялись бы */
