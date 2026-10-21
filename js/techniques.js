@@ -256,8 +256,8 @@ function bpManual(id){
  bpGuide=bp;closeScrolls();openTechnique();bpGuide=bp;drawTech();
 }
 function renderBlueprints(el){
- const h=document.createElement('h4');h.textContent='Схемы и чертежи техник';h.style.margin='12px 0 6px';el.appendChild(h);
- if(!save.blueprints.length){const p=document.createElement('p');p.style.cssText='font-size:12px;color:#8794ad';p.textContent='Пока пусто. Схемы выпадают из мобов, у которых есть техники, а чертежи высокого качества — из боссов.';el.appendChild(p);return}
+ const h=document.createElement('h4');h.textContent='Чертежи';h.style.margin='12px 0 6px';el.appendChild(h);
+ if(!save.blueprints.length){const p=document.createElement('p');p.style.cssText='font-size:12px;color:#8794ad';p.textContent='Пусто';el.appendChild(p);return}
  for(const bp of save.blueprints){
   const d=document.createElement('div');d.className='scrollcard';
   d.innerHTML='<div class="sc-head"><b>'+(bp.tier==='high'?'📜 ':'📄 ')+techniqueName(bp.type)+' · '+bp.n+' ★</b><span class="sc-tag">'+BP_TIER[bp.tier]+'</span></div><p>'+bpText(bp)+'</p>';

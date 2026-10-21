@@ -63,7 +63,7 @@ function renderTrade(){
  const e=tradeEnt();if(!e)return closeTrade();
  const sc=e.sect?sectById(e.sect):null,mate=isMate(e),mult=tradeMult(e);
  $('tradeTitle').textContent=e.isBoss?'Босс '+e.index:'Культиватор ★'+(e.stars||0);
- $('tradeInfo').textContent='Твои осколки: душа '+fmt(save.rewards)+' · 2 этапа '+fmt(save.rewards2)+' | у него: '+fmt(e.sh1||0)+' / '+fmt(e.sh2||0)+(mate?' | свой по секте — скидка':'');
+ $('tradeInfo').textContent='У тебя '+fmt(save.rewards)+' / '+fmt(save.rewards2)+' · у него '+fmt(e.sh1||0)+' / '+fmt(e.sh2||0)+' (душа / 2 этапа)';
  const box=$('tradeList');box.innerHTML='';let any=false;
  if(sc){any=true;const m=SM.get(sc.id),n=sectMembers(sc).length,ps=playerSect();
   const btns=[];
@@ -71,14 +71,14 @@ function renderTrade(){
   if(mate)btns.push([sc.pl?'Оставить секту (перейдёт заместителю)':'Покинуть секту',true,()=>{leavePlayerSect();renderTrade()}]);
   else if(!ps)btns.push(['Вступить в секту',true,()=>{joinPlayerSect(sc);renderTrade()}]);
   else btns.push(['Ты уже в другой секте «'+ps.name+'»',false,()=>{}]);
-  shopCard(box,'☯ Секта «'+sc.name+'»',mate?(sc.pl?'ты глава':'твоя'):'чужая',(sc.pl?'Заместитель ★':'Глава ★')+(m?m.stars||0:'?')+' · учеников: '+n+'. Члены секты не нападают друг на друга, помогают в бою и торгуют со скидкой.'+(sc.pl?' Раз в минуту секта приносит тебе дань.':''),btns)}
+  shopCard(box,'☯ Секта «'+sc.name+'»',mate?(sc.pl?'ты глава':'твоя'):'чужая',(sc.pl?'Заместитель ★':'Глава ★')+(m?m.stars||0:'?')+' · учеников: '+n,btns)}
  /* приглашение свободного культиватора */
  if(!e.isBoss&&!e.sect&&!e.lord){const ps=playerSect();any=true;
   shopCard(box,'🤝 Предложить вступить в твою секту',ps&&sc===null&&!ps.pl?'нельзя':(ps&&ps.pl?'ты глава':'новая секта'),ps&&!ps.pl?'Ты состоишь в чужой секте — сначала покинь её.':ps&&ps.pl?'Он станет твоим учеником: будет приносить дань и драться на твоей стороне.':'Если согласится, ты основешь секту и станешь её главой. Слабейшему себя он служить не станет.',[['Предложить',!(ps&&!ps.pl)&&!(ps&&ps.pl&&sectMembers(ps).length>=sectCapOf(ps,SM.get(ps.id)||e)),()=>invitePlayer(e)]])}
  /* свои: дать или взять */
  if(mate){any=true;const lead=playerLeads();
-  if(lead)shopCard(box,'🚪 Исключить из секты','ты глава','Он покинет секту и вернётся к своим делам; прежних сил у него не отнимут.',[['Исключить',true,()=>kickMember(e)]]);
-  shopCard(box,'🎁 Дать осколки','свои','Подарок ученику — ему на рост.',[[ '100 души',canPay(1,100),()=>giveShards(e,1,100)],['1000 души',canPay(1,1000),()=>giveShards(e,1,1000)],['1 (2 этапа)',canPay(2,1),()=>giveShards(e,2,1)],['10 (2 этапа)',canPay(2,10),()=>giveShards(e,2,10)]]);
+  if(lead)shopCard(box,'🚪 Исключить из секты','ты глава','',[['Исключить',true,()=>kickMember(e)]]);
+  shopCard(box,'🎁 Дать осколки','свои','',[[ '100 души',canPay(1,100),()=>giveShards(e,1,100)],['1000 души',canPay(1,1000),()=>giveShards(e,1,1000)],['1 (2 этапа)',canPay(2,1),()=>giveShards(e,2,1)],['10 (2 этапа)',canPay(2,10),()=>giveShards(e,2,10)]]);
   if(lead)shopCard(box,'🤲 Взять осколки','ты глава','Забрать у ученика накопленное.',[['100 души',(e.sh1||0)>=100,()=>takeShards(e,1,100)],['Всё душа ('+fmt(e.sh1||0)+')',(e.sh1||0)>=1,()=>takeShards(e,1,1e12)],['1 (2 этапа)',(e.sh2||0)>=1,()=>takeShards(e,2,1)],['Всё 2 этапа ('+fmt(e.sh2||0)+')',(e.sh2||0)>=1,()=>takeShards(e,2,1e12)]]);
   else{const p=document.createElement('p');p.className='sc-empty';p.textContent='Забирать у своих может только глава секты.';box.appendChild(p)}
   for(const slot of ['weapon','armor']){const id=e.gear&&e.gear[slot];if(!id||!GEAR[id]||!lead)continue;const it=GEAR[id];

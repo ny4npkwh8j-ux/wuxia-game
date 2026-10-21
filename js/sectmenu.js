@@ -126,7 +126,7 @@ function sectOrderStep(e,dt){
  const m=document.createElement('div');m.id='sectModal';m.className='modal';
  m.innerHTML='<div class="sheet"><h3 id="sectTitle">☯ Секта</h3><p id="sectInfo"></p><div id="sectBody"></div><div class="row"><button class="bigbtn" onclick="closeSectMenu()">Закрыть</button></div></div>';
  document.body.appendChild(m);
- const b=document.createElement('button');b.id='sectBtn';b.className='leave';b.style.cssText='position:absolute;right:112px;top:66px;z-index:60;display:none;width:auto;padding:0 10px';b.title='Меню секты';b.textContent='☯ Секта';b.onclick=openSectMenu;
+ const b=document.createElement('button');b.id='sectBtn';b.className='leave';b.style.cssText='position:absolute;right:62px;top:66px;z-index:60;display:none;width:auto;padding:0 10px';b.title='Меню секты';b.textContent='☯ Секта';b.onclick=openSectMenu;
  $('arena').appendChild(b);
  setInterval(()=>{if(m.classList.contains('show'))renderSectMenu(true)},1000);
 })();
@@ -147,7 +147,7 @@ function renderSectMenu(auto){
  const mem=sectMembers(sc).sort((a,b)=>entPow(b)-entPow(a)),cap=sectCapOf(sc,mem[0]||{stars:0}),od=sc.order||'free';
  const sig=[od,sc.formOn,sc.techOn,Math.floor(sc.t1||0),mem.map(q=>q.id+':'+(q.stars||0)+':'+(q.foeId!=null?1:0)+':'+(q.fm===sc.id?1:0)).join(',')].join('|');
  if(auto===true&&sig===sectSig)return;sectSig=sig;/* без лишних перерисовок, чтобы нажатия не терялись */
- $('sectTitle').textContent='☯ Секта «'+sc.name+'»';
+ $('sectTitle').textContent='Секта «'+sc.name+'»';
  $('sectInfo').textContent='Учеников: '+mem.length+' / '+cap+' · приказ: '+ORDER_NAME[od]+' · накоплено дани: '+fmt(sc.t1||0)+' души';
  const box=$('sectBody'),st=box.scrollTop;box.innerHTML='';
  const card=document.createElement('div');card.className='scrollcard';

@@ -50,15 +50,15 @@ function openCultOnline(){
  arenaMeditation.active&&interruptArenaMeditation();
  kb.keys.clear();s.dx=0;s.dy=0;if(typeof applyKbMove==='function')applyKbMove();
  cultOnline=true;cultHpLast=s.hp;cultFlash=0;cultLiveT=1;
- $('cult').classList.add('active','cult-online');$('cultHpPill').style.display='';$('cultLeaveBtn').textContent='← К арене';
+ $('cult').classList.add('active','cult-online');$('cultHpPill').style.display='';$('cultLeaveBtn').title='К арене';
  resizeCult();updateUI();drawCult();
  radarMove(true);
 }
 /* радар остаётся на виду поверх окна культивации (слева над панелью), чтобы видеть приближающихся врагов */
-function radarMove(on){const r=document.getElementById('radarCv');if(!r)return;if(on){r.style.left='12px';r.style.right='auto';r.style.top='auto';r.style.bottom='98px';r.style.zIndex='90'}else{r.style.left='auto';r.style.right='12px';r.style.top='112px';r.style.bottom='auto';r.style.zIndex='58'}}
+function radarMove(on){const r=document.getElementById('radarCv');if(!r)return;if(on){r.style.left='12px';r.style.right='auto';r.style.top='140px';r.style.bottom='auto';r.style.zIndex='90'}else{r.style.left='auto';r.style.right='12px';r.style.top='112px';r.style.bottom='auto';r.style.zIndex='58'}}
 function closeCultOnline(){
  if(!cultOnline)return;holdStop();cultOnline=false;radarMove(false);
- $('cult').classList.remove('active','cult-online');$('cult').style.boxShadow='';$('cultHpPill').style.display='none';$('cultLeaveBtn').textContent='← Выход';
+ $('cult').classList.remove('active','cult-online');$('cult').style.boxShadow='';$('cultHpPill').style.display='none';$('cultLeaveBtn').title='Назад';
  closePillar();closeCore();closeTechnique();closeScrolls();closeColumns();
  persist();
 }

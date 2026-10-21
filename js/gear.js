@@ -33,7 +33,7 @@ function renderInv(){
  const sect=(title,slot)=>{
   const h=document.createElement('h4');h.textContent=title;el.appendChild(h);
   const ids=[...new Set(g.own.filter(id=>GEAR[id]&&GEAR[id].slot===slot))];
-  if(!ids.length){const p=document.createElement('p');p.className='sc-empty';p.textContent='Пока пусто. Снаряжение продаёт Меняла.';el.appendChild(p);return}
+  if(!ids.length){const p=document.createElement('p');p.className='sc-empty';p.textContent='Пусто';el.appendChild(p);return}
   for(const id of ids){
    const it=GEAR[id],on=g[slot]===id,d=document.createElement('div');d.className='scrollcard';
    d.innerHTML='<div class="sc-head"><b>'+it.icon+' '+it.name+'</b><span class="sc-tag">'+(on?'надето':'ур. '+it.tier)+(g.own.filter(x=>x===id).length>1?' · ×'+g.own.filter(x=>x===id).length:'')+'</span></div><p>'+it.desc+'</p>';

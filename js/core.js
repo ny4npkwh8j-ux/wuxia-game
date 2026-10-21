@@ -69,18 +69,18 @@ function renderCore(){
  if(hasCore()){
   $('coreForm').style.display='none';
   const d=save.coreDens||0;
-  $('coreInfo').innerHTML='Ядро: <b>'+save.coreQuality+'</b> · множитель <b>×'+myCore().toFixed(2)+'</b> ко всему: здоровье, сила, Ци, мощь техник и стойкость. Уплотнение: <b>'+d+'/'+CORE_DENS_MAX+'</b>'+(d>=CORE_DENS_MAX?' — ядро уплотнено полностью.':' · каждая стадия делает ядро плотнее и сильнее на 10% от множителя.');
+  $('coreInfo').innerHTML='<b>'+save.coreQuality+'</b> ×'+myCore().toFixed(2)+' · уплотнение <b>'+d+'/'+CORE_DENS_MAX+'</b>';
   renderDens();return}
  $('coreDens').style.display='none';
  $('coreForm').style.display='block';
  const sc=save.pillars*(save.pillarCoef||1),q=coreQualityFor(save.pillars,save.pillarCoef||1),chance=coreChance(),bal=save.rewards2,left=coreShardsLeft(),canQ=coreUnlocked();
- $('coreInfo').innerHTML=canQ?('Колонн: <b>'+save.pillars+'</b> · качество колонн ×'+(save.pillarCoef||0).toFixed(2)+'. Ожидаемое ядро: <b>'+q.name+'</b> (×'+q.coef+'). Шанс успеха: <b>'+chance+'%</b>.'+hintText('core')):('Ядро открывается после '+CORE_MIN_PILLARS+'-й колонны.');
+ $('coreInfo').innerHTML=canQ?('Колонны <b>'+save.pillars+'</b> · ядро <b>'+q.name+'</b> ×'+q.coef+' · шанс <b>'+chance+'%</b>'+(hasHint('core')?'<br><span class="mhint">'+hintText('core')+'</span>':'')):('Ядро — с '+CORE_MIN_PILLARS+'-й колонны');
  $('coreBarFill').style.width=(coreQiFraction()*100)+'%';
- $('coreProgress').textContent='Ци: '+fmt(save.coreDeposit||0)+' / '+fmt(CORE_QI_COST)+' · Осколки 2 этапа: '+fmt(bal)+' · не хватает '+fmt(left)+' осколков';
- $('coreDepositBtn').disabled=!canQ||(save.coreDeposit||0)>=CORE_QI_COST;$('coreDepositBtn').textContent='⏳ Удерживай — вливать Ци ('+coreHoldRate().toFixed(1)+'/с)';
- $('coreFormBtn').disabled=!canQ||(save.coreDeposit||0)<CORE_QI_COST;$('coreFormBtn').textContent='Сформировать за Ци ('+fmt(CORE_QI_COST)+')';
- $('coreRewardsBtn').disabled=!canQ||left<=0||bal<left;$('coreRewardsBtn').textContent=((save.coreDeposit||0)>0?'Доплатить ':'Оплатить ')+fmt(left)+' осколков';
- $('coreChanceBtn').disabled=!canQ||chance>=90||bal<CORE_CHANCE_UNIT;$('coreChanceBtn').textContent='Вложить '+fmt(CORE_CHANCE_UNIT)+' осколков (+10% шанс, сейчас '+chance+'%)';
+ $('coreProgress').textContent='Ци '+fmt(save.coreDeposit||0)+' / '+fmt(CORE_QI_COST);
+ $('coreDepositBtn').disabled=!canQ||(save.coreDeposit||0)>=CORE_QI_COST;$('coreDepositBtn').textContent='Влить Ци · '+coreHoldRate().toFixed(1)+'/с';
+ $('coreFormBtn').disabled=!canQ||(save.coreDeposit||0)<CORE_QI_COST;$('coreFormBtn').textContent='Сформировать';
+ $('coreRewardsBtn').disabled=!canQ||left<=0||bal<left;$('coreRewardsBtn').textContent='Осколки · '+fmt(left);
+ $('coreChanceBtn').disabled=!canQ||chance>=90||bal<CORE_CHANCE_UNIT;$('coreChanceBtn').textContent='Шанс +10% · '+fmt(CORE_CHANCE_UNIT);
 }
 function contributeCoreQi(){
  if(!coreUnlocked())return;const need=CORE_QI_COST-(save.coreDeposit||0);if(need<=0)return;
@@ -203,10 +203,10 @@ function renderDens(){
  box.style.display=done?'none':'block';if(done)return;
  const left=densShardsLeft(),bal=save.rewards2;
  $('densBarFill').style.width=(densQiFraction()*100)+'%';
- $('densProgress').textContent='Стадия '+(d+1)+' из '+CORE_DENS_MAX+' · Ци: '+fmt(save.coreDeposit||0)+' / '+fmt(densQiCost())+' · Осколки 2 этапа: '+fmt(bal)+' · не хватает '+fmt(left)+' осколков';
- $('densDepositBtn').disabled=(save.coreDeposit||0)>=densQiCost();$('densDepositBtn').textContent='⏳ Удерживай — вливать Ци ('+densHoldRate().toFixed(1)+'/с)';
- $('densQiBtn').disabled=(save.coreDeposit||0)<densQiCost();$('densQiBtn').textContent='Уплотнить за Ци ('+fmt(densQiCost())+')';
- $('densShBtn').disabled=left<=0||bal<left;$('densShBtn').textContent=((save.coreDeposit||0)>0?'Доплатить ':'Оплатить ')+fmt(left)+' осколков';
+ $('densProgress').textContent='Стадия '+(d+1)+'/'+CORE_DENS_MAX+' · Ци '+fmt(save.coreDeposit||0)+' / '+fmt(densQiCost());
+ $('densDepositBtn').disabled=(save.coreDeposit||0)>=densQiCost();$('densDepositBtn').textContent='Влить Ци · '+densHoldRate().toFixed(1)+'/с';
+ $('densQiBtn').disabled=(save.coreDeposit||0)<densQiCost();$('densQiBtn').textContent='Уплотнить';
+ $('densShBtn').disabled=left<=0||bal<left;$('densShBtn').textContent='Осколки · '+fmt(left);
 }
 function contributeDensQi(){
  if(!hasCore()||(save.coreDens||0)>=CORE_DENS_MAX)return;const need=densQiCost()-(save.coreDeposit||0);if(need<=0)return;

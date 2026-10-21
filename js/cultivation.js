@@ -29,23 +29,23 @@ function renderPillar(){
  const done=save.pillars>=MAX_PILLARS,first=save.pillars===0,okStars=save.stars>=FIRST_PILLAR_STARS||!first;
  const qiCost=activeColumnCost(),left=pillarShardsLeft(),chance=pillarChance(save.pillarChanceExtra),bal=pillarBalance(),kind=first?' души':' 2 этапа',chCost=pillarChanceCost();
  let info;
- if(first)info=okStars?('Первая колонна доступна ('+save.stars+' ★).'):('Первая колонна открывается с '+FIRST_PILLAR_STARS+' звёзд (сейчас '+save.stars+').');
- else info='Колонн: <b>'+save.pillars+'/'+MAX_PILLARS+'</b>. Качество: <b>'+save.pillarQuality+'</b> ('+save.pillarStars+' ★ при формировании). Оплата — Ци, осколками 2 этапа или вместе.';
- if(!done&&okStars)info+=' Шанс успеха: <b>'+chance+'%</b>.'+(first?'':(' +'+save.pillarQiBonus+' Ци при успехе.'));
- $('pillarInfo').innerHTML=info;$('pillarHelp').textContent=hintPlaceholder('pillar');
- $('pillarProgressText').textContent=done?'Все колонны сформированы.':('Ци: '+fmt(save.pillarQi)+' / '+fmt(qiCost)+' · Осколки'+kind+': '+fmt(bal)+' · для полной оплаты не хватает '+fmt(left)+' осколков');
+ if(first)info=okStars?('Колонна <b>1</b>'):('Нужно '+FIRST_PILLAR_STARS+' ★ (сейчас '+save.stars+')');
+ else info='Колонны <b>'+save.pillars+'/'+MAX_PILLARS+'</b> · '+save.pillarQuality+' ×'+save.pillarCoef.toFixed(2);
+ if(!done&&okStars)info+=' · шанс <b>'+chance+'%</b>';
+ $('pillarInfo').innerHTML=info;$('pillarHelp').textContent=hasHint('pillar')?HINTS.pillar.text:'';$('pillarHelp').style.display=hasHint('pillar')?'':'none';
+ $('pillarProgressText').textContent=done?'Все колонны сформированы':('Ци '+fmt(save.pillarQi)+' / '+fmt(qiCost));
  $('pillarBarFill').style.width=(done?100:pillarQiFraction()*100)+'%';
  $('pillarDepositBtn').style.display='flex';
  $('pillarDepositBtn').disabled=done||!okStars||save.pillarQi>=qiCost;
- $('pillarDepositBtn').textContent='⏳ Удерживай — вливать Ци ('+pillarHoldRate().toFixed(1)+'/с)';
+ $('pillarDepositBtn').textContent='Влить Ци · '+pillarHoldRate().toFixed(1)+'/с';
  $('pillarRewardsBtn').disabled=done||!okStars||left<=0||bal<left;
- $('pillarRewardsBtn').textContent=(save.pillarQi>0?'Доплатить ':'Оплатить ')+fmt(left)+' осколков'+kind;
+ $('pillarRewardsBtn').textContent='Осколки · '+fmt(left);
  $('pillarFormBtn').style.display='flex';
  $('pillarFormBtn').disabled=done||!okStars||save.pillarQi<qiCost;
- $('pillarFormBtn').textContent='Сформировать за Ци ('+fmt(qiCost)+')';
+ $('pillarFormBtn').textContent='Сформировать';
  $('pillarChanceBtn').disabled=done||!okStars||chance>=90||bal<chCost;
- $('pillarChanceQiBtn').disabled=done||!okStars||chance>=90;$('pillarChanceQiBtn').textContent='⏳ Удерживай: Ци на шанс +10% ('+fmt(save.pillarChanceQi||0)+' / '+fmt(pillarChanceQiCost())+', сейчас '+chance+'%)';
- $('pillarChanceBtn').textContent='Вложить '+fmt(chCost)+' осколков'+kind+' (+10% шанс, сейчас '+chance+'%)';
+ $('pillarChanceQiBtn').disabled=done||!okStars||chance>=90;$('pillarChanceQiBtn').textContent='+10% · Ци '+Math.round((save.pillarChanceQi||0)/pillarChanceQiCost()*100)+'%';
+ $('pillarChanceBtn').textContent='+10% · '+fmt(chCost);
 }
 function removeRandomStars(n){
  n=Math.min(n,save.starPts.length);if(n<=0)return 0;
@@ -147,7 +147,7 @@ function renderScrolls(){
   }else d.innerHTML='<div class="sc-head"><b>🔒 Неизвестный свиток</b><span class="sc-tag">выпадает из '+sc.from+'</span></div><p>Победи босса, чтобы получить инструкцию новой техники.</p>';
   el.appendChild(d);
  }
- if(!el.children.length)el.innerHTML='<p class="sc-empty">Свитков пока нет. Новые техники приходят от боссов и торговцев — тогда они появятся здесь.</p>';
+ if(!el.children.length)el.innerHTML='<p class="sc-empty">Пусто</p>';
  renderBlueprints(el);
 }
 const SLOTS={
