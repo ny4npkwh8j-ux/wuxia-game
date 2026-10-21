@@ -4,7 +4,7 @@ function startArena(){
  stopArena();show('arena');resizeArena();arenaState=restoreArenaCheckpoint();
  arenaMeditation.active=false;$('arenaMeditateBtn').classList.remove('meditating');$('arenaMeditateBtn').classList.remove('hidden');
  techPage=0;rebuildTechButtons(true);
- const tip=document.querySelector('.arena-tip');tip.classList.remove('off');clearTimeout(tipTimer);tipTimer=setTimeout(()=>tip.classList.add('off'),9000);
+ const tip=document.querySelector('.arena-tip');tip.innerHTML=matchMedia('(pointer:coarse)').matches?'Левый стик — движение · кнопка удара справа · полоса техник (Удар Ци тяни для прицела, Оцепенение держи)':'WASD — движение · мышь — прицел · ЛКМ — удар · 1–9 — техники (зажми цифру для заряда) · E — обмен · C — культивация';tip.classList.remove('off');clearTimeout(tipTimer);tipTimer=setTimeout(()=>tip.classList.add("off"),6000);
  updateArenaUI();drawArena(performance.now()/1000);raf=requestAnimationFrame(arenaLoop);
 }
 function arenaTier(s){return s&&s.bossIndex?s.bossIndex:1}

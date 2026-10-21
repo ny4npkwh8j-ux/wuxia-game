@@ -131,6 +131,7 @@ function drawMobTelegraphs(time){
   ax.restore();
  }
 }
+const MOB_LABEL_R=260;
 const MOB_DOT={shield:'#63e9ff',dodge:'#69ef8b',qiSingle:'#ffd84d',qiArea:'#ff9a3a',qiShield:'#ffe23a'};
 function drawEnemy(e,W,H,time){
  const p=worldToScreen(e.x,e.y);if(p.x<-70||p.x>W+70||p.y<-80||p.y>H+70)return;
@@ -150,9 +151,10 @@ function drawEnemy(e,W,H,time){
  }else drawFighter(ax,{x:p.x,y:p.y,ang:e.ang||0,pal:sty.pal,wp:e.wp||0,mv:e.mv||0,t:time,flash:e.hit>0?Math.min(1,e.hit/.18):0,atk:e.atk||0,stun:e.stun>0?1:0});
  if(e.stun>0){ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y,30,'#8fb8ff',.4);ax.globalCompositeOperation='source-over';ax.fillStyle='#fff3a0';for(let i=0;i<3;i++){const a=time*3.4+i*TAU/3;star4(ax,p.x+Math.cos(a)*14,p.y-28+Math.sin(a)*4,4.2);ax.fill()}}
  if(e.shield>0){ax.save();ax.strokeStyle='rgba(99,233,255,.55)';ax.lineWidth=1.8;ax.setLineDash([5,5]);ax.lineDashOffset=-time*14;ax.beginPath();ax.arc(p.x,p.y,30,0,TAU);ax.stroke();ax.restore()}
- drawBar(ax,p.x,p.y-40,36,e.hp/(e.maxHp||100),5);
- if(e.sect)drawSectMark(e,p);
- if(st>0){outText(ax,'★'+st+(e.core?' · ЯДРО'+(e.dens?' '+e.dens+'/5':''):(e.columns?' · '+e.columns+' КОЛ.':'')),p.x-2,p.y-46,'#ffd85b',10);const ts=e.techs||[];ts.slice(0,5).forEach((tt,i)=>{ax.fillStyle=MOB_DOT[tt]||'#fff';ax.beginPath();ax.arc(p.x+13+i*6,p.y-50,2.6,0,TAU);ax.fill()})}
+ const as=arenaState,near=Math.hypot(e.x-as.px,e.y-as.py)<MOB_LABEL_R||e.hit>0||e.hostile||e.foeId!=null||isMate(e);/* подписи только у тех, кто рядом, в бою или свой */
+ if(near||e.hp<e.maxHp*.995)drawBar(ax,p.x,p.y-40,36,e.hp/(e.maxHp||100),5);
+ if(e.sect)drawSectMark(e,p,near);
+ if(st>0&&near){outText(ax,'★'+st+(e.core?' · ЯДРО'+(e.dens?' '+e.dens+'/5':''):(e.columns?' · '+e.columns+' КОЛ.':'')),p.x-2,p.y-46,'#ffd85b',10);const ts=e.techs||[];ts.slice(0,5).forEach((tt,i)=>{ax.fillStyle=MOB_DOT[tt]||'#fff';ax.beginPath();ax.arc(p.x+13+i*6,p.y-50,2.6,0,TAU);ax.fill()})}
  if(e.stun>0)outText(ax,e.stun.toFixed(1)+'с',p.x,p.y-56-(st>0?4:-4),'#c9a8ff',10);
 }
 function mobDrop(e){

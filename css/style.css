@@ -70,3 +70,15 @@
 /* онлайн-культивация: окно поверх идущей арены */
 #cult.cult-online{z-index:80;background:rgba(8,12,22,.84);transition:box-shadow .15s}
 [data-hold].holding{filter:brightness(1.35);transform:scale(.985)}
+/* v0.8.25: иконки и разгруженный интерфейс арены */
+.ico{display:inline-block;width:1.2em;height:1.2em;vertical-align:-.22em;flex:none}.ico svg{width:100%;height:100%;display:block}
+.hero-ico{width:76px;height:76px;margin:0 auto;color:#ffd35a;filter:drop-shadow(0 0 14px #ffb83c88)}.hero-ico .ico{width:100%;height:100%}
+.mode h2{display:flex;align-items:center;gap:9px}.mode h2 .ico{width:30px;height:30px;color:#ffd35a;filter:drop-shadow(0 0 6px #ffb83c66)}.mode.cult h2 .ico{color:#c9a8ff;filter:drop-shadow(0 0 6px #b47bff66)}
+.gearbtn .ico{width:20px;height:20px;display:block;margin:auto}
+.arena-info{display:flex;gap:6px;align-items:center;padding:6px 8px;background:#101a2de6}.arena-info .chip{display:inline-flex;align-items:center;gap:4px;padding:3px 7px;border-radius:9px;background:#0b1222;border:1px solid #2c3956;font-size:13px}.arena-info .chip b{font-variant-numeric:tabular-nums}
+.chip.c1{color:#ffd35a}.chip.c2{color:#c9a8ff}.chip.c3{color:#ff8a8a}.chip .ico{width:17px;height:17px}
+.arena .leave .ico{width:22px;height:22px;display:block}
+.skill .ico{width:30px;height:30px;display:block;margin:0 auto 2px;color:#ffd35a}#arenaMeditateBtn .ico{color:#8fe3ff}
+#npcBtn .ico{width:22px;height:22px;vertical-align:-5px}
+.verfoot a{color:inherit}
+.arena-tip{font-size:11px;padding:6px 10px}

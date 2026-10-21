@@ -93,20 +93,21 @@ function sectStep(e,dt){
  return true;
 }
 /* значок секты над существом */
-function drawSectMark(e,p){
+function drawSectMark(e,p,near){
  const sc=sectById(e.sect);if(!sc)return;const m=SM.get(sc.id),lead=m===e;
  ax.fillStyle=sc.col;ax.beginPath();ax.moveTo(p.x,p.y-64);ax.lineTo(p.x+4,p.y-59);ax.lineTo(p.x,p.y-54);ax.lineTo(p.x-4,p.y-59);ax.closePath();ax.fill();
- if(lead)outText(ax,(sc.pl?'♛ Твоя секта ':'♛ Секта ')+sc.name,p.x,p.y-70,sc.col,11);
+ if(lead&&near)outText(ax,(sc.pl?'♛ Твоя секта ':'♛ Секта ')+sc.name,p.x,p.y-70,sc.col,11);
 }
 /* знамёна над центрами зон: чья зона */
+const ZONE_LABEL_R=1100;
 function drawZoneMarks(W,H,time){
  const s=arenaState;if(!s)return;
  for(const z of zoneList()){
   const h=zoneHolder(z);if(!h)continue;const p=worldToScreen(z.x,z.y);if(p.x<-80||p.x>W+80||p.y<-120||p.y>H+80)continue;
   const sc=h.sect?sectById(h.sect):null,col=sc?sc.col:z.bz?'#ffd85b':'#9fb8c8',lbl=sc?'Секта '+sc.name:z.bz?'Владения Босса '+h.index:'Хозяин зоны ★'+(h.stars||0);
-  const w=Math.sin(time*2.2+z.x)*3;
+  const w=Math.sin(time*2.2+z.x)*3,close=Math.hypot(z.x-s.px,z.y-s.py)<ZONE_LABEL_R;
   ax.strokeStyle='rgba(60,40,20,.9)';ax.lineWidth=3;ax.beginPath();ax.moveTo(p.x,p.y+14);ax.lineTo(p.x,p.y-60);ax.stroke();
   ax.fillStyle=col;ax.beginPath();ax.moveTo(p.x,p.y-60);ax.lineTo(p.x+30+w,p.y-52);ax.lineTo(p.x+4,p.y-40);ax.closePath();ax.fill();
-  outText(ax,lbl,p.x,p.y+30,col,11);
+  if(close)outText(ax,lbl,p.x,p.y+30,col,11);
  }
 }
