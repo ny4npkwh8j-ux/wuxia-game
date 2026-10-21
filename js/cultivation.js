@@ -18,12 +18,12 @@ function openPillar(){renderPillar();$('pillarModal').classList.add('show')}
 function closePillar(){$('pillarModal').classList.remove('show')}
 /* цена колонны: Ци — как раньше (10 000 × номер); осколки — для колонн 2+ в 100 раз дешевле (100 × номер),
    для первой по-прежнему 10 000 осколков души. Ци и осколки можно сочетать: внесённая доля Ци уменьшает доплату осколками. */
-function activeShardCost(){return 10000}
+function activeShardCost(){return save.pillars===0?10000:100}/* осколки: 1 этап → 2 этап в 100 раз дешевле */
 function pillarQiFraction(){return Math.min(1,(save.pillarQi||0)/activeColumnCost())}
 function pillarShardsLeft(){return Math.max(0,Math.ceil(activeShardCost()*(1-pillarQiFraction())-1e-9))}
 function pillarBalance(){return save.pillars===0?save.rewards:save.rewards2}
 function pillarChanceStep(){return Math.floor(Math.max(0,save.pillarChanceExtra||0)/10000)+1} /* какой по счёту шаг +10% сейчас покупается (1, 2, 3…) */
-function pillarChanceCost(){return 100*pillarChanceStep()} /* осколки: база × номер шага (первая колонна: 100, 200, 300…; следующие: 20, 40, 60… / 30, 60, 90…) */
+function pillarChanceCost(){return (save.pillars===0?100:1)*pillarChanceStep()} /* осколки: база × номер шага (первая колонна: 100, 200, 300…; следующие: 20, 40, 60… / 30, 60, 90…) */
 function pillarChanceQiCost(){return 10000*pillarChanceStep()} /* Ци: 10 000 × номер колонны × номер шага */
 function renderPillar(){
  const done=save.pillars>=MAX_PILLARS,first=save.pillars===0,okStars=save.stars>=FIRST_PILLAR_STARS||!first;
