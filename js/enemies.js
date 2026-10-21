@@ -52,6 +52,7 @@ function rerollLiveMobs(bossIndex){
  for(const e of s.enemies){if(e.hp<=0)continue;const k=rollKit(bossIndex);if(cultScore(e)>=(k.columns||0)*100+k.stars)continue;/* выросшие сами не сбрасываются */applyKit(e,k);if(!k.columns)e.columns=0;e.s=(45+Math.random()*25)*(1+k.stars/500)}
 }
 function damageEnemy(e,damage,src,melee){
+ if(src!=='ent'&&isMate(e))return false;/* своих по секте игрока удар не берёт */
  if(src!=='ent')provoke(e);
  if(melee)damage*=1-entArmorCut(e);
  if(e.hp<=0)return false;const raw=damage/entToughness(e);let dmg=raw;
@@ -102,7 +103,7 @@ function entFire(e,w){
   if(Math.hypot(s.px-e.x,s.py-e.y)<=w.range&&s.invuln<=0){takeDamage(10);stunPlayer(stunMaxDur(PATH_CAP)*M/(M+playerRefMult()))}
   return;
  }
- const dmg=TECH_BASE[w.type==='single'?'qiSingle':'qiArea']*M;
+ const dmg=TECH_BASE[w.type==='single'?'qiSingle':'qiArea']*M*techVer(e);
  if(w.type==='single'){
   const cone=Math.PI/7;
   s.qiEffects.push({type:'single',x:e.x,y:e.y,ang:w.ang,life:0,duration:.38,range:w.range,cone,hostile:true});
@@ -198,6 +199,7 @@ function mobIdle(e,dt){
  e.wanderT=(e.wanderT||0)-dt;if(e.wanderT<=0||e.wanderAng==null){e.wanderAng=Math.random()*TAU;e.wanderT=1.5+Math.random()*2.5}
  let sp=.35;e.cult=false;
  if(e.shopping&&mobShopStep(e,dt))return;
+ if(e.sect&&sectOrderStep(e,dt))return;/* приказ главы-игрока: следовать / отступать / на охоту */
  let lt=(e.stars||0)>0?nearestLoot(e,e.hunter?900:500):null;if(lt&&forbidZone(e,lt.x,lt.y))lt=null;/* в запретный круг за осколками не лезут */
  if(lt){e.ang=Math.atan2(lt.y-e.y,lt.x-e.x);e.wanderAng=e.ang;e.wanderT=.5;moveEnemy(e,Math.cos(e.ang)*e.s*.7*dt,Math.sin(e.ang)*e.s*.7*dt);e.cult=false;return}
  if(huntStep(e,dt))return;
@@ -284,7 +286,7 @@ function evolveTick(e,dt){
   const cap=100;if(S>=cap)return;
   const cost=10+5*S;
   if((e.sh1||0)>=cost){e.sh1-=cost;e.growT=0;growMob(e);return}
-  if(e.growT>=MOB_GROW_SEC){e.growT=0;growMob(e)}
+  if(e.growT>=MOB_GROW_SEC*formK(e)){e.growT=0;growMob(e)}
   return;
  }
  const max=entMaxCols(e);
@@ -313,21 +315,23 @@ function evolveTick(e,dt){
    за слабого — осколки души = звёзды, за существо с колоннами — осколки 2 этапа = колонны (за ядро — 10). Осколки идут в эволюцию. */
 function findEnt(id){const s=arenaState;if(!s||id==null)return null;return aliveBosses(s).find(b=>b.id===id)||s.enemies.find(m=>m.hp>0&&m.id===id)||null}
 function startDuel(a,b){
+ if(sameSect(a,b))return;/* в одной секте не дерутся */
  a.foeId=b.id;b.foeId=a.id;
  /* команды вступаются за своих */
  for(const x of [a,b]){const other=x===a?b:a;if(x.isBoss){for(const m of arenaState.enemies)if(m.hp>0&&m.team===x.index&&!m.foeId&&m!==other&&Math.hypot(m.x-x.x,m.y-x.y)<1500)m.foeId=other.id}
-  else if(x.sect&&SM.get(x.sect)===x)for(const m of arenaState.enemies)if(m.hp>0&&m.sect===x.sect&&!m.foeId&&m!==other&&m!==x&&Math.hypot(m.x-x.x,m.y-x.y)<1100)m.foeId=other.id}
+  else if(x.sect&&SM.get(x.sect)===x)for(const m of arenaState.enemies)if(m.hp>0&&m.sect===x.sect&&!m.foeId&&m!==other&&m!==x&&!sectRetreat(m)&&Math.hypot(m.x-x.x,m.y-x.y)<1100)m.foeId=other.id}
 }
 function duelStep(e,dt){
  const f=e.foeId!=null?findEnt(e.foeId):null;
  if(!f){e.foeId=null;e.challenge=false;return false}
+ if(sameSect(e,f)){e.foeId=null;if(f.foeId===e.id)f.foeId=null;return false}
  const s=arenaState,dx=f.x-e.x,dy=f.y-e.y,d=Math.hypot(dx,dy)||1;
  if(d>2600){e.foeId=null;e.challenge=false;return false}
  if(e.hostile&&Math.hypot(s.px-e.x,s.py-e.y)<350)return false;
  const boss=!!e.isBoss,R=boss?ENT_RANGE.boss:ENT_RANGE.mob,cd=e.cd,tc=e.techs||[],cost=t=>entCost(e,t);
  e.ang=Math.atan2(dy,dx);e.wind=null;
  if(tc.includes('shield')&&e.shield<=0&&cd.sh<=0&&d<500&&e.qi>=cost('shield')){e.qi-=cost('shield');e.shieldMax=entShieldMax(e);e.shield=e.shieldMax;cd.sh=boss?4:6;burst(e.x,e.y,8,'#63e9ff',150,.4,2.4)}
- const M=entMult(e);let fired=false;
+ const M=entMult(e)*techVer(e);let fired=false;
  if(cd.atk<=0){
   if(tc.includes('qiArea')&&cd.area<=0&&d<R.area*.9&&e.qi>=cost('qiArea')){
    e.qi-=cost('qiArea');cd.area=AREA_CD.qiArea;cd.atk=1.6+Math.random()*1.4;fired=true;
@@ -384,7 +388,7 @@ function challengeRoll(){
 /* слабые мобы убегают от заметно более сильных (игрока, мобов, боссов) */
 function fearStep(e,dt){
  /* опасаются, но не панически: только часть мобов, недолго и не от тех, кто их тронул; если напали — отбиваются */
- if(e.isBoss||(e.lord&&teamAlert(e.lord))||e.hostile||e.provoked||e.hit>0)return false;
+ if(e.isBoss||(e.lord&&teamAlert(e.lord))||e.hostile||e.provoked||e.hit>0||sectOrdered(e))return false;
  if(e.timid==null)e.timid=Math.random()<.6;if(!e.timid)return false;
  const s=arenaState;e.fearT=(e.fearT||0)-dt;e.fearCd=Math.max(0,(e.fearCd||0)-dt);
  if(e.fearT<=0){
@@ -402,16 +406,16 @@ function fearStep(e,dt){
  return true;
 }
 /* равные по силе — добыча: охотник идёт к ближайшему равному и начинает бой */
-function huntStep(e,dt){
+function huntStep(e,dt,force){
  const s=arenaState;if(e.hunter==null)e.hunter=Math.random()<.5;
  /* вершина (колонны/ядро): когда таких набралось 4+, они сами ищут друг друга по всей карте и бьются — так их число не разрастается */
  const apex=cultScore(e)>=100&&(s.apexN||0)>=4;
- if((!e.hunter&&!apex)||!((e.stars||0)>0))return false;
+ if((!e.hunter&&!apex&&!force)||!((e.stars||0)>0))return false;
  e.huntT=(e.huntT||0)-dt;
  if(e.huntT<=0){
-  e.huntT=.8+Math.random()*.6;e.prey=null;let bd=apex?2600:700;
+  e.huntT=.8+Math.random()*.6;e.prey=null;let bd=force?1600:apex?2600:700;
   const cand=s.enemies.concat(aliveBosses(s));
-  for(const x of cand){if(x===e||x.hp<=0||x.foeId!=null||(e.team&&x.team===e.team)||(e.lord&&x.lord===e.lord))continue;const d=Math.hypot(x.x-e.x,x.y-e.y);if(d<bd&&(apex?(entPow(x)/entPow(e)>=.5&&entPow(x)/entPow(e)<=2):equalFoes(e,x))){bd=d;e.prey=x.id}}
+  for(const x of cand){if(x===e||x.hp<=0||x.foeId!=null||(e.team&&x.team===e.team)||(e.lord&&x.lord===e.lord))continue;const d=Math.hypot(x.x-e.x,x.y-e.y);if(d<bd&&(apex&&!force?(entPow(x)/entPow(e)>=.5&&entPow(x)/entPow(e)<=2):equalFoes(e,x))){bd=d;e.prey=x.id}}
  }
  const f=e.prey!=null?findEnt(e.prey):null;if(!f||f.foeId!=null){e.prey=null;return false}
  const d=Math.hypot(f.x-e.x,f.y-e.y);

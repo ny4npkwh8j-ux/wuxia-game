@@ -48,7 +48,7 @@ function zoneSpot(e,z,ring){
 }
 /* поведение культиватора: идёт в зону, садится в разрешённом круге и растёт; true — действие выполнено */
 function zoneStep(e,dt){
- if(!((e.stars||0)>0))return false;
+ if(!((e.stars||0)>0)&&!(e.fm!=null&&e.fm===e.sect))return false;/* ученик без звёзд, получивший образ главы, сразу начинает культивацию */
  if(e.bold==null){e.bold=!e.lord&&Math.random()<ZONE_BOLD;e.zb=Math.random()*2-1}
  const zs=zoneList();let z=e.lord?lordZone(e.lord):(e.sect?sectZone(e):null);
  if(!z){e.zT=(e.zT||0)-dt;if(e.zid==null||e.zT<=0||!zs.some(q=>q.id===e.zid)){e.zT=15+Math.random()*10;const p=pickZone(e);e.zid=p?p.id:null}z=zs.find(q=>q.id===e.zid)||null}

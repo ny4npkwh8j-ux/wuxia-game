@@ -40,7 +40,7 @@ function sectKilledByPlayer(e){
  const s=arenaState;if(!s||e.sect==null)return;const sc=sectById(e.sect);if(!sc||sc.pl||playerLeads())return;
  if(!(SM.get(sc.id)===e||sc.master===e.id))return;
  const mem=sectMembers(sc).filter(m=>m!==e);if(!mem.length)return;
- mem.sort((a,b)=>entPow(b)-entPow(a));sc.master=mem[0].id;sc.pl=true;save.sectId=sc.id;persist();
+ mem.sort((a,b)=>entPow(b)-entPow(a));sc.master=mem[0].id;sc.pl=true;sc.order='free';save.sectId=sc.id;persist();
  for(const m of mem){m.hostile=false;m.provoked=false;m.foeId=null;m.noSeeT=0}
  chron('Игрок убил главу секты «'+sc.name+'» и возглавил её');toast('☯ Секта «'+sc.name+'» признала тебя главой! Ученики: '+mem.length+'.');
 }
@@ -67,6 +67,7 @@ function renderTrade(){
  const box=$('tradeList');box.innerHTML='';let any=false;
  if(sc){any=true;const m=SM.get(sc.id),n=sectMembers(sc).length,ps=playerSect();
   const btns=[];
+  if(mate&&sc.pl)btns.push(['☯ Меню секты',true,()=>{closeTrade();openSectMenu()}]);
   if(mate)btns.push([sc.pl?'Оставить секту (перейдёт заместителю)':'Покинуть секту',true,()=>{leavePlayerSect();renderTrade()}]);
   else if(!ps)btns.push(['Вступить в секту',true,()=>{joinPlayerSect(sc);renderTrade()}]);
   else btns.push(['Ты уже в другой секте «'+ps.name+'»',false,()=>{}]);
@@ -76,6 +77,7 @@ function renderTrade(){
   shopCard(box,'🤝 Предложить вступить в твою секту',ps&&sc===null&&!ps.pl?'нельзя':(ps&&ps.pl?'ты глава':'новая секта'),ps&&!ps.pl?'Ты состоишь в чужой секте — сначала покинь её.':ps&&ps.pl?'Он станет твоим учеником: будет приносить дань и драться на твоей стороне.':'Если согласится, ты основешь секту и станешь её главой. Слабейшему себя он служить не станет.',[['Предложить',!(ps&&!ps.pl)&&!(ps&&ps.pl&&sectMembers(ps).length>=sectCapOf(ps,SM.get(ps.id)||e)),()=>invitePlayer(e)]])}
  /* свои: дать или взять */
  if(mate){any=true;const lead=playerLeads();
+  if(lead)shopCard(box,'🚪 Исключить из секты','ты глава','Он покинет секту и вернётся к своим делам; прежних сил у него не отнимут.',[['Исключить',true,()=>kickMember(e)]]);
   shopCard(box,'🎁 Дать осколки','свои','Подарок ученику — ему на рост.',[[ '100 души',canPay(1,100),()=>giveShards(e,1,100)],['1000 души',canPay(1,1000),()=>giveShards(e,1,1000)],['1 (2 этапа)',canPay(2,1),()=>giveShards(e,2,1)],['10 (2 этапа)',canPay(2,10),()=>giveShards(e,2,10)]]);
   if(lead)shopCard(box,'🤲 Взять осколки','ты глава','Забрать у ученика накопленное.',[['100 души',(e.sh1||0)>=100,()=>takeShards(e,1,100)],['Всё душа ('+fmt(e.sh1||0)+')',(e.sh1||0)>=1,()=>takeShards(e,1,1e12)],['1 (2 этапа)',(e.sh2||0)>=1,()=>takeShards(e,2,1)],['Всё 2 этапа ('+fmt(e.sh2||0)+')',(e.sh2||0)>=1,()=>takeShards(e,2,1e12)]]);
   else{const p=document.createElement('p');p.className='sc-empty';p.textContent='Забирать у своих может только глава секты.';box.appendChild(p)}
@@ -112,11 +114,12 @@ function renderTrade(){
 /* свои помогают игроку: когда он бьёт чужого, до трёх учеников секты вступают в бой с ним */
 function sectAssist(e){
  const s=arenaState,sc=playerSect();if(!s||!sc||e.sect===sc.id||e.foeId!=null)return;
- const now=performance.now();if(e._asT&&now-e._asT<5000)return;e._asT=now;
- let n=0;const lim=sc.pl?6:3,rng=sc.pl?1400:900;
+ const od=sc.pl?sc.order:'free';if(od==='retreat'||od==='hunt')return;/* на отступлении и охоте помощь не идёт */
+ const fol=od==='follow',now=performance.now();if(e._asT&&now-e._asT<(fol?1500:5000))return;e._asT=now;
+ let n=0;const lim=fol?20:sc.pl?6:3,rng=fol?2200:sc.pl?1400:900;
  for(const m of s.enemies){
   if(m.hp<=0||m.sect!==sc.id||m.foeId!=null||Math.hypot(m.x-s.px,m.y-s.py)>rng)continue;
-  if(entPow(m)/entPow(e)<PW_LO)continue;
+  if((!fol||e.isBoss)&&entPow(m)/entPow(e)<PW_LO)continue;/* по приказу «следовать» ученики бьют всё, с чем дерётся глава */
   startDuel(m,e);if(++n>=lim)break;
  }
 }

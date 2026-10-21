@@ -17,8 +17,8 @@ function sectRefresh(){const nm=new Map();for(const sc of sectList()){const m=fi
 /* летопись мира: последние 40 событий (показывается на карте) */
 function chron(msg){const s=arenaState;if(!s)return;const a=s.chron=Array.isArray(s.chron)?s.chron:[];a.push({t:Date.now(),m:msg});if(a.length>40)a.shift()}
 function sectNote(msg,at){const s=arenaState;if(!s)return;chron(msg);if(at&&Math.hypot(at.x-s.px,at.y-s.py)<3000)toast('☯ '+msg)}
-function sectJoin(m,sc){m.sect=sc.id;m.team=SECT_TEAM+sc.id;m.spot=null;m.zid=null;m.zT=0}
-function sectLeave(m){m.sect=null;if(m.team>=SECT_TEAM)m.team=null}
+function sectJoin(m,sc){m.sect=sc.id;m.team=SECT_TEAM+sc.id;m.spot=null;m.zid=null;m.zT=0;sectTeach(m,sc)}
+function sectLeave(m){m.sect=null;if(m.team>=SECT_TEAM)m.team=null;m.fm=null;m.fmFull=false;m.tver=null}
 function sectDisband(sc){for(const m of arenaState.enemies)if(m.sect===sc.id)sectLeave(m);chron('Секта «'+sc.name+'» распалась');if(save.sectId===sc.id){save.sectId=null;persist();toast('Твоя секта распалась.')}}
 function sectCapOf(sc,m){return sc.pl?Math.min(20,3+Math.floor((save.stars||0)/10)):sectCap(m)}
 function foundSect(m,mates,pl){
@@ -26,7 +26,7 @@ function foundSect(m,mates,pl){
  const used=new Set(sl.map(q=>q.name)),pool=SECT_NAMES.filter(n=>!used.has(n)),name=(pool.length?pool:SECT_NAMES)[Math.floor(Math.random()*(pool.length||SECT_NAMES.length))];
  const sc={id:s.sectSeq,name,col:SECT_COLS[s.sectSeq%SECT_COLS.length],master:m.id,zid:null,zT:0,loneT:0};
  sl.push(sc);sectJoin(m,sc);for(const q of mates)sectJoin(q,sc);
- if(pl){sc.pl=true;save.sectId=sc.id;persist();chron('Игрок основал секту «'+name+'»');toast('☯ Ты основал секту «'+name+'»!')}
+ if(pl){sc.pl=true;sc.order='free';save.sectId=sc.id;persist();chron('Игрок основал секту «'+name+'»');toast('☯ Ты основал секту «'+name+'»!')}
  else sectNote('Основана секта «'+name+'» — глава ★'+(m.stars||0),m);
  return sc;
 }
@@ -48,7 +48,7 @@ function sectTick(){
    const pm=entPow(m);
    for(const q of s.enemies){
     if(mem.length>=sectCapOf(sc,m))break;
-    if(q.hp<=0||!((q.stars||0)>0)||q.lord||q.sect||q.foeId!=null||q.hostile)continue;
+    if(q.hp<=0||!((q.stars||0)>0)||q.lord||q.sect||q.foeId!=null||q.hostile||(q.noSectT||0)>s.t)continue;
     if(Math.hypot(q.x-m.x,q.y-m.y)>1100)continue;
     const r=entPow(q)/pm;if(r<.25||r>1)continue;
     sectJoin(q,sc);mem.push(q);
@@ -61,6 +61,7 @@ function sectTick(){
    if(sc.payT>=60){sc.payT=0;const a=sc.t1||0,b=sc.t2||0;if(a>0||b>0){save.rewards+=a;save.rewards2+=b;sc.t1=sc.t2=0;persist();chron('Секта «'+sc.name+'» принесла дань: '+fmt(a)+' души, '+fmt(b)+' 2 этапа');toast('☯ Секта «'+sc.name+'» принесла дань: +'+fmt(a)+' души'+(b?', +'+fmt(b)+' 2 этапа':''))}}
   }else for(const q of mem){if(q===m)continue;
    for(const k of ['sh1','sh2']){const g=Math.floor((q[k]||0)*.25);if(g>0){q[k]-=g;m[k]=(m[k]||0)+g}}}
+  sectMentor(sc,m,mem);
   /* зона: ищем свободную зону Ци без хозяина (или со слабым) */
   sc.zT=Math.max(0,(sc.zT||0)-8);
   const cur=sc.zid!=null?zoneList().find(q=>q.id===sc.zid):null;
@@ -88,6 +89,7 @@ function sectStep(e,dt){
  const m=SM.get(sc.id);if(!m||m===e||sectZone(e))return false;
  const d=Math.hypot(m.x-e.x,m.y-e.y);
  if(d>260){e.wanderAng=Math.atan2(m.y-e.y,m.x-e.x);e.ang=e.wanderAng;const sp=d>700?.8:.5;moveEnemy(e,Math.cos(e.ang)*e.s*sp*dt,Math.sin(e.ang)*e.s*sp*dt)}
+ else if(e.fm===e.sect&&!((e.stars||0)>0)){e.cult=true;evolveTick(e,dt*.5)}/* новичок без звёзд учится рядом с главой по его образу */
  return true;
 }
 /* значок секты над существом */

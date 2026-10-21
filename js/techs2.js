@@ -40,7 +40,7 @@ function castRepel(t){
  const s=arenaState,P=TECH2.repel,dmg=P.base*myMult(t);
  s.qiEffects.push({type:'stun',x:s.px,y:s.py,life:0,duration:.6,radius:P.range});shake(8);
  for(const e of s.enemies.concat(aliveBosses(s))){
-  if(e.hp<=0)continue;const dx=e.x-s.px,dy=e.y-s.py,d=Math.hypot(dx,dy)||1;if(d>P.range)continue;
+  if(e.hp<=0||isMate(e))continue;const dx=e.x-s.px,dy=e.y-s.py,d=Math.hypot(dx,dy)||1;if(d>P.range)continue;
   const dist=P.push*(1-d/P.range*.5)*(e.isBoss?.3:1),n=12;for(let i=0;i<n;i++)moveEnemy(e,dx/d*dist/n,dy/d*dist/n);
   if(!e.isBoss)e.stun=Math.max(e.stun||0,.6);
   if(damageEnemy(e,dmg))killReward(e);
@@ -58,7 +58,7 @@ function canSeePlayer(d){const s=arenaState;return d<=VISION_RADIUS&&!(s.decoy&&
 /* Отравление: ближайшая цель теряет здоровье и Ци, а её техники срабатывают реже */
 function castPoison(t){
  const s=arenaState,P=TECH2.poison;let best=null,bd=P.range;
- for(const e of s.enemies.concat(aliveBosses(s))){if(e.hp<=0)continue;const d=Math.hypot(e.x-s.px,e.y-s.py);if(d<bd){bd=d;best=e}}
+ for(const e of s.enemies.concat(aliveBosses(s))){if(e.hp<=0||isMate(e))continue;const d=Math.hypot(e.x-s.px,e.y-s.py);if(d<bd){bd=d;best=e}}
  if(!best){const k=CD_KEY.poison;s[k]=0;save.qi+=techCost(t);return toast('Нет цели в радиусе '+P.range)}
  best.poison={t:P.dur,dps:P.base*myMult(t)/P.dur,qps:(best.maxQi||0)*.5/P.dur};
  s.qiEffects.push({type:'single',x:s.px,y:s.py,ang:Math.atan2(best.y-s.py,best.x-s.px),life:0,duration:.3,range:bd,cone:.05});burst(best.x,best.y,12,'#9bff6a',160,.6,2.4);

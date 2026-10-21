@@ -7,7 +7,7 @@ const EXCH_RATE=100,EXCH_FEE=.2,EXCH_STEPS=[1,10,100];
 function exchCostShards1(n){return Math.ceil(n*EXCH_RATE/(1-EXCH_FEE))}
 function exchBackShards1(n){return Math.floor(n*EXCH_RATE*(1-EXCH_FEE))}
 function npcNear(){const s=arenaState;if(!s)return null;for(const n of NPCS)if(Math.hypot(s.px-n.x,s.py-n.y)<110)return n;return null}
-function npcTick(){const b=$('npcBtn');if(!b)return;tradeTick();const n=npcNear()||tradeTarget(),show=!!n&&!$('npcModal').classList.contains('show')&&!$('tradeModal').classList.contains('show');if(b.__s!==show){b.style.display=show?'block':'none';b.__s=show}}
+function npcTick(){const b=$('npcBtn');if(!b)return;tradeTick();sectBtnTick();const n=npcNear()||tradeTarget(),show=!!n&&!$('npcModal').classList.contains('show')&&!$('tradeModal').classList.contains('show');if(b.__s!==show){b.style.display=show?'block':'none';b.__s=show}}
 function drawNpcs(time){
  const s=arenaState;if(!s)return;
  for(const n of NPCS){const p=worldToScreen(n.x,n.y);if(p.x<-100||p.x>aw/devicePixelRatio+100||p.y<-100||p.y>ah/devicePixelRatio+100)continue;
