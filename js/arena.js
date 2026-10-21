@@ -62,6 +62,17 @@ function saveArenaCheckpoint(){
  save.arenaCheckpoint=JSON.parse(JSON.stringify(cp));
  try{localStorage.setItem(SAVE_KEY,JSON.stringify(save));localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);localStorage.setItem('wuxiaSaveSchema',SAVE_SCHEMA)}catch(e){}
 }
+/* после перезагрузки счётчик id начинался с 1 и новые существа получали id уже существующих — ссылки (бой, секта, хозяин зоны) путались.
+   Теперь счётчик продолжается с максимального id, а повторы в старых сохранениях получают новые id (их бои сбрасываются). */
+function fixEntityIds(state){
+ const seen=new Set(),dup=new Set();let mx=0;
+ const list=(Array.isArray(state.bosses)?state.bosses:[]).concat(state.boss&&typeof state.boss==='object'?[state.boss]:[],Array.isArray(state.enemies)?state.enemies:[]);
+ for(const q of list){if(q&&Number.isFinite(q.id))mx=Math.max(mx,q.id)}
+ for(const z of (state.springs||[]))if(z&&Number.isFinite(z.id))mx=Math.max(mx,z.id);
+ ENT_SEQ=Math.max(ENT_SEQ,mx+1);
+ for(const q of list){if(!q||!Number.isFinite(q.id))continue;if(seen.has(q.id)){dup.add(q.id);q.id=nid()}else seen.add(q.id)}
+ if(dup.size)for(const q of list){if(q&&(dup.has(q.foeId)||dup.has(q.prey))){q.foeId=null;q.prey=null}}
+}
 function restoreArenaCheckpoint(){
  const cp=save.arenaCheckpoint;if(!cp)return freshArenaField();
  let state;try{state=JSON.parse(JSON.stringify(cp))}catch(e){return freshArenaField()}
@@ -76,7 +87,7 @@ function restoreArenaCheckpoint(){
  Object.assign(state,{dx:0,dy:0,lastMoveX:0,lastMoveY:1,shootAng:0,attackAnim:0,qiEffects:[],invuln:0,dashCd:0,dashTime:0,dashDuration:.18,dashSpeed:1350,contactCd:0,spawnTimer:4,checkpointTimer:2,last:performance.now()});
  state.bossIndex=Number.isFinite(state.bossIndex)?state.bossIndex:(state.boss&&state.boss.index?state.boss.index:(state.boss&&state.boss.tier===2?2:(state.firstBossDefeated?2:1)));state.bossIndex=Math.max(state.bossIndex,1);delete state.firstBossDefeated;
  for(const e of state.enemies){if(!e||typeof e!=='object')continue;e.maxHp??=e.hp||100;e.stars??=0;e.technique??=null;e.r??=20;e.s??=55;e.hit??=0;e.ang??=0}
- migrateArenaEntities(state);initFx(state);return state;
+ fixEntityIds(state);migrateArenaEntities(state);initFx(state);return state;
 }
 function activeShields(excludeId){
  const s=arenaState,out=[];
