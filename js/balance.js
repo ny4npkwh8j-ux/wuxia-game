@@ -1,6 +1,6 @@
 'use strict';
 const PILLAR_STEP=500,MAX_PILLARS=5,FIRST_PILLAR_STARS=50,PATH_CAP=40;
-function pillarCost(n){return 10000*n}
+function pillarCost(n){return n<=1?10000:1000*n}/* со второй колонны всё в 10 раз дешевле */
 function activeColumnCost(){return pillarCost(save.pillars+1)}
 function pillarChance(extra){return Math.min(90,30+10*Math.floor(Math.max(0,extra)/10000))}
 function currentQualityCoef(){return save.pillars>0?save.pillarCoef:pillarQualityFor(save.stars).coef}
