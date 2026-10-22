@@ -47,8 +47,8 @@ function updateUI(){
   $('nextCost').textContent=starsLocked()?(hasCore()?'Новые звёзды закрыты (есть ядро)':'Новые звёзды закрыты (есть колонна)'):('Следующая звезда: '+starBaseCost()+' Ци');
  $('starBtn').style.display=starsLocked()?'none':'flex';$('starBtn').disabled=false;$('starBtnCost').textContent=starBaseCost();
  $('meridianBtn').disabled=save.stars<2;$('merBtnCost').textContent=meridianCost();
- $('pillarBtn').style.display=(!hasCore()&&(save.stars>=FIRST_PILLAR_STARS||save.pillars>0))?'flex':'none';$('coreBtn').style.display=(hasCore()||coreUnlocked())?'flex':'none';$('coreBtnTxt').textContent=hasCore()?'×'+myCore().toFixed(1):'Ядро';$('pillarBtnTxt').textContent=save.pillars+'/'+MAX_PILLARS;$('pillarBtn').disabled=false;
- $('stageText').textContent=hasCore()?('Ядро ×'+myCore().toFixed(2)+(save.coreDens?' · '+save.coreDens+'/5':'')):save.pillars?('Колонны '+save.pillars+'/'+MAX_PILLARS+' ×'+save.pillarCoef.toFixed(2)):'Звёзды';
+ $('pillarBtn').style.display=(!hasCore()&&(save.stars>=FIRST_PILLAR_STARS||save.pillars>0))?'flex':'none';$('coreBtn').style.display=(hasCore()||coreUnlocked())?'flex':'none';$('coreBtnTxt').textContent=hasCore()?'×'+myCore().toFixed(1):'Ядро';$('soulBtn').style.display=(soulUnlocked()||hasSoul())?'flex':'none';$('soulBtnTxt').textContent=hasSoul()?'×'+soulMult().toFixed(1):'Душа';$('pillarBtnTxt').textContent=save.pillars+'/'+MAX_PILLARS;$('pillarBtn').disabled=false;
+ $('stageText').textContent=hasSoul()?(SOUL_NAMES[soulStage()]+' ×'+soulMult().toFixed(1)):hasCore()?('Ядро ×'+myCore().toFixed(2)+(save.coreDens?' · '+save.coreDens+'/5':'')):save.pillars?('Колонны '+save.pillars+'/'+MAX_PILLARS+' ×'+save.pillarCoef.toFixed(2)):'Звёзды';
 $('techOpenBtn').style.display='flex';$('techCnt').textContent=save.techniques.length||'';drawCult();
 }
 function openEvent(title,text){$('modalTitle').textContent=title;$('modalText').textContent=text;$('modal').classList.add('show')}

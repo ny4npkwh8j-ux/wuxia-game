@@ -28,7 +28,7 @@ function colQualityFromQi(qi,base){const lo=PILLAR_Q[5],f=Math.max(0,Math.min(1,
 /* итоговое качество = среднее по всем колоннам (pillarCoef / pillarQiBonus хранят среднее — остальные формулы не меняются) */
 function pillarsEnsure(){if(!Array.isArray(save.pillarQs))save.pillarQs=[];if(!Array.isArray(save.pillarBs))save.pillarBs=[];while(save.pillarQs.length<save.pillars){save.pillarQs.push(save.pillarCoef||pillarQualityFor(save.stars).coef);save.pillarBs.push(save.pillarQiBonus||pillarQualityFor(save.stars).qi)}}
 function pillarsRecalc(){const a=save.pillarQs||[],b=save.pillarBs||[];if(!a.length)return;save.pillarCoef=a.reduce((x,y)=>x+y,0)/a.length;save.pillarQiBonus=b.reduce((x,y)=>x+y,0)/a.length;save.pillarQuality=pillarQualityName(save.pillarCoef)}
-function stage(){return save.stageLevel>=3?'III':save.stageLevel>=2?'II':'I'}
+function stage(){return save.stageLevel>=4?'IV':save.stageLevel>=3?'III':save.stageLevel>=2?'II':'I'}
 const STAR_COUNT_DIV=200;
 function currentStarCost(){return 10+5*save.stars}
 /* мягкий запрет на скученность: вокруг каждой звезды невидимый радиус, звезда внутри него удорожает новую (до +25% при вплотную);

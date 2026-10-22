@@ -12,6 +12,7 @@ const HOLD={
  pchance:{modal:'pillarModal',ok:()=>save.pillars<MAX_PILLARS&&(save.pillars>0||save.stars>=FIRST_PILLAR_STARS)&&pillarChance(save.pillarChanceExtra)<90,rate:pillarHoldRate,room:()=>pillarChanceQiCost()-(save.pillarChanceQi||0),
   add:n=>{const c=pillarChanceQiCost();save.pillarChanceQi=(save.pillarChanceQi||0)+n;if(save.pillarChanceQi>=c-1e-6){save.pillarChanceQi=0;save.pillarChanceExtra+=10000;toast('Шанс колонны +10% (сейчас '+pillarChance(save.pillarChanceExtra)+'%)')}},ui:()=>renderPillar()},
  core:{modal:'coreModal',ok:()=>!hasCore()&&coreUnlocked(),rate:coreHoldRate,room:()=>CORE_QI_COST-(save.coreDeposit||0),add:n=>{save.coreDeposit=(save.coreDeposit||0)+n},ui:()=>renderCore()},
+ soul:{modal:'soulModal',ok:()=>soulCanGrow(),rate:()=>soulHoldRate(),room:()=>soulQiCost()-(save.soulDeposit||0),add:n=>{save.soulDeposit=(save.soulDeposit||0)+n},ui:()=>renderSoul()},
  dens:{modal:'coreModal',ok:()=>hasCore()&&(save.coreDens||0)<CORE_DENS_MAX,rate:densHoldRate,room:()=>densQiCost()-(save.coreDeposit||0),add:n=>{save.coreDeposit=(save.coreDeposit||0)+n},ui:()=>renderCore()}
 };
 let holdK=null,holdLast=0,holdUiT=0,holdSaveT=0,holdRaf=0;
@@ -41,7 +42,7 @@ function bindHold(id,k){
  for(const ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,holdStop);
  b.addEventListener('contextmenu',e=>e.preventDefault());
 }
-bindHold('pillarDepositBtn','pillar');bindHold('pillarChanceQiBtn','pchance');bindHold('coreDepositBtn','core');bindHold('densDepositBtn','dens');
+bindHold('pillarDepositBtn','pillar');bindHold('pillarChanceQiBtn','pchance');bindHold('coreDepositBtn','core');bindHold('densDepositBtn','dens');bindHold('soulDepositBtn','soul');
 
 /* ---- окно культивации поверх арены ---- */
 let cultFlash=0,cultHpLast=0,cultLiveT=0;
@@ -59,7 +60,7 @@ function radarMove(on){const r=document.getElementById('radarCv');if(!r)return;i
 function closeCultOnline(){
  if(!cultOnline)return;holdStop();cultOnline=false;radarMove(false);
  $('cult').classList.remove('active','cult-online');$('cult').style.boxShadow='';$('cultHpPill').style.display='none';$('cultLeaveBtn').title='Назад';
- closePillar();closeCore();closeTechnique();closeScrolls();closeColumns();
+ closePillar();closeCore();closeSoul();closeTechnique();closeScrolls();closeColumns();
  persist();
 }
 function leaveCult(){cultOnline?closeCultOnline():goHome()}
