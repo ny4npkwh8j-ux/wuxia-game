@@ -13,8 +13,10 @@ const PILLAR_Q=[[100,'ИСКЛЮЧИТЕЛЬНАЯ',1000,1.30],[90,'ПРЕВОС
 /* ядро — третий этап: открывается с 3-й колонны; цена Ци или осколками 2 этапа (вместе тоже); колонны сплавляются в ядро */
 const CORE_MIN_PILLARS=3,CORE_QI_COST=100000,CORE_SHARD_COST=1000,CORE_CHANCE_UNIT=500;
 /* качество ядра по «силе колонн» = число колонн × коэффициент их качества: [порог, название, множитель ко всем параметрам] */
-const CORE_Q=[[6,'ИСКЛЮЧИТЕЛЬНОЕ',10],[5,'ПРЕВОСХОДНОЕ',7],[4,'ОТЛИЧНОЕ',5],[3,'ХОРОШЕЕ',3.5],[2,'ОБЫЧНОЕ',2.5],[0,'НИЧТОЖНОЕ',1.8]];
-function coreQualityFor(pillars,coef){const sc=pillars*coef;for(const q of CORE_Q)if(sc>=q[0])return{name:q[1],coef:q[2],score:sc};return{name:CORE_Q[5][1],coef:CORE_Q[5][2],score:sc}}
+/* качество ядра = среднее качество колонн (коэффициент .30…1.30); множитель ко всем параметрам ×1.3…×2.5 линейно */
+const CORE_Q=[[1.3,'ИСКЛЮЧИТЕЛЬНОЕ'],[1.15,'ПРЕВОСХОДНОЕ'],[1,'ОТЛИЧНОЕ'],[.7,'ХОРОШЕЕ'],[.5,'ОБЫЧНОЕ'],[0,'НИЧТОЖНОЕ']];
+const CORE_MULT_MIN=1.3,CORE_MULT_MAX=2.5;
+function coreQualityFor(pillars,coef){const c=Math.max(.3,Math.min(1.3,coef||.3));let nm=CORE_Q[5][1];for(const q of CORE_Q)if(c>=q[0]-1e-9){nm=q[1];break}return{name:nm,coef:+(CORE_MULT_MIN+(c-.3)/1.0*(CORE_MULT_MAX-CORE_MULT_MIN)).toFixed(3),score:c}}
 /* шанс как у колонн (30%, до 90%), +10% за каждую колонну сверх третьей и +10% за каждые 500 вложенных осколков 2 этапа */
 function coreChanceFor(pillars,extra){return Math.min(90,30+10*Math.max(0,pillars-CORE_MIN_PILLARS)+10*Math.floor(Math.max(0,extra)/CORE_CHANCE_UNIT))}
 function pillarQualityFor(stars){for(const q of PILLAR_Q)if(stars>=q[0])return{name:q[1],qi:q[2],coef:q[3]};return{name:PILLAR_Q[5][1],qi:PILLAR_Q[5][2],coef:PILLAR_Q[5][3]}}
@@ -24,6 +26,7 @@ const PILLAR_MIN_QI=3000,PILLAR_OK_QI=5000;
 function pillarQualityName(c){for(const q of PILLAR_Q)if(c>=q[3]-1e-9)return q[1];return PILLAR_Q[5][1]}
 function colQualityFromQi(qi,base){const lo=PILLAR_Q[5],f=Math.max(0,Math.min(1,(qi-PILLAR_OK_QI)/(pillarCost(1)-PILLAR_OK_QI)));return{coef:lo[3]+(base.coef-lo[3])*f,qi:Math.round(lo[2]+(base.qi-lo[2])*f)}}
 /* итоговое качество = среднее по всем колоннам (pillarCoef / pillarQiBonus хранят среднее — остальные формулы не меняются) */
+function pillarsEnsure(){if(!Array.isArray(save.pillarQs))save.pillarQs=[];if(!Array.isArray(save.pillarBs))save.pillarBs=[];while(save.pillarQs.length<save.pillars){save.pillarQs.push(save.pillarCoef||pillarQualityFor(save.stars).coef);save.pillarBs.push(save.pillarQiBonus||pillarQualityFor(save.stars).qi)}}
 function pillarsRecalc(){const a=save.pillarQs||[],b=save.pillarBs||[];if(!a.length)return;save.pillarCoef=a.reduce((x,y)=>x+y,0)/a.length;save.pillarQiBonus=b.reduce((x,y)=>x+y,0)/a.length;save.pillarQuality=pillarQualityName(save.pillarCoef)}
 function stage(){return save.stageLevel>=3?'III':save.stageLevel>=2?'II':'I'}
 const STAR_COUNT_DIV=200;

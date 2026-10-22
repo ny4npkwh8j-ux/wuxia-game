@@ -63,7 +63,7 @@ function removeRandomStars(n){
 }
 function pillarChanceNow(){return save.pillarQi<PILLAR_OK_QI&&save.pillarQi>0?Math.min(90,10*Math.floor(Math.max(0,save.pillarChanceExtra||0)/10000)):pillarChance(save.pillarChanceExtra)}
 async function attemptPillar(cost,payFn,poured,lowQi){
- payFn();
+ payFn();pillarsEnsure();
  const chance=lowQi?Math.min(90,10*Math.floor(Math.max(0,save.pillarChanceExtra||0)/10000)):pillarChance(save.pillarChanceExtra),wasFirst=save.pillars===0;
  const bq=colQualityFromQi(poured==null?pillarCost(1):poured,pillarQualityFor(save.stars));
  save.pillarChanceExtra=0;save.pillarQi=0;save.pillarChanceQi=0;
