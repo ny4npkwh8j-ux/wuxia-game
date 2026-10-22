@@ -27,7 +27,7 @@ function pillarChanceCost(){return (save.pillars===0?100:10)*pillarChanceStep()}
 function pillarChanceQiCost(){return 10000*pillarChanceStep()} /* Ци: 10 000 × номер колонны × номер шага */
 function renderPillar(){
  const done=save.pillars>=MAX_PILLARS,first=save.pillars===0,okStars=save.stars>=FIRST_PILLAR_STARS||!first;
- const qiCost=activeColumnCost(),left=pillarShardsLeft(),chance=pillarChance(save.pillarChanceExtra),bal=pillarBalance(),kind=first?' души':' 2 этапа',chCost=pillarChanceCost();
+ const qiCost=activeColumnCost(),left=pillarShardsLeft(),chance=pillarChanceNow(),bal=pillarBalance(),kind=first?' души':' 2 этапа',chCost=pillarChanceCost();
  let info;
  if(first)info=okStars?('Колонна <b>1</b>'):('Нужно '+FIRST_PILLAR_STARS+' ★ (сейчас '+save.stars+')');
  else info='Колонны <b>'+save.pillars+'/'+MAX_PILLARS+'</b> · '+save.pillarQuality+' ×'+save.pillarCoef.toFixed(2);
@@ -41,7 +41,7 @@ function renderPillar(){
  $('pillarRewardsBtn').disabled=done||!okStars||left<=0||bal<left;
  $('pillarRewardsBtn').textContent='Осколки · '+fmt(left);
  $('pillarFormBtn').style.display='flex';
- $('pillarFormBtn').disabled=done||!okStars||save.pillarQi<qiCost;
+ $('pillarFormBtn').disabled=done||!okStars||save.pillarQi<PILLAR_MIN_QI;
  $('pillarFormBtn').textContent='Сформировать';
  $('pillarChanceBtn').disabled=done||!okStars||chance>=90||bal<chCost;
  $('pillarChanceQiBtn').disabled=done||!okStars||chance>=90;$('pillarChanceQiBtn').textContent='+10% · Ци '+Math.round((save.pillarChanceQi||0)/pillarChanceQiCost()*100)+'%';
@@ -61,24 +61,26 @@ function removeRandomStars(n){
  save.stars=save.starPts.length;save.meridians=save.meridianEdges.length;save.qi=Math.min(save.qi,save.maxQi);
  return n;
 }
-async function attemptPillar(cost,payFn){
+function pillarChanceNow(){return save.pillarQi<PILLAR_OK_QI&&save.pillarQi>0?Math.min(90,10*Math.floor(Math.max(0,save.pillarChanceExtra||0)/10000)):pillarChance(save.pillarChanceExtra)}
+async function attemptPillar(cost,payFn,poured,lowQi){
  payFn();
- const chance=pillarChance(save.pillarChanceExtra),wasFirst=save.pillars===0;
+ const chance=lowQi?Math.min(90,10*Math.floor(Math.max(0,save.pillarChanceExtra||0)/10000)):pillarChance(save.pillarChanceExtra),wasFirst=save.pillars===0;
+ const bq=colQualityFromQi(poured==null?pillarCost(1):poured,pillarQualityFor(save.stars));
  save.pillarChanceExtra=0;save.pillarQi=0;save.pillarChanceQi=0;
  if(Math.random()*100<chance){
   if(wasFirst){
-   const q=pillarQualityFor(save.stars);save.pillarQuality=q.name;save.pillarCoef=q.coef;save.pillarQiBonus=q.qi;save.pillarStars=save.stars;placingStar=false;$('cultHint').classList.remove('show');
+   save.pillarQs=[bq.coef];save.pillarBs=[bq.qi];pillarsRecalc();save.pillarStars=save.stars;placingStar=false;$('cultHint').classList.remove('show');
    save.pillars=1;save.stageLevel=2;
-   save.maxQi+=save.pillarQiBonus||0;
+   save.maxQi+=bq.qi;
    toast('Первая колонна сформирована · '+save.pillarQuality+'! Дальнейшие колонны — Ци или осколками второго этапа.');
    setTimeout(()=>playStageAnimation({kind:'col',success:true,title:'Переход на этап II',text:'Первая колонна сформирована · '+save.pillarQuality+'. Колонны растут внутри дань-тяня.'}),400);
   }else{
-   save.pillars++;save.maxQi+=save.pillarQiBonus||0;
-   toast('Колонна '+roman(save.pillars)+' сформирована · '+save.pillarQuality+'.');
+   save.pillarQs.push(bq.coef);save.pillarBs.push(bq.qi);save.pillars++;save.maxQi+=bq.qi;pillarsRecalc();
+   toast('Колонна '+roman(save.pillars)+' сформирована · '+pillarQualityName(bq.coef)+'.');
   }
  }else{
   if(wasFirst){const lost=removeRandomStars(20);toast('Формирование первой колонны не удалось! Утрачено '+lost+' звёзд, вложенные ресурсы потеряны.')}
-  else{if(save.pillars>0){save.maxQi=Math.max(100,save.maxQi-(save.pillarQiBonus||0));save.pillars--}toast('Формирование не удалось! Колонна разрушена. Осталось: '+save.pillars+'.')}
+  else{if(save.pillars>0){const k=Math.floor(Math.random()*save.pillars),b=(save.pillarBs||[])[k]||save.pillarQiBonus||0;save.maxQi=Math.max(100,save.maxQi-b);save.pillarQs.splice(k,1);save.pillarBs.splice(k,1);save.pillars--;pillarsRecalc()}toast('Формирование не удалось! Колонна разрушена. Осталось: '+save.pillars+'.')}
  }
  save.qi=Math.min(save.qi,save.maxQi);persist();renderPillar();
 }
@@ -93,10 +95,10 @@ function contributePillarQi(){
 async function formPillarFromQi(){
  if(save.pillars>=MAX_PILLARS)return;
  const first=save.pillars===0,cost=activeColumnCost();
- if(save.pillarQi<cost)return toast('Нужно накопить '+fmt(cost)+' Ци.');
+ if(save.pillarQi<PILLAR_MIN_QI)return toast('Нужно хотя бы '+fmt(PILLAR_MIN_QI)+' Ци.');
  if(first&&save.stars<FIRST_PILLAR_STARS)return;
- if(!await confirmDialog((first?'Сформировать первую колонну? ':'Сформировать колонну? ')+'Шанс успеха: '+pillarChance(save.pillarChanceExtra)+'%.'+(first?'':' При неудаче будет разрушена одна из уже сформированных колонн.'),'Сформировать'))return;
- attemptPillar(cost,()=>{save.pillarQi-=cost});
+ if(!await confirmDialog((first?'Сформировать первую колонну? ':'Сформировать колонну? ')+'Шанс успеха: '+pillarChanceNow()+'%. Качество: '+pillarQualityName(colQualityFromQi(save.pillarQi,pillarQualityFor(save.stars)).coef)+(save.pillarQi<PILLAR_OK_QI?' (Ци мало — без осколков шанса нет).':'.')+(first?'':' При неудаче будет разрушена одна из уже сформированных колонн.'),'Сформировать'))return;
+ const pr=save.pillarQi;attemptPillar(pr,()=>{save.pillarQi=0},pr,pr<PILLAR_OK_QI);
 }
 async function payPillarRewards(){
  const first=save.pillars===0,left=pillarShardsLeft(),bal=pillarBalance();
@@ -104,7 +106,7 @@ async function payPillarRewards(){
  if(first&&save.stars<FIRST_PILLAR_STARS)return;
  if(bal<left)return toast('Нужно '+fmt(left)+' осколков'+(first?' души':' 2 этапа')+'.');
  if(!await confirmDialog(first?('Сформировать первую колонну? Шанс успеха: '+pillarChance(save.pillarChanceExtra)+'%.'):('Сформировать колонну? Шанс успеха: '+pillarChance(save.pillarChanceExtra)+'%. При неудаче будет разрушена одна из уже сформированных колонн.'),'Сформировать'))return;
- attemptPillar(left,()=>{if(first)save.rewards-=left;else save.rewards2-=left});
+ attemptPillar(left,()=>{if(first)save.rewards-=left;else save.rewards2-=left},save.pillarQi,false);
 }
 function investPillarChanceQi(){
  const cost=pillarChanceQiCost();if(pillarChance(save.pillarChanceExtra)>=90)return;
@@ -120,7 +122,7 @@ function investPillarChance(){
 function openColumns(){
  const el=$('columnsList');el.innerHTML='';
  for(let i=1;i<=save.pillars;i++){const d=document.createElement('div');d.className='scrollcard';
-  d.innerHTML='<div class="sc-head"><b>КОЛОННА '+roman(i)+'</b><span class="sc-tag">+'+save.pillarQiBonus+' Ци</span></div><p>'+save.pillarQuality+(i===1?' · '+save.pillarStars+' ★ при формировании':' · наследует качество первой')+'</p>';el.appendChild(d)}
+  const qc=(save.pillarQs||[])[i-1]??save.pillarCoef;d.innerHTML='<div class="sc-head"><b>КОЛОННА '+roman(i)+'</b><span class="sc-tag">+'+((save.pillarBs||[])[i-1]??save.pillarQiBonus)+' Ци</span></div><p>'+pillarQualityName(qc)+' ×'+qc.toFixed(2)+(i===1?' · '+save.pillarStars+' ★ при формировании':'')+'</p>';el.appendChild(d)}
  $('columnsTotal').textContent='Коэффициент качества техник: ×'+currentQualityCoef().toFixed(2)+' · Множитель силы: ×'+colFactor(save.pillars,currentQualityCoef()).toFixed(2);
  $('columnsModal').classList.add('show');startDview('colView',()=>({core:false,columns:save.pillars}),()=>$('columnsModal').classList.contains('show'));
 }

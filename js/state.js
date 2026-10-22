@@ -1,5 +1,5 @@
 'use strict';
-const BUILD_VERSION='0.8.32';
+const BUILD_VERSION='0.8.33';
 const SAVE_KEY='wuxiaSave';
 const SAVE_SCHEMA='cultivation_arena_v2';
 const $=id=>document.getElementById(id);
@@ -18,6 +18,8 @@ try{
  save.rewards2??=0;save.pillarChanceQi??=0;save.pillarChanceExtra??=0;save.pillarQuality??=null;save.pillarCoef??=0;save.pillarQiBonus??=0;save.pillarStars??=0;
  if(save.pillarMult&&!save.pillarCoef){save.pillarCoef=save.pillarMult;delete save.pillarMult}
  if(save.pillars>0&&!save.pillarCoef){const q=pillarQualityFor(save.stars);save.pillarCoef=q.coef;save.pillarQiBonus=q.qi;save.pillarQuality=q.name;save.pillarStars=save.stars}
+ if(save.pillars>0&&!Array.isArray(save.pillarQs)){save.pillarQs=[];save.pillarBs=[]}
+ if(save.pillars>0){while(save.pillarQs.length<save.pillars){save.pillarQs.push(save.pillarCoef||pillarQualityFor(save.stars).coef);save.pillarBs.push(save.pillarQiBonus||pillarQualityFor(save.stars).qi)}}
  if(save.pillars>0&&!save.pillarQiBonus){save.pillarQiBonus=pillarQualityFor(save.pillarStars||save.stars).qi}/* старые сохранения: бонус Ци колонны не был записан */
  if(save.pillarRewards>0){save.rewards+=save.pillarRewards;save.pillarRewards=0}
  save.pillarQi=Math.min(save.pillarQi||0,activeColumnCost());save.rewards=Math.floor(save.rewards||0);save.rewards2=Math.floor(save.rewards2||0);

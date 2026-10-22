@@ -110,11 +110,11 @@ function attemptCore(payFn){
  if(Math.random()*100<chance){
   /* бонус Ци колонн исчезает вместе с ними; ядро умножает всё */
   save.maxQi=Math.max(100,save.maxQi-n*(save.pillarQiBonus||0))*q.coef;save.health*=q.coef;
-  save.coreCoef=q.coef;save.coreQuality=q.name;save.pillars=0;save.stageLevel=3;save.qi=Math.min(save.qi,save.maxQi);
+  save.coreCoef=q.coef;save.coreQuality=q.name;save.pillars=0;save.pillarQs=[];save.pillarBs=[];save.stageLevel=3;save.qi=Math.min(save.qi,save.maxQi);
   persist();updateUI();
   playStageAnimation({kind:'core',success:true,title:'Ядро: '+q.name,text:'Колонны рассыпались и сплавились в ядро. Всё стало сильнее в ×'+q.coef+' раз.',onClose:openCore});
  }else{
-  save.pillars=0;save.maxQi=Math.max(100,save.maxQi-n*(save.pillarQiBonus||0));save.qi=Math.min(save.qi,save.maxQi);
+  save.pillars=0;save.pillarQs=[];save.pillarBs=[];save.maxQi=Math.max(100,save.maxQi-n*(save.pillarQiBonus||0));save.qi=Math.min(save.qi,save.maxQi);
   persist();updateUI();
   playStageAnimation({kind:'core',success:false,title:'Ядро не удалось',text:'Ресурсы потеряны, все колонны разрушены.',onClose:()=>{}});
  }

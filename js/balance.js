@@ -18,6 +18,13 @@ function coreQualityFor(pillars,coef){const sc=pillars*coef;for(const q of CORE_
 /* шанс как у колонн (30%, до 90%), +10% за каждую колонну сверх третьей и +10% за каждые 500 вложенных осколков 2 этапа */
 function coreChanceFor(pillars,extra){return Math.min(90,30+10*Math.max(0,pillars-CORE_MIN_PILLARS)+10*Math.floor(Math.max(0,extra)/CORE_CHANCE_UNIT))}
 function pillarQualityFor(stars){for(const q of PILLAR_Q)if(stars>=q[0])return{name:q[1],qi:q[2],coef:q[3]};return{name:PILLAR_Q[5][1],qi:PILLAR_Q[5][2],coef:PILLAR_Q[5][3]}}
+/* качество колонны зависит от влитой Ци: до PILLAR_MIN_QI формирование невозможно, <PILLAR_OK_QI — гарантированная неудача (кроме шанса осколками),
+   5000 Ци = самое низкое качество, 10000 = полное (по звёздам); между ними линейно */
+const PILLAR_MIN_QI=3000,PILLAR_OK_QI=5000;
+function pillarQualityName(c){for(const q of PILLAR_Q)if(c>=q[3]-1e-9)return q[1];return PILLAR_Q[5][1]}
+function colQualityFromQi(qi,base){const lo=PILLAR_Q[5],f=Math.max(0,Math.min(1,(qi-PILLAR_OK_QI)/(pillarCost(1)-PILLAR_OK_QI)));return{coef:lo[3]+(base.coef-lo[3])*f,qi:Math.round(lo[2]+(base.qi-lo[2])*f)}}
+/* итоговое качество = среднее по всем колоннам (pillarCoef / pillarQiBonus хранят среднее — остальные формулы не меняются) */
+function pillarsRecalc(){const a=save.pillarQs||[],b=save.pillarBs||[];if(!a.length)return;save.pillarCoef=a.reduce((x,y)=>x+y,0)/a.length;save.pillarQiBonus=b.reduce((x,y)=>x+y,0)/a.length;save.pillarQuality=pillarQualityName(save.pillarCoef)}
 function stage(){return save.stageLevel>=3?'III':save.stageLevel>=2?'II':'I'}
 const STAR_COUNT_DIV=200;
 function currentStarCost(){return 10+5*save.stars}
