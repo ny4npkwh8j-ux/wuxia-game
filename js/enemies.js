@@ -410,14 +410,12 @@ function fearStep(e,dt){
 /* равные по силе — добыча: охотник идёт к ближайшему равному и начинает бой */
 function huntStep(e,dt,force){
  const s=arenaState;if(e.hunter==null)e.hunter=Math.random()<.5;
- /* вершина (колонны/ядро): когда таких набралось 4+, они сами ищут друг друга по всей карте и бьются — так их число не разрастается */
- const apex=cultScore(e)>=100&&(s.apexN||0)>=4;
- if((!e.hunter&&!apex&&!force)||!((e.stars||0)>0))return false;
+ if((!e.hunter&&!force)||!((e.stars||0)>0))return false;
  e.huntT=(e.huntT||0)-dt;
  if(e.huntT<=0){
-  e.huntT=.8+Math.random()*.6;e.prey=null;let bd=force?1600:apex?2600:700;
+  e.huntT=.8+Math.random()*.6;e.prey=null;let bd=force?1600:700;
   const cand=s.enemies.concat(aliveBosses(s));
-  for(const x of cand){if(x===e||x.hp<=0||x.foeId!=null||(e.team&&x.team===e.team)||(e.lord&&x.lord===e.lord))continue;const d=Math.hypot(x.x-e.x,x.y-e.y);if(d<bd&&(apex&&!force?(entPow(x)/entPow(e)>=.5&&entPow(x)/entPow(e)<=2):equalFoes(e,x))){bd=d;e.prey=x.id}}
+  for(const x of cand){if(x===e||x.hp<=0||x.foeId!=null||(e.team&&x.team===e.team)||(e.lord&&x.lord===e.lord))continue;const d=Math.hypot(x.x-e.x,x.y-e.y);if(d<bd&&equalFoes(e,x)){bd=d;e.prey=x.id}}
  }
  const f=e.prey!=null?findEnt(e.prey):null;if(!f||f.foeId!=null){e.prey=null;return false}
  const d=Math.hypot(f.x-e.x,f.y-e.y);
