@@ -106,7 +106,7 @@ async function payPillarRewards(){
  if(first&&save.stars<FIRST_PILLAR_STARS)return;
  if(bal<left)return toast('Нужно '+fmt(left)+' осколков'+(first?' души':' 2 этапа')+'.');
  if(!await confirmDialog(first?('Сформировать первую колонну? Шанс успеха: '+pillarChance(save.pillarChanceExtra)+'%.'):('Сформировать колонну? Шанс успеха: '+pillarChance(save.pillarChanceExtra)+'%. При неудаче будет разрушена одна из уже сформированных колонн.'),'Сформировать'))return;
- attemptPillar(left,()=>{if(first)save.rewards-=left;else save.rewards2-=left},save.pillarQi,false);
+ attemptPillar(left,()=>{if(first)save.rewards-=left;else save.rewards2-=left},activeColumnCost(),false);
 }
 function investPillarChanceQi(){
  const cost=pillarChanceQiCost();if(pillarChance(save.pillarChanceExtra)>=90)return;

@@ -16,7 +16,7 @@ function shopPay(k,n){const key=k===1?'rewards':'rewards2';if(save[key]<n)return
 function costText(k,n){return fmt(n)+(k===1?' души':' 2 этапа')}
 function canPay(k,n){return (k===1?save.rewards:save.rewards2)>=n}
 function renderNpc(){
- $('npcBal').textContent='Осколки души: '+fmt(save.rewards)+' · Осколки 2 этапа: '+fmt(save.rewards2);
+ $('npcBal').textContent='Осколки души: '+fmt(save.rewards)+' · Осколки 2 этапа: '+fmt(save.rewards2)+(save.rewards3>0?' · 3 этапа: '+fmt(save.rewards3):'');
  const el=$('npcList');el.innerHTML='';
  const tabs=document.createElement('div');tabs.className='row';tabs.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
  for(const [id,t] of [['exch','Обмен'],['tech','Техники'],['gear','Снаряжение'],['pill','Пилюли']]){const b=document.createElement('button');b.className='bigbtn'+(npcTab===id?'':' secondary');b.style.cssText='flex:1;min-width:80px;padding:9px 6px';b.textContent=t;b.onclick=()=>{npcTab=id;renderNpc()};tabs.appendChild(b)}
@@ -56,7 +56,23 @@ function renderSellGear(box){
   shopCard(box,it.icon+' '+it.name,(on?'надето · ':'')+'×'+cnt,'',[['Продать · +'+costText(k,price),true,()=>{if(!gearTake(id))return;save[k===1?'rewards':'rewards2']+=price;toast('Продано: '+it.name);persist();renderNpc()}]])}
 }
 function pillCount(id){return (gearSave().pills[id]||0)}
+/* Пилюля божественности (режим разработчика): цена 1 осколок души, раз в 3 часа реального времени; даёт по 1 000 000 осколков 1, 2 и 3 этапа, которые исчезают через 3 часа */
+const DIVINE_MS=3*3600*1000,DIVINE_AMT=1000000;
+function divineLeft(){return Math.max(0,(save.divineAt||0)+DIVINE_MS-Date.now())}
+function divineTick(){
+ if(save.divineAt&&Date.now()>=save.divineAt+DIVINE_MS&&save.divineGrant){
+  save.rewards=Math.max(0,(save.rewards||0)-save.divineGrant[0]);save.rewards2=Math.max(0,(save.rewards2||0)-save.divineGrant[1]);save.rewards3=Math.max(0,(save.rewards3||0)-save.divineGrant[2]);
+  save.divineGrant=null;persist();toast('Божественные осколки рассеялись.');if($('npcModal')&&$('npcModal').classList.contains('show'))renderNpc()}
+}
+setInterval(divineTick,5000);setTimeout(divineTick,500);
+function divineUse(){
+ if(divineLeft()>0)return toast('Пилюля будет доступна через '+Math.ceil(divineLeft()/60000)+' мин.');
+ if(save.rewards<1)return toast('Нужен 1 осколок души.');
+ divineTick();save.rewards-=1;save.rewards+=DIVINE_AMT;save.rewards2+=DIVINE_AMT;save.rewards3=(save.rewards3||0)+DIVINE_AMT;
+ save.divineAt=Date.now();save.divineGrant=[DIVINE_AMT,DIVINE_AMT,DIVINE_AMT];persist();toast('Пилюля божественности принята: по '+fmt(DIVINE_AMT)+' осколков на 3 часа.');renderNpc();
+}
 function renderShopPills(box){
+ {const l=divineLeft();shopCard(box,'🌟 Пилюля божественности',l>0?'через '+Math.ceil(l/60000)+' мин':'готова','Даёт 1 000 000 осколков души, 2 и 3 этапа. Исчезают через 3 часа. Раз в 3 часа.',[['Принять · 1 осколок души',l<=0&&save.rewards>=1,divineUse]])}
  for(const id in PILLS){const p=PILLS[id];
   shopCard(box,p.icon+' '+p.name,'есть: '+pillCount(id),p.desc,[['Купить · '+costText(p.k,p.n),canPay(p.k,p.n),()=>{if(!shopPay(p.k,p.n))return;gearSave().pills[id]=pillCount(id)+1;persist();renderNpc()}]])}
 }
