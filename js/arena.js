@@ -171,6 +171,7 @@ function arenaLoop(t){
  bossLoop(dt);warTick(dt);lootPickups(dt);collect();updateHeal(dt);pillTick(dt);mapTick(dt);cultOnlineTick(dt);
  if(s.channel){const ch=s.channel;ch.t+=dt;if(ch.t>=ch.dur){s.channel=null;const st=ch.tech,cost=techCost(st);if(save.qi>=cost){save.qi-=cost;s.cdStun=AREA_CD.stun;applyStun(st)}else toast('Недостаточно Ци. Нужно '+cost)}}
  save.qi=Math.max(0,Math.min(save.maxQi,save.qi));
+ soulTick(dt);
  updateFx(dt);emitFx(dt,m<=.08);
  if(s.hp<=0){save.qi=0;const lost=Math.floor(save.rewards*.3);save.rewards-=lost;if(lost>0)(s.loot=s.loot||[]).push({x:s.px,y:s.py,k:1,v:lost});const lostItem=playerGearDrop(s);/* карта постоянна: остаётся как есть, игрок возрождается там, где меньше всего мобов */
   const q=quietSpot(s);s.px=s.camx=q.x;s.py=s.camy=q.y;s.hp=s.maxHp=save.health;s.shield=0;s.invuln=2;persist();saveArenaCheckpoint();stopArena();show('home');toast('Ты пал на арене. Вся Ци утрачена, потеряно '+fmt(lost)+' осколков души (они лежат на месте гибели). Ты возродишься в тихом месте карты.'+(lostItem?' Выпала вещь: '+GEAR[lostItem].name+'.':''));return}
@@ -208,7 +209,7 @@ function drawArena(time){
  for(const e of s.enemies){if(e.hp>0)drawEnemy(e,W,H,time)}
  drawBoss(W,H,time);
  drawNpcs(time);drawTradeHint(time);
- drawPlayer(time);
+ drawSoulBody(time);if(s.soulOut)ax.globalAlpha=.6;drawPlayer(time);ax.globalAlpha=1;
  drawDecoy(time);
  for(const fx of s.qiEffects)drawQiFx(fx,time);
  for(const sl of s.slashes)drawSlash(sl);

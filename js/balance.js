@@ -88,15 +88,15 @@ function entMult(e){return powerMult(Math.min(PATH_CAP,e.stars||0),e.stars||0,e.
 /* сила игрока как цели оглушения (максимальная техника по его звёздам) */
 function playerRefMult(){return techniquePower(Math.min(PATH_CAP,save.stars),save.stars)*bodyHp(save.stars)*myStage()*myQiCol()}
 /* сила обычного удара кулаком: привязана к звёздам (100 звёзд = 100 урона) */
-function playerStr(){return bodyStr(save.stars)*myStage()*(typeof pillPower==='function'?pillPower():1)}
+function playerStr(){return bodyStr(save.stars)*myStage()*(typeof pillPower==='function'?pillPower():1)*(typeof soulDmgK==='function'?soulDmgK():1)}
 /* удар кулаком противника: колонны усиливают его так же, как удар игрока (ядро уже учтено в e.str) */
 function entMelee(e){return (e.str??bodyStr(e.stars||0))*colFactor(e.columns||0,entCoef(e))+entWeaponDmg(e)}
-function techDamage(t){return TECH_BASE[t.type]*myMult(t)}
+function techDamage(t){return TECH_BASE[t.type]*myMult(t)*(typeof soulDmgK==='function'?soulDmgK():1)}
 /* Стойкость стадии: колонны усиливают не только атаку (colFactor), но и делят входящий урон на ту же величину.
    Равные по стадии противники дерутся как на этапе I (удар = 30% здоровья), а разница в колоннах даёт двойное преимущество.
    Колонны с коэффициентом <1 стойкости не добавляют. Щит считается без колонн: стойкость уже работает на входе урона. */
 function toughness(cols,M,core){return Math.max(1,stageFactor(cols,M,core))}
-function myToughness(){return toughness(save.pillars,save.pillarCoef,myCore())}
+function myToughness(){return toughness(save.pillars,save.pillarCoef,myCore())*(typeof arenaState!=='undefined'&&arenaState&&arenaState.poss?arenaState.poss.tr:1)}
 function entToughness(e){return toughness(e.columns||0,entCoef(e),e.core||0)}
 function techShieldMax(t){return TECH_BASE.shield*techniquePower(t.nodes.length,save.stars)*bodyHp(save.stars)*myQiCol()}
 function entShieldMax(e){const S=e.stars||0;return TECH_BASE.shield*techniquePower(Math.min(PATH_CAP,S),S)*bodyHp(S)*qiColVolume(e.maxQi,S,e.core||0)}

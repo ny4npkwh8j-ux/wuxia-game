@@ -1,5 +1,5 @@
 'use strict';
-const BUILD_VERSION='0.8.41';
+const BUILD_VERSION='0.8.42';
 const SAVE_KEY='wuxiaSave';
 const SAVE_SCHEMA='cultivation_arena_v2';
 const $=id=>document.getElementById(id);
@@ -18,7 +18,7 @@ try{
  save.rewards2??=0;save.pillarChanceQi??=0;save.pillarChanceExtra??=0;save.pillarQuality??=null;save.pillarCoef??=0;save.pillarQiBonus??=0;save.pillarStars??=0;
  if(save.pillarMult&&!save.pillarCoef){save.pillarCoef=save.pillarMult;delete save.pillarMult}
  if(save.pillars>0&&!save.pillarCoef){const q=pillarQualityFor(save.stars);save.pillarCoef=q.coef;save.pillarQiBonus=q.qi;save.pillarQuality=q.name;save.pillarStars=save.stars}
- save.rewards3??=0;save.divineAt??=0;save.divineGrant??=null;save.soulStage??=0;save.soulDeposit??=0;
+ save.rewards3??=0;save.divineAt??=0;save.divineGrant??=null;save.soulStage??=0;save.soulDeposit??=0;save.soulQi??=null;
  /* ремонт: этап души не выше III; если запас Ци или здоровье испорчены (NaN при записи становится null), они восстанавливаются по формулам стадий */
  {const ok=v=>typeof v==='number'&&Number.isFinite(v);save.soulStage=Math.max(0,Math.min(3,Math.floor(Number(save.soulStage))||0));
   if(!ok(save.maxQi)||!ok(save.health)){const cc=ok(save.coreCoef)&&save.coreCoef>0?save.coreCoef*(1+.1*(save.coreDens||0)):1,sm=[1,1.3,1.6,2][save.soulStage],st=ok(save.stars)?save.stars:0;

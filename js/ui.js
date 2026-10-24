@@ -20,7 +20,7 @@ function setTxt(el,txt){if(el.__t!==txt){el.textContent=txt;el.__t=txt}}
 function setSkB(b,dim,frac,col){if(b.__d!==dim){b.classList.toggle('dim',dim);b.__d=dim}const ov=b.querySelector('.cdov'),v=frac>.001?'conic-gradient('+col+' '+(Math.min(1,frac)*100).toFixed(1)+'%,transparent 0)':'none';if(ov.__v!==v){ov.style.background=v;ov.__v=v}}
 function updateArenaUI(){
  const s=arenaState,qi=save.qi;
- $('hpBar').style.width=Math.max(0,s.hp/s.maxHp*100)+'%';const qp=save.maxQi?Math.max(0,Math.min(100,qi/save.maxQi*100)):0;$('qiBar').style.width=qp+'%';setTxt($('qiBarText'),Math.floor(qi)+' / '+Math.floor(save.maxQi));$('arenaRewards').textContent=Math.floor(save.rewards);$('arenaRewards2').textContent=Math.floor(save.rewards2);$('enemyCount').textContent=s.enemies.filter(e=>e.hp>0).length;
+ $('hpBar').style.width=Math.max(0,(typeof soulHpFrac==='function'?soulHpFrac(s):s.hp/s.maxHp)*100)+'%';const qp=save.maxQi?Math.max(0,Math.min(100,qi/save.maxQi*100)):0;$('qiBar').style.width=qp+'%';setTxt($('qiBarText'),Math.floor(qi)+' / '+Math.floor(save.maxQi));$('arenaRewards').textContent=Math.floor(save.rewards);$('arenaRewards2').textContent=Math.floor(save.rewards2);$('enemyCount').textContent=s.enemies.filter(e=>e.hp>0).length;
  rebuildTechButtons();npcTick();
  for(const b of $('techCol').querySelectorAll('.tbtn')){
   const t=save.techniques[+b.dataset.i];if(!t)continue;const lab=b.querySelector('small'),cost=techCost(t);
