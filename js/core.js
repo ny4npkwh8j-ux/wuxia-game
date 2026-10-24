@@ -225,6 +225,7 @@ async function densifyFromShards(){
  densify(()=>{save.rewards2-=left;save.coreDeposit=0});
 }
 function densify(payFn){
+ if(!hasCore()||(save.coreDens||0)>=CORE_DENS_MAX)return;
  payFn();const d0=save.coreDens||0,r=(1+.1*(d0+1))/(1+.1*d0);
  save.coreDens=d0+1;save.coreDeposit=0;
  /* запас Ци и здоровье растут вместе с множителем ядра */

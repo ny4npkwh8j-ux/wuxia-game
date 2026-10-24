@@ -1,9 +1,12 @@
 'use strict';
+let confirmOpen=false;
+/* второе окно подтверждения, пока открыто первое, не открывается (двойной тап раньше выполнял действие дважды) */
 function confirmDialog(text,okLabel){
+ if(confirmOpen)return Promise.resolve(false);confirmOpen=true;
  return new Promise(res=>{
   $('confirmText').textContent=text;$('confirmOkBtn').textContent=okLabel||'Подтвердить';
   $('confirmModal').classList.add('show');
-  const cleanup=v=>{$('confirmModal').classList.remove('show');ok.removeEventListener('click',onOk);cc.removeEventListener('click',onCancel);res(v)};
+  const cleanup=v=>{confirmOpen=false;$('confirmModal').classList.remove('show');ok.removeEventListener('click',onOk);cc.removeEventListener('click',onCancel);res(v)};
   const ok=$('confirmOkBtn'),cc=$('confirmCancelBtn');
   const onOk=()=>cleanup(true),onCancel=()=>cleanup(false);
   ok.addEventListener('click',onOk);cc.addEventListener('click',onCancel);

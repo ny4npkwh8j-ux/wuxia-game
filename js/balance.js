@@ -67,7 +67,8 @@ function colFactor(cols,M){return cols>0?Math.pow(M||1,cols):1}
 function stageFactor(cols,M,core){return core>0?core:colFactor(cols,M)}
 function powerMult(pathLen,stars,cols,M,core){return techniquePower(pathLen,stars)*bodyHp(stars)*stageFactor(cols,M,core)}
 /* уплотнение ядра (0–5): каждая стадия усиливает ядро ещё на 10% от его множителя */
-function myCore(){return save.coreCoef>0?save.coreCoef*(1+.1*(save.coreDens||0)):0}
+/* душа (4 стадия) множит ядро так же, как уплотнение: запас Ци и здоровье растут при возвышении, а сила, техники и стойкость — через этот множитель */
+function myCore(){return save.coreCoef>0?save.coreCoef*(1+.1*(save.coreDens||0))*(typeof soulMult==='function'?soulMult():1):0}
 function myStage(){return stageFactor(save.pillars,save.pillarCoef,myCore())}
 function myQiVol(){return qiVolume(save.maxQi,save.stars)}
 function myQiCol(){return qiColVolume(save.maxQi,save.stars,myCore())}

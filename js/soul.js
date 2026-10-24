@@ -45,6 +45,7 @@ async function soulFromShards(){
  soulAdvance(()=>{save.rewards2-=left;save.soulDeposit=0});
 }
 function soulAdvance(payFn){
+ if(!soulCanGrow()||soulStage()>=3)return;/* защита: этап не выше III и не выше предела по качеству ядра */
  payFn();const n=soulStage()+1,r=SOUL_MULT[n]/SOUL_MULT[n-1];
  save.soulStage=n;save.soulDeposit=0;save.stageLevel=4;
  /* здоровье и запас Ци растут вместе с множителем этапа (как при уплотнении ядра) */
