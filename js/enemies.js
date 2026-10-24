@@ -34,7 +34,7 @@ function entCost(e,t){return t==='dodge'?Math.ceil(.05*e.maxQi):t==='qiShield'?0
 /* здоровье, сила и запас Ци — по тем же формулам, что у игрока (bodyHp / bodyStr / bodyQi) */
 function applyKit(e,kit){
  if(kit.columns!=null)e.columns=kit.columns;
- const S=kit.stars,C=e.core>0?e.core:1,mh=bodyHp(S)*C,mq=bodyQi(S,e.columns||0,(e.isBoss||e.columns>0)?PILLAR_Q[0][2]:0)*C;
+ const S=kit.stars,C=e.core>0?e.core:1,mh=bodyHp(S)*C,mq=bodyQi(S,e.columns||0,(e.isBoss||e.columns>0)?PILLAR_Q[0][2]:0)+(e.qiPlus??(e.core>0?4500:0));/* Ци ядром не умножается: бонус колонн ×1.5 + уплотнение */
  Object.assign(e,{v:ENT_V,stars:S,str:bodyStr(S)*C,techs:kit.techs,technique:kit.techs[0]||null,hp:mh,maxHp:mh,qi:mq,maxQi:mq,shield:0,shieldMax:0,qiShieldOn:kit.techs.includes('qiShield'),qsFlash:0,wind:null,mcd:0,cd:{atk:e.isBoss?.8:1+Math.random()*1.5,sh:0,dash:1+Math.random()*2,stun:2,area:0}});
  return e;
 }
@@ -279,7 +279,7 @@ function evolveTick(e,dt){
   const cost=500*(d+1);
   if((e.sh2||0)>=cost||e.growT>=EVO_DENS_SEC){
    if((e.sh2||0)>=cost)e.sh2-=cost;e.growT=0;
-   const r=(1+.1*(d+1))/(1+.1*d);e.dens=d+1;e.core*=r;entRebuild(e,100,0,'уплотнил ядро ('+e.dens+'/'+CORE_DENS_MAX+')');
+   const r=(1+.1*(d+1))/(1+.1*d);e.dens=d+1;e.core*=r;e.qiPlus=(e.qiPlus??4500)+1000;entRebuild(e,100,0,'уплотнил ядро ('+e.dens+'/'+CORE_DENS_MAX+')');
   }
   return;
  }
@@ -296,7 +296,7 @@ function evolveTick(e,dt){
   const pay=(e.sh2||0)>=CORE_SHARD_COST;
   if(pay||e.growT>=EVO_CORE_SEC){
    if(pay)e.sh2-=CORE_SHARD_COST;e.growT=0;
-   if(Math.random()*100<coreChanceFor(C,0)){const q=coreQualityFor(C,entCoef(e));e.core=q.coef;entRebuild(e,100,0,'сформировал ядро: '+q.name+'!')}
+   if(Math.random()*100<coreChanceFor(C,0)){const q=coreQualityFor(C,entCoef(e));e.core=q.coef;e.qiPlus=C*Math.round(PILLAR_Q[0][2]*1.5);entRebuild(e,100,0,'сформировал ядро: '+q.name+'!')}
    else entRebuild(e,100,0,'потерял все колонны при создании ядра');
   }
   return;

@@ -108,8 +108,9 @@ function attemptCore(payFn){
  save.coreDeposit=0;save.coreChanceExtra=0;
  closeCore();
  if(Math.random()*100<chance){
-  /* бонус Ци колонн исчезает вместе с ними; ядро умножает всё */
-  save.maxQi=Math.max(100,save.maxQi-n*(save.pillarQiBonus||0))*q.coef;save.health*=q.coef;
+  /* бонус Ци колонн сохраняется и умножается на ×1…×1.5 по качеству; ядро запас Ци не умножает, здоровье — умножает */
+  {const sumB=(save.pillarBs&&save.pillarBs.length?save.pillarBs.reduce((a,b)=>a+b,0):n*(save.pillarQiBonus||0));save.maxQi=Math.round(Math.max(100,save.maxQi+sumB*(colQiMult(save.pillarCoef)-1)));save.coreQiV=2}
+  save.health*=q.coef;
   save.coreCoef=q.coef;save.coreQuality=q.name;save.pillars=0;save.pillarQs=[];save.pillarBs=[];save.stageLevel=3;save.qi=Math.min(save.qi,save.maxQi);
   persist();updateUI();
   playStageAnimation({kind:'core',success:true,title:'Ядро: '+q.name,text:'Колонны рассыпались и сплавились в ядро. Всё стало сильнее в ×'+q.coef+' раз.',onClose:openCore});
@@ -178,7 +179,7 @@ function drawStageAnim(cv,st,t){
 /* ---------- подсказки по культивации: выпадают из противников ---------- */
 const HINTS={
  pillar:{name:'Колонны',text:'Каждая следующая колонна дороже предыдущей и формируется не гарантированно — есть шанс неудачи. Первую можно оплатить Ци (по 500) или осколками души; остальные — Ци или осколками второго этапа. Лишние осколки повышают шанс.'},
- core:{name:'Ядро',text:' Колонны рассыпаются на осколки и сплавляются в ядро — чем больше колонн, тем выше шанс; качество ядра — среднее качество колонн (×1.3…×2.5). При неудаче ресурсы теряются, а все колонны разрушаются.'}
+ core:{name:'Ядро',text:' Колонны сплавляются в ядро, их бонус Ци сохраняется (до ×1.5 по качеству) — чем больше колонн, тем выше шанс; качество ядра — среднее качество колонн (×1.3…×2.5). При неудаче ресурсы теряются, а все колонны разрушаются.'}
 };
 function hasHint(id){return (save.hints||[]).includes(id)}
 function hintText(id){return hasHint(id)?HINTS[id].text:''}
@@ -228,8 +229,8 @@ function densify(payFn){
  if(!hasCore()||(save.coreDens||0)>=CORE_DENS_MAX)return;
  payFn();const d0=save.coreDens||0,r=(1+.1*(d0+1))/(1+.1*d0);
  save.coreDens=d0+1;save.coreDeposit=0;
- /* запас Ци и здоровье растут вместе с множителем ядра */
- save.maxQi=Math.round(save.maxQi*r);save.health=Math.round(save.health*r);save.qi=Math.min(save.qi,save.maxQi);
+ /* здоровье растёт вместе с множителем ядра, а Ци — на фиксированную прибавку */
+ save.maxQi+=coreDensQi(save.coreCoef);save.health=Math.round(save.health*r);save.qi=Math.min(save.qi,save.maxQi);
  persist();updateUI();closeCore();
  playStageAnimation({kind:'dens',d0,success:true,title:'Уплотнение ядра '+save.coreDens+'/'+CORE_DENS_MAX,text:save.coreDens>=CORE_DENS_MAX?'Ядро уплотнилось полностью. Сила: ×'+myCore().toFixed(2):'Ядро сжалось и стало плотнее. Сила: ×'+myCore().toFixed(2),onClose:openCore});
 }

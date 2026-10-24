@@ -59,7 +59,10 @@ function bodyQi(stars,cols,perCol){return 100+10*Math.max(0,stars)+Math.max(0,co
 /* объём Ци относительно «звёздного» (100 + 10 за звезду): растёт от колонн и ядра. Затраты Ци техник растут вместе с ним,
    а урон и щиты — вместе с долей от колонн (долю от ядра уже даёт множитель стадии), чтобы урон на единицу Ци не менялся. */
 function qiVolume(maxQi,stars){return Math.max(1,(maxQi||0)/bodyQi(stars,0,0))}
-function qiColVolume(maxQi,stars,core){return Math.max(1,qiVolume(maxQi,stars)/(core>0?core:1))}
+/* ядро больше не умножает запас Ци (бонус колонн сохраняется ×1…×1.5, уплотнение даёт ~1000 Ци), поэтому объём Ци делить на ядро не нужно */
+function qiColVolume(maxQi,stars,core){return Math.max(1,qiVolume(maxQi,stars))}
+function colQiMult(avg){return 1+.5*Math.max(0,Math.min(1,((avg||.3)-.3)))}/* бонус Ци колонн при слиянии в ядро: ×1 (низшее качество) … ×1.5 (высшее) */
+function coreDensQi(coef){return Math.round(1000*Math.max(.3,Math.min(1,(coef||0)/CORE_MULT_MAX)))}/* прибавка Ци за стадию уплотнения: ~1000 при высшем качестве ядра */
 /* техника на полную длину (столько звёзд, сколько есть, но не больше PATH_CAP) = 1; каждая недостающая звезда -5% */
 function techniquePower(n,stars){const ref=Math.min(PATH_CAP,Math.max(3,Math.floor(stars||0)));return Math.pow(1.05,Math.min(PATH_CAP,Math.max(0,n))-ref)}
 function colFactor(cols,M){return cols>0?Math.pow(M||1,cols):1}

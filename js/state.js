@@ -1,5 +1,5 @@
 'use strict';
-const BUILD_VERSION='0.8.40';
+const BUILD_VERSION='0.8.41';
 const SAVE_KEY='wuxiaSave';
 const SAVE_SCHEMA='cultivation_arena_v2';
 const $=id=>document.getElementById(id);
@@ -24,6 +24,9 @@ try{
   if(!ok(save.maxQi)||!ok(save.health)){const cc=ok(save.coreCoef)&&save.coreCoef>0?save.coreCoef*(1+.1*(save.coreDens||0)):1,sm=[1,1.3,1.6,2][save.soulStage],st=ok(save.stars)?save.stars:0;
    if(!ok(save.maxQi))save.maxQi=Math.round(Math.max(100,100+10*st)*cc*sm);
    if(!ok(save.health))save.health=Math.round((100+4*st+3*st*(save.stageLevel>=2?1.5:1))*cc*sm)}
+  /* ядро больше не множит запас Ци: пересчёт один раз для уже сформированных ядер (колонны на момент слияния считаются тремя, качество — по множителю ядра) */
+  if(save.coreCoef>0&&save.coreQiV!==2){const t=Math.max(0,Math.min(1,(save.coreCoef-1.3)/1.2)),plus=3000*(1+.5*t)+(save.coreDens||0)*1000*Math.max(.3,Math.min(1,save.coreCoef/2.5));
+   save.maxQi=Math.round((100+10*(ok(save.stars)?save.stars:0)+plus)*[1,1.3,1.6,2][save.soulStage]);save.coreQiV=2}
   if(!ok(save.qi))save.qi=0;save.qi=Math.min(save.qi,save.maxQi)}
  if(save.pillars>0&&!Array.isArray(save.pillarQs)){save.pillarQs=[];save.pillarBs=[]}
  if(save.pillars>0){while(save.pillarQs.length<save.pillars){save.pillarQs.push(save.pillarCoef||pillarQualityFor(save.stars).coef);save.pillarBs.push(save.pillarQiBonus||pillarQualityFor(save.stars).qi)}}
