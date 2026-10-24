@@ -109,7 +109,7 @@ function takeDamage(amount,kind){
  if(amount>0){s.hp=Math.max(0,s.hp-amount);floatText(s.px,s.py-34,'-'+fmt(Math.max(1,amount)),'#ff6a6a',16);s.hurt=1;s.hitFlash=1;shake(Math.min(11,4+amount*.08));burst(s.px,s.py,9,'#ff5a5a',200,.45,2.6)}
  s.invuln=.22;
 }
-function movePlayer(dx,dy){let nx=Math.max(70,Math.min(9930,arenaState.px+dx)),ny=Math.max(70,Math.min(9930,arenaState.py+dy));if(!blocked(nx,arenaState.py,22,'player'))arenaState.px=nx;if(!blocked(arenaState.px,ny,22,'player'))arenaState.py=ny}
+function movePlayer(dx,dy){let nx=Math.max(70,Math.min(arenaState.world-70,arenaState.px+dx)),ny=Math.max(70,Math.min(arenaState.world-70,arenaState.py+dy));if(!blocked(nx,arenaState.py,22,'player'))arenaState.px=nx;if(!blocked(arenaState.px,ny,22,'player'))arenaState.py=ny}
 /* ---- damage ---- */
 function arenaAttack(){
  const s=arenaState;if(!s)return;if(stunBlock()||s.punchCd>0)return;interruptArenaMeditation();s.punchCd=.32;

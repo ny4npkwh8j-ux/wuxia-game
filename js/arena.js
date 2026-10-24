@@ -16,7 +16,7 @@ function migrateArenaEntities(state){
  }
  /* шесть боссов: из старого одиночного босса (state.boss) берём его запись, остальных создаём заново */
  const oldB=(Array.isArray(state.bosses)?state.bosses:[]).concat(state.boss&&typeof state.boss==='object'?[state.boss]:[]);state.bosses=[];delete state.boss;
- for(let i=1;i<=MAX_BOSS_INDEX;i++){
+ for(let i=1;i<=BOSS_N;i++){
   let b=oldB.find(q=>q&&(q.index||(q.tier===2?2:1))===i);
   if(!b)b=newBoss(i);
   else if(b.v!==BOSS_V){const r=b.maxHp?Math.min(1,Math.max(0,b.hp)/b.maxHp):1,nb=newBoss(i,b.zone);nb.x=b.x;nb.y=b.y;nb.hp=b.hp<=0?0:Math.max(1,Math.round(nb.maxHp*r));if(b.respawnT!=null)nb.respawnT=b.respawnT;b=nb}
@@ -29,8 +29,21 @@ function migrateArenaEntities(state){
 let arenaState=null,raf=0,aw=0,ah=0;const ac=$('arenaCanvas'),ax=ac.getContext('2d');
 function resizeArena(){const r=$('arena').getBoundingClientRect();aw=ac.width=Math.max(1,Math.floor(r.width*devicePixelRatio));ah=ac.height=Math.max(1,Math.floor(r.height*devicePixelRatio));ac.style.width=r.width+'px';ac.style.height=r.height+'px';ax.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0)}
 function stopArena(){if(raf)cancelAnimationFrame(raf);raf=0;arenaState=null}
+/* расширение карты до WORLD: старый квадрат 10000×10000 остаётся на месте (координаты не сдвигаются), остальное заполняется новым содержимым */
+function expandWorld(state){
+ if((state.worldV||1)>=2&&state.world>=WORLD)return;
+ state.worldV=2;state.world=WORLD;
+ const out=m=>{for(let t=0;t<60;t++){const x=m+Math.random()*(WORLD-2*m),y=m+Math.random()*(WORLD-2*m);if(x>10000||y>10000)return{x,y}}return{x:WORLD-m-Math.random()*500,y:WORLD-m-Math.random()*500}};
+ const add=(arr,n,m,mk)=>{for(let i=0;i<n;i++){const p=out(m);arr.push(mk(p.x,p.y,i))}};
+ add(state.enemies,MOB_START*3,1000,(x,y)=>makeMob(x,y,0));
+ add(state.orbs,120,300,(x,y)=>({x,y,r:11,value:10}));
+ add(state.chests,42,400,(x,y)=>({x,y,r:18,value:50}));
+ add(state.points,30,400,(x,y)=>({x,y,r:25,value:25}));
+ add(state.hazards,21,500,(x,y,i)=>({x,y,r:100+Math.random()*130,pw:[3,3,3,5,5,8,8][i%7]}));
+ for(let i=0;i<195;i++){const p=out(250),o={x:p.x,y:p.y,w:55+Math.random()*100,h:45+Math.random()*90,type:Math.random()<.5?'tree':'rock'};if(BOSS_HOMES.some(h=>Math.hypot(o.x-h[0],o.y-h[1])<BOSS_ZONE_R+120)){i--;continue}state.obstacles.push(o)}
+}
 function freshArenaField(){
- const state={world:10000,px:5000,py:5000,camx:5000,camy:5000,hp:save.health,maxHp:save.health,enemies:[],orbs:[],chests:[],points:[],hazards:[],obstacles:[],bosses:[],bossIndex:1,springs:[],dx:0,dy:0,lastMoveX:0,lastMoveY:1,shootAng:0,attackAnim:0,qiEffects:[],invuln:0,dashCd:0,dashTime:0,dashDuration:.18,dashSpeed:1350,contactCd:0,spawnTimer:4,checkpointTimer:2,last:performance.now()};
+ const state={world:10000,worldV:1,px:5000,py:5000,camx:5000,camy:5000,hp:save.health,maxHp:save.health,enemies:[],orbs:[],chests:[],points:[],hazards:[],obstacles:[],bosses:[],bossIndex:1,springs:[],dx:0,dy:0,lastMoveX:0,lastMoveY:1,shootAng:0,attackAnim:0,qiEffects:[],invuln:0,dashCd:0,dashTime:0,dashDuration:.18,dashSpeed:1350,contactCd:0,spawnTimer:4,checkpointTimer:2,last:performance.now()};
  for(let i=0;i<MOB_START;i++)state.enemies.push(makeMob(1000+Math.random()*8000,1000+Math.random()*8000,0));
  for(let i=0;i<40;i++)state.orbs.push({x:300+Math.random()*9400,y:300+Math.random()*9400,r:11,value:10});
  for(let i=0;i<14;i++)state.chests.push({x:400+Math.random()*9200,y:400+Math.random()*9200,r:18,value:50});
@@ -40,13 +53,13 @@ function freshArenaField(){
  for(let i=0;i<65;i++){const o={x:250+Math.random()*9500,y:250+Math.random()*9500,w:55+Math.random()*100,h:45+Math.random()*90,type:Math.random()<.5?'tree':'rock'};if(Math.hypot(o.x-5000,o.y-5000)<650||Math.hypot(o.x-5000,o.y-5320)<200||BOSS_HOMES.some(h=>Math.hypot(o.x-h[0],o.y-h[1])<BOSS_ZONE_R+120)||circleRectRaw(o.x,o.y,60,{x:5000,y:3400,w:150,h:150})){i--;continue}state.obstacles.push(o)}
  state.springs=state.springs||[];for(const z of state.hazards)z.pw=z.pw||3;
  state.loot=(save.lostLoot||[]).slice();save.lostLoot=[];
- migrateArenaEntities(state);initFx(state);return state;
+ expandWorld(state);migrateArenaEntities(state);initFx(state);return state;
 }
 /* тихое место для возрождения: из набора случайных точек берём ту, где рядом меньше всего мобов/боссов, вне препятствий, опасных зон и зон боссов */
 function quietSpot(s){
  let best=null;const foes=s.enemies.filter(e=>e.hp>0).concat(aliveBosses(s));
  for(let i=0;i<80;i++){
-  const x=700+Math.random()*8600,y=700+Math.random()*8600;
+  const x=700+Math.random()*(s.world-1400),y=700+Math.random()*(s.world-1400);
   if(blocked(x,y,40,'player'))continue;
   if((s.hazards||[]).some(z=>Math.hypot(x-z.x,y-z.y)<z.r+60))continue;
   if(BOSS_HOMES.some(h=>Math.hypot(x-h[0],y-h[1])<BOSS_ZONE_R+400))continue;
@@ -77,7 +90,7 @@ function restoreArenaCheckpoint(){
  const cp=save.arenaCheckpoint;if(!cp)return freshArenaField();
  let state;try{state=JSON.parse(JSON.stringify(cp))}catch(e){return freshArenaField()}
  if(!state||typeof state!=='object')return freshArenaField();
- state.world=Number.isFinite(state.world)?state.world:10000;
+ state.world=Number.isFinite(state.world)?state.world:10000;if(state.worldV==null)state.worldV=state.world>=WORLD?2:1;
  state.px=Number.isFinite(state.px)?state.px:5000; state.py=Number.isFinite(state.py)?state.py:5000;
  state.camx=Number.isFinite(state.camx)?state.camx:state.px; state.camy=Number.isFinite(state.camy)?state.camy:state.py;
  state.hp=Number.isFinite(state.hp)?state.hp:save.health; state.maxHp=Number.isFinite(state.maxHp)?state.maxHp:save.health;
@@ -87,7 +100,7 @@ function restoreArenaCheckpoint(){
  Object.assign(state,{dx:0,dy:0,lastMoveX:0,lastMoveY:1,shootAng:0,attackAnim:0,qiEffects:[],invuln:0,dashCd:0,dashTime:0,dashDuration:.18,dashSpeed:1350,contactCd:0,spawnTimer:4,checkpointTimer:2,last:performance.now()});
  state.bossIndex=Number.isFinite(state.bossIndex)?state.bossIndex:(state.boss&&state.boss.index?state.boss.index:(state.boss&&state.boss.tier===2?2:(state.firstBossDefeated?2:1)));state.bossIndex=Math.max(state.bossIndex,1);delete state.firstBossDefeated;
  for(const e of state.enemies){if(!e||typeof e!=='object')continue;e.maxHp??=e.hp||100;e.stars??=0;e.technique??=null;e.r??=20;e.s??=55;e.hit??=0;e.ang??=0}
- fixEntityIds(state);migrateArenaEntities(state);initFx(state);return state;
+ expandWorld(state);fixEntityIds(state);migrateArenaEntities(state);initFx(state);return state;
 }
 function activeShields(excludeId){
  const s=arenaState,out=[];

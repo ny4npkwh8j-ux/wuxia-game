@@ -3,10 +3,13 @@
 const BOSS_V=3;
 const BOSS_KIT=['shield','dodge','qiSingle','qiArea','qiShield','stun','heal'];
 /* шесть боссов (0–5 колонн) одновременно на карте, каждый стоит в своей «сверхзоне» Ци; убитый воскресает через BOSS_RESPAWN секунд */
-const BOSS_ZONE_PW=20,BOSS_RESPAWN=180,BOSS_HOMES=[[5000,3300],[7600,4200],[7400,7000],[4600,8300],[2200,6600],[2400,2600]],BOSS_ZONE_R=960,BOSS_INNER_R=336,BOSS_LEASH=1200;
+const BOSS_ZONE_PW=20,BOSS_RESPAWN=180,BOSS_HOMES=[[5000,3300],[7600,4200],[7400,7000],[4600,8300],[2200,6600],[2400,2600],[14000,3000],[17500,7200],[3000,14000],[7500,17500],[13500,13000],[17000,17000]],BOSS_ZONE_R=960,BOSS_INNER_R=336,BOSS_LEASH=1200;
+/* боссы 7–12 — вторая половина карты: зверь и сила (как у боссов 1–6) заданы отдельно, индекс остаётся их идентификатором */
+const BOSS_EXTRA={7:{beast:'abyss',pidx:5},8:{beast:'dark',pidx:6},9:{beast:'spider',pidx:1},10:{beast:'golem',pidx:2},11:{beast:'bird',pidx:3},12:{beast:'fox',pidx:4}};
+function bossPidx(i){return i>MAX_BOSS_INDEX?(BOSS_EXTRA[i]?BOSS_EXTRA[i].pidx:1):(i||1)}
 function newBoss(index=1,zone){
- index=Math.max(1,Math.min(MAX_BOSS_INDEX,index));zone=Math.max(1,Math.min(MAX_BOSS_INDEX,zone||index));
- const cols=index-1,tier=index>=2?2:1,h=BOSS_HOMES[zone-1],b={id:nid(),zone,x:h[0],y:h[1],home:{x:h[0],y:h[1]},r:tier===1?34:38,s:tier===1?72:78,ang:0,hit:0,isBoss:true,tier,index,columns:cols,invuln:0,seenT:0,wanderT:0,mv:0,wp:0};
+ index=Math.max(1,Math.min(BOSS_N,index));zone=Math.max(1,Math.min(BOSS_N,zone||index));
+ const cols=bossPidx(index)-1,tier=index>=2?2:1,h=BOSS_HOMES[zone-1],b={id:nid(),zone,x:h[0],y:h[1],home:{x:h[0],y:h[1]},r:tier===1?34:38,s:tier===1?72:78,ang:0,hit:0,isBoss:true,tier,index,beast:index>MAX_BOSS_INDEX?BOSS_EXTRA[index].beast:undefined,columns:cols,invuln:0,seenT:0,wanderT:0,mv:0,wp:0};
  /* 100 звёзд + колонны: здоровье, сила, Ци и сила техник — по тем же формулам, что у игрока */
  applyKit(b,{stars:100,techs:BOSS_KIT.slice()});b.v=BOSS_V;
  return b;
@@ -21,7 +24,7 @@ function onBossDefeated(b){
  const fi=b.index||1;b.respawnT=BOSS_RESPAWN;releaseArmy(fi,null);
  if(BOSS_SCROLL[fi])dropBossScroll(b,fi);
  const next=Math.min(MAX_BOSS_INDEX+1,fi+1);
- if(next>(s.bossIndex||1)){s.bossIndex=next;rerollLiveMobs(next);toast('Босс '+fi+' повержен. Воскреснет через '+Math.round(BOSS_RESPAWN/60)+' мин. Мобы стали сильнее.')}
+ if(fi<=MAX_BOSS_INDEX&&next>(s.bossIndex||1)){s.bossIndex=next;rerollLiveMobs(next);toast('Босс '+fi+' повержен. Воскреснет через '+Math.round(BOSS_RESPAWN/60)+' мин. Мобы стали сильнее.')}
  else toast('Босс '+fi+' повержен. Воскреснет через '+Math.round(BOSS_RESPAWN/60)+' мин.');
  persist();
 }
@@ -74,7 +77,7 @@ function bossStep(b,dt){
  /* физический удар — собственная сила босса по формуле игрока (10 + 0,9 за звезду) */
  if(d<58&&b.mcd<=0){takeDamage(entMelee(b),'melee');b.mcd=.65}
 }
-function moveBoss(b,dx,dy){let nx=Math.max(100,Math.min(9900,b.x+dx)),ny=Math.max(100,Math.min(9900,b.y+dy));if(!blocked(nx,b.y,b.r,b.id))b.x=nx;if(!blocked(b.x,ny,b.r,b.id))b.y=ny}
+function moveBoss(b,dx,dy){let nx=Math.max(100,Math.min(arenaState.world-100,b.x+dx)),ny=Math.max(100,Math.min(arenaState.world-100,b.y+dy));if(!blocked(nx,b.y,b.r,b.id))b.x=nx;if(!blocked(b.x,ny,b.r,b.id))b.y=ny}
 /* boss portraits (frame rects inside the boss atlas) */
 const BOSSP={master:[0,0,122,144],elite:[142,0,112,146]},BOSS_S=.86;
 function bossFrame(c,img,m,x,y,sc,al){const w=m[2]*sc,h=m[3]*sc;c.globalAlpha=al;c.drawImage(img,m[0],m[1],m[2],m[3],x-w/2,y-h/2,w,h)}

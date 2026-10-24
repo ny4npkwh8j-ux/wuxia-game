@@ -3,7 +3,7 @@
    Внутренний круг (0): Ци ×1,2, пускают только владельца. Средний (1): ×1, у боссов — место армии. Внешний (2): ×0,5, пускают всех.
    Владелец боссовой зоны — её Босс (пока он в зоне); владелец свободной зоны — сильнейший, кто сидит в центре.
    Чужак в центре — нарушитель: владелец вызывает его на бой. Нет владельца — центр свободен для любого. */
-const ZONE_V=3,RING_IN=.35,RING_MID=.7,RING_K=[1.2,1,.5],ZONE_FREE_N=5,BOSS_ZONE_PWS=[15,24,19,28,21,13],ZONE_BOLD=.07;
+const ZONE_V=3,RING_IN=.35,RING_MID=.7,RING_K=[1.2,1,.5],ZONE_FREE_N=10,BOSS_ZONE_PWS=[15,24,19,28,21,13,18,26,14,22,16,27],ZONE_BOLD=.07;
 const RING_NAME=['внутренний круг ×1,2','средний круг ×1','внешний круг ×0,5'];
 let ZH=new Map();/* id зоны → текущий владелец (обновляется zoneTick) */
 function zoneRing(z,x,y){const d=Math.hypot(x-z.x,y-z.y);return d<=z.r*RING_IN?0:d<=z.r*RING_MID?1:d<=z.r?2:3}
@@ -114,7 +114,7 @@ function ensureZones(state){
  for(const z of state.springs){if(z.id==null)z.id=nid();if(!z.bz&&z.v!==ZONE_V){z.r*=(z.v===2?2:4);z.v=ZONE_V}}
  let free=state.springs.filter(q=>!q.bz).length,tries=0;const pws=[10,14,12];
  while(free<ZONE_FREE_N&&tries++<300){
-  const x=900+Math.random()*8200,y=900+Math.random()*8200,r=360+Math.random()*280;
+  const x=900+Math.random()*(state.world-1800),y=900+Math.random()*(state.world-1800),r=360+Math.random()*280;
   if(BOSS_HOMES.some(h=>Math.hypot(x-h[0],y-h[1])<BOSS_ZONE_R+r+150))continue;
   if(state.springs.some(q=>Math.hypot(x-q.x,y-q.y)<q.r+r+150))continue;
   state.springs.push({x,y,r,pw:pws[free%3],v:ZONE_V,id:nid()});free++;

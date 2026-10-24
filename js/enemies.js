@@ -166,15 +166,15 @@ function mobDrop(e){
  const bp=addBlueprint({type,n,tier,src:'mob'});
  cornerToast('📄 '+techniqueName(type)+' · '+n+' ★');floatText(e.x,e.y-52,'📄 '+techniqueName(type),'#e6d0ff',14);
 }
-function moveEnemy(e,dx,dy){let nx=Math.max(70,Math.min(9930,e.x+dx)),ny=Math.max(70,Math.min(9930,e.y+dy));if(!blocked(nx,e.y,e.r,e.id))e.x=nx;if(!blocked(e.x,ny,e.r,e.id))e.y=ny}
+function moveEnemy(e,dx,dy){let nx=Math.max(70,Math.min(arenaState.world-70,e.x+dx)),ny=Math.max(70,Math.min(arenaState.world-70,e.y+dy));if(!blocked(nx,e.y,e.r,e.id))e.x=nx;if(!blocked(e.x,ny,e.r,e.id))e.y=ny}
 function spawnEnemy(){
  if(!arenaState||arenaState.enemies.filter(e=>e.hp>0).length>=MOB_MAX)return;
  const side=Math.floor(Math.random()*4), margin=450;
  let x=arenaState.px,y=arenaState.py;
- if(side===0){x=Math.max(margin,arenaState.px-(900+Math.random()*1400));y=Math.max(margin,Math.min(10000-margin,arenaState.py+(Math.random()-.5)*1800))}
- if(side===1){x=Math.min(10000-margin,arenaState.px+(900+Math.random()*1400));y=Math.max(margin,Math.min(10000-margin,arenaState.py+(Math.random()-.5)*1800))}
- if(side===2){y=Math.max(margin,arenaState.py-(900+Math.random()*1400));x=Math.max(margin,Math.min(10000-margin,arenaState.px+(Math.random()-.5)*1800))}
- if(side===3){y=Math.min(10000-margin,arenaState.py+(900+Math.random()*1400));x=Math.max(margin,Math.min(10000-margin,arenaState.px+(Math.random()-.5)*1800))}
+ if(side===0){x=Math.max(margin,arenaState.px-(900+Math.random()*1400));y=Math.max(margin,Math.min(arenaState.world-margin,arenaState.py+(Math.random()-.5)*1800))}
+ if(side===1){x=Math.min(arenaState.world-margin,arenaState.px+(900+Math.random()*1400));y=Math.max(margin,Math.min(arenaState.world-margin,arenaState.py+(Math.random()-.5)*1800))}
+ if(side===2){y=Math.max(margin,arenaState.py-(900+Math.random()*1400));x=Math.max(margin,Math.min(arenaState.world-margin,arenaState.px+(Math.random()-.5)*1800))}
+ if(side===3){y=Math.min(arenaState.world-margin,arenaState.py+(900+Math.random()*1400));x=Math.max(margin,Math.min(arenaState.world-margin,arenaState.px+(Math.random()-.5)*1800))}
  if(blocked(x,y,24))return;
  arenaState.enemies.push(makeMob(x,y,arenaTier(arenaState)));
 }
@@ -223,7 +223,7 @@ function growMob(e){
 function cultScore(e){return (e.columns||0)*100+(e.stars||0)}
 function tryBreakthrough(i){
  const s=arenaState,b=s.bosses[i],z=(s.springs||[]).find(q=>q.bz===(b.zone||b.index||i+1));if(!z)return false;
- const need=((b.index||i+1)-1)*100+100-30;let best=null;
+ const need=(bossPidx(b.index||i+1)-1)*100+100-30;let best=null;
  for(const m of s.enemies){if(m.hp<=0||m.isBoss)continue;if(Math.hypot(m.x-z.x,m.y-z.y)>z.r*RING_MID)continue;if(cultScore(m)<need)continue;if(!best||cultScore(m)>cultScore(best))best=m}
  if(!best)return false;
  const nb=newBoss(b.index||i+1,b.zone);nb.x=best.x;nb.y=best.y;best.hp=0;best.removed=true;s.bosses[i]=nb;
@@ -466,7 +466,7 @@ function drawLoot(time){
 }
 
 /* ---- армии боссов: босс держит под контролем мобов (e.lord = номер босса, e.team — то же для боевых проверок) ---- */
-function armyCap(b){return 6+4*(b.index||1)}
+function armyCap(b){return 6+4*bossPidx(b.index||1)}
 function armyOf(idx){return arenaState.enemies.filter(m=>m.hp>0&&m.lord===idx)}
 function recruitTick(){
  const s=arenaState,pl=m=>Math.hypot(m.x-s.px,m.y-s.py);

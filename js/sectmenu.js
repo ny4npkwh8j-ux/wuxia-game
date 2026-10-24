@@ -113,7 +113,7 @@ function sectOrderStep(e,dt){
   if(huntStep(e,dt,true))return true;
   e.hrT=(e.hrT||0)-dt;
   if(!e.hr||e.hrT<=0||Math.hypot(e.hr.x-e.x,e.hr.y-e.y)<70){
-   for(let k=0;k<6;k++){const a=Math.random()*TAU,r=700+Math.random()*1100,x=Math.max(120,Math.min(9880,s.px+Math.cos(a)*r)),y=Math.max(120,Math.min(9880,s.py+Math.sin(a)*r));if(!forbidZone(e,x,y)){e.hr={x,y};break}}
+   for(let k=0;k<6;k++){const a=Math.random()*TAU,r=700+Math.random()*1100,x=Math.max(120,Math.min(s.world-120,s.px+Math.cos(a)*r)),y=Math.max(120,Math.min(s.world-120,s.py+Math.sin(a)*r));if(!forbidZone(e,x,y)){e.hr={x,y};break}}
    e.hrT=10+Math.random()*10;
   }
   if(e.hr)go(e.hr.x,e.hr.y,.6);

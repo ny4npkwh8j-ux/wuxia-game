@@ -1,7 +1,10 @@
 'use strict';
 /* ===== схематичная карта: туман войны. save.mapSeen — строка из '0'/'1' (сетка MAP_N×MAP_N, клетка 200), новый ключ сохранения ===== */
-const MAP_N=50,MAP_CELL=200,MAP_VIEW=650;
-function mapSeenArr(){if(typeof save.mapSeen!=='string'||save.mapSeen.length!==MAP_N*MAP_N)save.mapSeen='0'.repeat(MAP_N*MAP_N);return save.mapSeen}
+const MAP_N=50,MAP_CELL=400,MAP_VIEW=650;
+/* карта выросла вдвое по радиусу: клетка 400 вместо 200; старые открытые клетки переносятся в новую сетку (save.mapV=2) */
+function mapSeenArr(){if(typeof save.mapSeen!=='string'||save.mapSeen.length!==MAP_N*MAP_N)save.mapSeen='0'.repeat(MAP_N*MAP_N);
+ if(save.mapV!==2){const o=save.mapSeen,n=new Array(MAP_N*MAP_N).fill('0');for(let y=0;y<MAP_N;y++)for(let x=0;x<MAP_N;x++)if(o[y*MAP_N+x]==='1')n[(y>>1)*MAP_N+(x>>1)]='1';save.mapSeen=n.join('');save.mapV=2}
+ return save.mapSeen}
 let mapLast=-1,mapDirty=false,mapSaveT=0;
 function mapTick(dt){
  const s=arenaState;if(!s)return;
@@ -17,7 +20,7 @@ function openMap(){$('mapModal').classList.add('show');drawMiniMap()}
 function closeMap(){$('mapModal').classList.remove('show')}
 function drawMiniMap(){
  const s=arenaState,cv=$('mapCv'),chEl=$('mapChron');if(chEl){const a=(s&&s.chron||[]).slice(-12).reverse();chEl.innerHTML=a.length?a.map(x=>'<div>'+new Date(x.t).toLocaleTimeString('ru',{hour:'2-digit',minute:'2-digit'})+' · '+x.m+'</div>').join(''):'<div style="opacity:.6">Пока тихо…</div>'}
- const W=Math.min(360,Math.floor(innerWidth-70)),k=W/10000;
+ const W=Math.min(360,Math.floor(innerWidth-70)),k=W/WORLD;
  cv.width=cv.height=W;const g=cv.getContext('2d');
  g.fillStyle='#0a1020';g.fillRect(0,0,W,W);
  const seen=mapSeenArr(),c=MAP_CELL*k;
