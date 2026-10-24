@@ -81,24 +81,28 @@ function bossFrame(c,img,m,x,y,sc,al){const w=m[2]*sc,h=m[3]*sc;c.globalAlpha=al
 function drawBoss(W,H,time){for(const b of aliveBosses(arenaState))drawBossOne(b,W,H,time)}
 function drawBossOne(b,W,H,time){
  const s=arenaState;const p=worldToScreen(b.x,b.y);if(p.x<-150||p.x>W+150||p.y<-150||p.y>H+150)return;
- const t2=b.tier===2,aur=t2?'#ff8a3a':'#ffd85b',w=b.wind,wk=w?w.t/w.dur:0,o=SPR.boss,m=BOSSP[t2?'master':'elite'];
+ const t2=b.tier===2,aur=beastOf(b).aur,w=b.wind,wk=w?w.t/w.dur:0,o=SPR.boss,m=BOSSP[t2?'master':'elite'];
  ax.save();ax.translate(p.x,p.y);ax.globalCompositeOperation='lighter';ax.rotate(time*.5);
  ax.strokeStyle=aur+'99';ax.lineWidth=2;ax.setLineDash([16,9]);ax.beginPath();ax.arc(0,0,66,0,TAU);ax.stroke();ax.setLineDash([]);
  for(let i=0;i<8;i++){ax.save();ax.rotate(i*TAU/8);ax.translate(66,0);ax.fillStyle=aur+'cc';ax.fillRect(-2.5,-5,5,10);ax.restore()}
  ax.restore();
  ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y,72*(1+.05*Math.sin(time*3))+10*wk,aur,.5+.25*wk);ax.globalCompositeOperation='source-over';
  ax.fillStyle='rgba(0,0,0,.3)';ax.beginPath();ax.ellipse(p.x+2,p.y+42,34,11,0,0,TAU);ax.fill();
- if(o.ok){
-  const mv=b.mv||0,bob=-10-Math.abs(Math.sin(b.wp||0))*2.6*mv,sway=Math.sin(b.wp||0)*.04*mv,lean=Math.cos(b.ang||0)*.05,pulse=w?1+.05*Math.sin(time*26)*wk+.04*wk:1,flip=Math.cos(b.ang||0)<-.2?-1:1;
+ if(true){/* звери вместо старого спрайта босса; старая ветка ниже оставлена как запасная */
+  if(true){const k=b.beast||beastKind(b.index),mv=b.mv||0,pulse=w?1+.05*Math.sin(time*26)*wk+.04*wk:1;
+   ax.save();ax.translate(p.x,p.y);ax.rotate(b.ang||0);ax.scale(1.25*pulse,1.25*pulse);drawBeastShape(ax,k,time,b.wp||0,mv,0,w);
+   if(b.hit>0){ax.globalAlpha=Math.min(.8,b.hit/.2*.8);drawBeastShape(ax,k,time,b.wp||0,mv,1,w);ax.globalAlpha=1}
+   ax.restore()}
+  else{const mv=b.mv||0,bob=-10-Math.abs(Math.sin(b.wp||0))*2.6*mv,sway=Math.sin(b.wp||0)*.04*mv,lean=Math.cos(b.ang||0)*.05,pulse=w?1+.05*Math.sin(time*26)*wk+.04*wk:1,flip=Math.cos(b.ang||0)<-.2?-1:1;
   ax.save();ax.translate(p.x,p.y+40);ax.rotate(sway+lean);ax.scale(flip,1);ax.translate(0,-40);
   bossFrame(ax,o.img,m,0,bob,BOSS_S*pulse,1);
   if(b.hit>0){const wt=tinted('boss','#ffffff');if(wt)bossFrame(ax,wt,m,0,bob,BOSS_S*pulse,Math.min(.75,b.hit/.2*.75))}
   if(w){const rt=tinted('boss','#ff4030');if(rt)bossFrame(ax,rt,m,0,bob,BOSS_S*pulse,.25+.3*wk)}
-  ax.globalAlpha=1;ax.restore();
+  ax.globalAlpha=1;ax.restore()}
  }else drawFighter(ax,{x:p.x,y:p.y,ang:b.ang||0,sc:1.55,pal:t2?PAL.boss2:PAL.boss,wp:b.wp||0,mv:b.mv||0,t:time,seed:1.7,flash:b.hit>0?Math.min(1,b.hit/.2):0,pose:w?'raise':'',aura:aur,auraR:60,auraA:.55,crown:true,fistGlow:aur});
  if(w){ax.globalCompositeOperation='lighter';const fx=p.x+Math.cos(b.ang)*36,fy=p.y+Math.sin(b.ang)*26;glow(ax,fx,fy,10+34*wk,'#ff5a4a',.9);ax.globalCompositeOperation='source-over'}
  ax.globalCompositeOperation='lighter';for(let i=0;i<3;i++){const a=time*1.4+i*TAU/3;glow(ax,p.x+Math.cos(a)*54,p.y+Math.sin(a)*46,9,aur,.9)}ax.globalCompositeOperation='source-over';
  if(b.shield>0)shieldBubble(ax,p.x,p.y,62,1,0,time);
  drawBar(ax,p.x,p.y-72,78,b.hp/b.maxHp,7);
- outText(ax,(t2?'ПРАКТИК':'БОСС')+' · 100 ★'+(b.core?' · ЯДРО ×'+b.core.toFixed(1)+(b.dens?' ('+b.dens+'/5)':''):(b.columns?' · '+b.columns+' КОЛОННА':''))+(b.cult?' · КУЛЬТИВИРУЕТ':'')+(arenaState&&arenaState.enemies.some(m=>m.lord===b.index)?' · армия '+arenaState.enemies.filter(m=>m.hp>0&&m.lord===b.index).length:''),p.x,p.y-80,'#fff',11);
+ outText(ax,beastOf(b).name+' · '+(b.core?' · ЯДРО ×'+b.core.toFixed(1)+(b.dens?' ('+b.dens+'/5)':''):(b.columns?' · '+b.columns+' КОЛОННА':''))+(b.cult?' · КУЛЬТИВИРУЕТ':'')+(arenaState&&arenaState.enemies.some(m=>m.lord===b.index)?' · армия '+arenaState.enemies.filter(m=>m.hp>0&&m.lord===b.index).length:''),p.x,p.y-80,'#fff',11);
 }
