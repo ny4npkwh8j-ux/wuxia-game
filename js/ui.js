@@ -23,7 +23,7 @@ function updateArenaUI(){
  $('hpBar').style.width=Math.max(0,(typeof soulHpFrac==='function'?soulHpFrac(s):s.hp/s.maxHp)*100)+'%';const qp=save.maxQi?Math.max(0,Math.min(100,qi/save.maxQi*100)):0;$('qiBar').style.width=qp+'%';setTxt($('qiBarText'),Math.floor(qi)+' / '+Math.floor(save.maxQi));$('arenaRewards').textContent=Math.floor(save.rewards);$('arenaRewards2').textContent=Math.floor(save.rewards2);$('enemyCount').textContent=s.enemies.filter(e=>e.hp>0).length;
  rebuildTechButtons();npcTick();
  for(const b of $('techCol').querySelectorAll('.tbtn')){
-  const t=save.techniques[+b.dataset.i];if(!t)continue;const lab=b.querySelector('small'),cost=techCost(t);
+  const t=arenaTechs()[+b.dataset.i];if(!t)continue;const lab=b.querySelector('small'),cost=techCost(t);
   if(t.type==='qiArea'&&s.cdArea>0){setTxt(lab,TECH_SHORT.qiArea+'\n'+s.cdArea.toFixed(1)+' с');setSkB(b,true,s.cdArea/AREA_CD.qiArea,'rgba(0,0,0,.62)')}
   else if(t.type==='qiSingle'||t.type==='qiArea'){
    const chg=s.qiCharge&&s.qiCharge.type===t.type,heldSec=chg?Math.min(CHARGE_MAX,(performance.now()-s.qiCharge.start)/1000):0,f=chargeFactor(heldSec),liveCost=Math.max(1,Math.round(techCost(t)*f));

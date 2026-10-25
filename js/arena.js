@@ -72,7 +72,10 @@ function circleRectRaw(x,y,r,o){const cx=Math.max(o.x-o.w/2,Math.min(x,o.x+o.w/2
 function saveArenaCheckpoint(){
  if(!arenaState)return;
  const cp={world:arenaState.world,px:arenaState.px,py:arenaState.py,camx:arenaState.camx,camy:arenaState.camy,hp:arenaState.hp,maxHp:arenaState.maxHp,enemies:arenaState.enemies.filter(e=>e.hp>0),orbs:arenaState.orbs,chests:arenaState.chests,points:arenaState.points,hazards:arenaState.hazards,obstacles:arenaState.obstacles,bosses:arenaState.bosses,springs:arenaState.springs||[],sects:arenaState.sects||[],chron:arenaState.chron||[],loot:arenaState.loot||[]};
+ /* душа вне тела: в снимок идёт состояние тела; захваченные тела снова становятся обычными */
+ {const B=arenaState.body;if(B){cp.px=cp.camx=B.x;cp.py=cp.camy=B.y;cp.hp=B.dead?Math.max(1,B.maxHp*.1):B.hp;cp.maxHp=B.maxHp}}
  save.arenaCheckpoint=JSON.parse(JSON.stringify(cp));
+ for(const e of save.arenaCheckpoint.enemies.concat(save.arenaCheckpoint.bosses||[]))if(e&&e.vessel){e.vessel=false;e.foeId=null}
  storeSave();try{localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);localStorage.setItem('wuxiaSaveSchema',SAVE_SCHEMA)}catch(e){}
 }
 /* после перезагрузки счётчик id начинался с 1 и новые существа получали id уже существующих — ссылки (бой, секта, хозяин зоны) путались.
@@ -149,16 +152,19 @@ function arenaLoop(t){
  s.camx+=(s.px-s.camx)*.18;s.camy+=(s.py-s.camy)*.18;s.attackAnim=Math.max(0,s.attackAnim-dt);
  for(const e of s.enemies){
   if(e.hp<=0)continue;
+  if(e.vessel){e.x=s.px;e.y=s.py;e.ang=s.facing||0;e.hp=Math.max(0,s.hp);e.mv=s.mv||0;e.wp=s.wp||0;e.hit=Math.max(0,e.hit-dt);continue}/* захваченное душой тело: им управляет игрок */
   entTick(e,dt);
   if(e.stun>0){e.stun-=dt;e.mv=0;e.hit=Math.max(0,e.hit-dt);continue}
   if(duelStep(e,dt)){e.hit=Math.max(0,e.hit-dt);continue}
   if(fearStep(e,dt))continue;
   const dx=s.px-e.x,dy=s.py-e.y,d=Math.hypot(dx,dy)||1,seePlayer=aggroCheck(e,d,dt);
   if(seePlayer){e.seenT=TARGET_MEMORY_TIME;e.lastX=s.px;e.lastY=s.py}else e.seenT=Math.max(0,(e.seenT||0)-dt);
-  const engaged=seePlayer||e.seenT>0;
+  /* оставленное душой тело тоже цель: враги его видят и бьют */
+  let bodyD=1e9;if(s.body&&!s.body.dead&&!seePlayer){bodyD=Math.hypot(s.body.x-e.x,s.body.y-e.y);if(!aggroCheck(e,bodyD,dt))bodyD=1e9}
+  const atBody=!seePlayer&&bodyD<1e9,engaged=seePlayer||atBody||e.seenT>0;
   const ox=e.x,oy=e.y;
   if(engaged){
-   const tgx=seePlayer?dx:e.lastX-e.x,tgy=seePlayer?dy:e.lastY-e.y;e.ang=Math.atan2(tgy,tgx);
+   const tgx=seePlayer?dx:atBody?s.body.x-e.x:e.lastX-e.x,tgy=seePlayer?dy:atBody?s.body.y-e.y:e.lastY-e.y;e.ang=Math.atan2(tgy,tgx);
    if(!(seePlayer&&mobAI(e,dt,d)))moveEnemy(e,Math.cos(e.ang)*e.s*dt,Math.sin(e.ang)*e.s*dt);
   }else{
    mobIdle(e,dt);
@@ -166,6 +172,7 @@ function arenaLoop(t){
   for(const o of s.enemies){if(o===e||o.hp<=0)continue;const sx=e.x-o.x,sy=e.y-o.y,sd=Math.hypot(sx,sy)||1,mn=e.r+o.r+3;if(sd<mn){e.x+=sx/sd*(mn-sd)*.5;e.y+=sy/sd*(mn-sd)*.5}}
   const md=Math.hypot(e.x-ox,e.y-oy);e.mv=(e.mv||0)+((md>.05?1:0)-(e.mv||0))*Math.min(1,dt*8);e.wp=(e.wp||0)+md*.13;e.atk=Math.max(0,(e.atk||0)-dt);
   if(seePlayer&&d<45&&e.mcd<=0){takeDamage(entMelee(e),'melee');e.mcd=.65;e.atk=.32}
+  else if(atBody&&bodyD<45&&e.mcd<=0){bodyHit(entMelee(e),'melee');e.mcd=.65;e.atk=.32}
   e.hit=Math.max(0,e.hit-dt);
  }
  bossLoop(dt);warTick(dt);lootPickups(dt);collect();updateHeal(dt);pillTick(dt);mapTick(dt);cultOnlineTick(dt);
@@ -209,7 +216,7 @@ function drawArena(time){
  for(const e of s.enemies){if(e.hp>0)drawEnemy(e,W,H,time)}
  drawBoss(W,H,time);
  drawNpcs(time);drawTradeHint(time);
- drawSoulBody(time);if(s.soulOut)ax.globalAlpha=.6;drawPlayer(time);ax.globalAlpha=1;
+ drawSoulBody(time);if(s.soulOut)drawSoulBall(time);else if(!s.poss)drawPlayer(time);
  drawDecoy(time);
  for(const fx of s.qiEffects)drawQiFx(fx,time);
  for(const sl of s.slashes)drawSlash(sl);

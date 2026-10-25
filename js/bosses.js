@@ -45,6 +45,7 @@ function bossLoop(dt){
   if(b.hp<=0){b.respawnT=(b.respawnT==null?BOSS_RESPAWN:b.respawnT)-dt;
    if(b.respawnT<BOSS_RESPAWN-45){b.brkT=(b.brkT||0)+dt;if(b.brkT>=5){b.brkT=0;if(Math.random()<.5&&tryBreakthrough(i))continue}}
    if(b.respawnT<=0){s.bosses[i]=newBoss(b.index||i+1,b.zone);toast('Босс '+(b.index||i+1)+' возродился');chron('Босс '+(b.index||i+1)+' возродился');}continue}
+  if(b.vessel){b.x=s.px;b.y=s.py;b.ang=s.facing||0;b.hp=Math.max(0,s.hp);b.mv=s.mv||0;b.wp=s.wp||0;b.hit=Math.max(0,(b.hit||0)-dt);continue}/* захвачен душой игрока */
   bossStep(b,dt)}
 }
 function bossStep(b,dt){

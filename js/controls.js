@@ -29,7 +29,7 @@ function applyKbMove(){
  else if(kb.moving){kb.moving=false;if(joyId===null){s.dx=0;s.dy=0}}
 }
 function techKeyDown(i){
- const s=arenaState,t=save.techniques[i];if(!s||!t)return false;
+ const s=arenaState,t=arenaTechs()[i];if(!s||!t)return false;
  if(!s.kbAim)s.shootAng=s.facing;else updateMouseAim();
  switch(t.type){
   case 'qiSingle':case 'qiArea':beginQiCharge(t.type);break;
@@ -42,7 +42,7 @@ function techKeyDown(i){
  return true;
 }
 function techKeyUp(i){
- const s=arenaState,t=save.techniques[i];if(!s||!t)return;
+ const s=arenaState,t=arenaTechs()[i];if(!s||!t)return;
  if(t.type==='qiSingle'||t.type==='qiArea'){if(s.kbAim)updateMouseAim();else s.shootAng=s.facing;endQiCharge(t.type,t)}
  else if(t.type==='stun')endChannel();
  else if(t.type==='heal')endHeal();

@@ -100,7 +100,9 @@ function myToughness(){return toughness(save.pillars,save.pillarCoef,myCore())*(
 function entToughness(e){return toughness(e.columns||0,entCoef(e),e.core||0)}
 function techShieldMax(t){return TECH_BASE.shield*techniquePower(t.nodes.length,save.stars)*bodyHp(save.stars)*myQiCol()}
 function entShieldMax(e){const S=e.stars||0;return TECH_BASE.shield*techniquePower(Math.min(PATH_CAP,S),S)*bodyHp(S)*qiColVolume(e.maxQi,S,e.core||0)}
-function techCost(t){if(t.type==='dodge')return Math.ceil(save.maxQi*.05);if(t.type==='qiShield')return 0;return Math.ceil((TECH_COST[t.type]+.3*save.stars)*myQiVol())}
+/* рывок: 5% от запаса Ци, но после 400 Ци цена растёт не быстрее 3% от запаса */
+function dodgeCost(maxQi){return Math.ceil(Math.min(.05*maxQi,Math.max(400,.03*maxQi)))}
+function techCost(t){if(t.type==='dodge')return dodgeCost(save.maxQi);if(t.type==='qiShield')return 0;return Math.ceil((TECH_COST[t.type]+.3*save.stars)*myQiVol())}
 function castTime(base){return Math.max(.3,base-.1*(save.meridians||0))}
 function starRegen(){return .5*Math.min(100,save.stars)/100}
 function spendStarCost(cost){const useQi=Math.min(Math.floor(save.qi),cost);save.qi-=useQi;const rest=cost-useQi;if(rest>0)save.rewards-=rest;return rest}

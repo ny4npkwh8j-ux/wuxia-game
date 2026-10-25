@@ -30,7 +30,7 @@ const ENT_V=4;
 /* дальность техник: у боссов длиннее */
 const ENT_RANGE={mob:{single:300,area:350,stun:500},boss:{single:600,area:450,stun:500}};
 /* цена техник — по тем же правилам, что и у игрока */
-function entCost(e,t){return t==='dodge'?Math.ceil(.05*e.maxQi):t==='qiShield'?0:Math.ceil((TECH_COST[t]+.3*(e.stars||0))*entQiVol(e))}
+function entCost(e,t){return t==='dodge'?dodgeCost(e.maxQi):t==='qiShield'?0:Math.ceil((TECH_COST[t]+.3*(e.stars||0))*entQiVol(e))}
 /* здоровье, сила и запас Ци — по тем же формулам, что у игрока (bodyHp / bodyStr / bodyQi) */
 function applyKit(e,kit){
  if(kit.columns!=null)e.columns=kit.columns;
@@ -52,6 +52,7 @@ function rerollLiveMobs(bossIndex){
  for(const e of s.enemies){if(e.hp<=0)continue;const k=rollKit(bossIndex);if(cultScore(e)>=(k.columns||0)*100+k.stars)continue;/* выросшие сами не сбрасываются */applyKit(e,k);if(!k.columns)e.columns=0;e.s=(45+Math.random()*25)*(1+k.stars/500)}
 }
 function damageEnemy(e,damage,src,melee){
+ if(e.vessel)return false;/* своё захваченное тело не бьём */
  if(src!=='ent'&&isMate(e))return false;/* своих по секте игрока удар не берёт */
  if(src!=='ent')provoke(e);
  if(melee)damage*=1-entArmorCut(e);
@@ -88,7 +89,7 @@ function mobAI(e,dt,d){
    return true;
   }
  }
- const dc=Math.ceil(.05*e.maxQi);
+ const dc=dodgeCost(e.maxQi);
  if(tc.includes('dodge')&&cd.dash<=0&&d>240&&d<650&&e.qi>=dc){
   const dist=Math.min(dashDist(e.stars),d-70);
   if(dist>40){e.qi-=dc;burst(e.x,e.y,8,'#69ef8b',150,.35,2.6);(boss?moveBoss:moveEnemy)(e,Math.cos(e.ang)*dist,Math.sin(e.ang)*dist);burst(e.x,e.y,8,'#69ef8b',150,.35,2.6);cd.dash=dashCdOf(e.stars)*2+(boss?1.5:3);if(boss)toast('Босс применил Рывок')}

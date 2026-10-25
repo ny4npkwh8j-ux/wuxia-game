@@ -67,7 +67,7 @@ function techniqueDescription(type,n){
  const t={type,nodes:{length:n}};
  if(type==='stun')return 'Зажми '+castTime(5).toFixed(1)+' с · радиус 500 · урон 10 · перезарядка '+AREA_CD.stun+' с · оглушение до '+stunMaxDur(n).toFixed(1)+' с (сила '+fmt(myMult(t))+' против силы цели) · Ци '+techCost(t)+' · минимум 20 ★.';
  if(type==='qiShield')return 'Личный щит (жёлтое свечение): после щита урон уходит в запас Ци, 1 урона за 0,5 Ци · минимум 20 ★.';
- if(type==='dodge')return 'Рывок на '+Math.round(dashDist(n))+' · перезарядка '+dashCdOf(n).toFixed(1)+' с · Ци '+techCost(t)+' (5% от макс.) · звёзды на обеих ногах, минимум 3 ★.';
+ if(type==='dodge')return 'Рывок на '+Math.round(dashDist(n))+' · перезарядка '+dashCdOf(n).toFixed(1)+' с · Ци '+techCost(t)+' (5% от макс., не больше 3% после 400) · звёзды на обеих ногах, минимум 3 ★.';
  if(type==='shield')return 'Щит: прочность '+fmt(techShieldMax(t))+' · Ци '+techCost(t)+' · минимум 5 ★.';
  if(type==='heal')return 'Держи, пока не отпустишь: 3 Ци = 1 HP (остаток не сгорает), скорость вложения '+healRate(t).toFixed(1)+' Ци/с. Нужен треугольник из звёзд торса вокруг Дань-тяня, минимум 3 ★.';
  if(type==='qiSingle')return 'Держи для набора силы (0,4-1,5x, до 1,2 с) · конус 300 · урон '+fmt(techDamage(t))+' на полной силе: как пуля — первая цель получает весь удар, каждая цель на пути поглощает часть силы (слабых пробивает насквозь, сильная останавливает) · минимум 5 ★ · Ци '+techCost(t)+' на полной силе.';
@@ -157,8 +157,8 @@ const TECH_RINGS=[[100,3,90],[168,5,90],[236,3,60]];
 function techSlots(){const out=[];for(const [r,n,span] of TECH_RINGS)for(let i=0;i<n;i++){const a=(n>1?span-span*i/(n-1):0)*Math.PI/180;out.push({x:32-r*Math.sin(a),y:32-r*Math.cos(a)})}return out}
 function techVisible(){return techSlots().length}
 function rebuildTechButtons(force){
- const list=save.techniques,slots=techSlots(),over=list.length>slots.length,vis=over?slots.length-1:slots.length;techPage=Math.max(0,Math.min(techPage,Math.max(0,list.length-vis)));
- const sig=list.map(t=>t.type).join('|')+'#'+techPage;if(!force&&sig===techSig)return;techSig=sig;
+ const list=arenaTechs(),slots=techSlots(),over=list.length>slots.length,vis=over?slots.length-1:slots.length;techPage=Math.max(0,Math.min(techPage,Math.max(0,list.length-vis)));
+ const sig=list.map(t=>t.type).join('|')+'#'+techPage+(arenaState&&arenaState.poss?'P':'');if(!force&&sig===techSig)return;techSig=sig;
  const col=$('techCol');col.innerHTML='';
  const mk=(cls,html)=>{const b=document.createElement('button');b.className=cls;b.innerHTML=html;return b};
  const put=(b,s,w,h)=>{b.style.left=(s.x-w/2)+'px';b.style.top=(s.y-h/2)+'px'};
@@ -170,7 +170,7 @@ function rebuildTechButtons(force){
  if(over){const pg=mk('skill pager','⟳ '+(techPage>0?Math.ceil(techPage/vis)+1:1)+'/'+Math.ceil(list.length/vis));put(pg,slots[slots.length-1],46,30);pg.onclick=()=>{techPage=techPage+vis>=list.length?0:Math.min(techPage+vis,list.length-vis);rebuildTechButtons()};pg.addEventListener('pointerdown',e=>e.stopPropagation());col.appendChild(pg)}
 }
 function bindTechButton(b,k,type){
- const T=()=>save.techniques[k],stop=e=>{e.preventDefault();e.stopPropagation()};
+ const T=()=>arenaTechs()[k],stop=e=>{e.preventDefault();e.stopPropagation()};
  if(type==='qiSingle'){b.addEventListener('pointerdown',()=>beginQiCharge('qiSingle'));wireAimButton(b,b.querySelector('.aimdot'),()=>endQiCharge('qiSingle',T()));b.addEventListener('pointercancel',()=>cancelQiCharge('qiSingle'));return}
  if(type==='qiArea'){b.addEventListener('pointerdown',e=>{stop(e);b.setPointerCapture?.(e.pointerId);beginQiCharge('qiArea')});b.addEventListener('pointerup',e=>{stop(e);endQiCharge('qiArea',T())});b.addEventListener('pointercancel',()=>cancelQiCharge('qiArea'));b.addEventListener('lostpointercapture',()=>cancelQiCharge('qiArea'));return}
  if(type==='stun'){b.addEventListener('pointerdown',e=>{stop(e);b.setPointerCapture?.(e.pointerId);beginChannel(T())});b.addEventListener('pointerup',e=>{stop(e);endChannel()});b.addEventListener('pointercancel',endChannel);b.addEventListener('lostpointercapture',endChannel);return}

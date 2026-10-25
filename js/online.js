@@ -15,10 +15,10 @@ const HOLD={
  soul:{modal:'soulModal',ok:()=>soulCanGrow(),rate:()=>soulHoldRate(),room:()=>soulQiCost()-(save.soulDeposit||0),add:n=>{save.soulDeposit=(save.soulDeposit||0)+n},ui:()=>renderSoul()},
  dens:{modal:'coreModal',ok:()=>hasCore()&&(save.coreDens||0)<CORE_DENS_MAX,rate:densHoldRate,room:()=>densQiCost()-(save.coreDeposit||0),add:n=>{save.coreDeposit=(save.coreDeposit||0)+n},ui:()=>renderCore()}
 };
-let holdK=null,holdLast=0,holdUiT=0,holdSaveT=0,holdRaf=0;
+let holdT=0,holdK=null,holdLast=0,holdUiT=0,holdSaveT=0,holdRaf=0;
 function holdStart(k){
  if(holdK)return;const h=HOLD[k];if(!h||!h.ok()||h.room()<=0)return;
- holdK=k;holdLast=performance.now();holdUiT=0;holdSaveT=0;holdRaf=requestAnimationFrame(holdLoop);
+ holdK=k;holdT=0;holdLast=performance.now();holdUiT=0;holdSaveT=0;holdRaf=requestAnimationFrame(holdLoop);
  const b=document.querySelector('[data-hold="'+k+'"]');if(b)b.classList.add('holding');
 }
 function holdStop(){
@@ -30,7 +30,8 @@ function holdLoop(now){
  if(!holdK)return;const h=HOLD[holdK],dt=Math.min(.1,Math.max(0,(now-holdLast)/1000));holdLast=now;
  if(!h.ok()||h.room()<=0||!$(h.modal).classList.contains('show')){holdStop();return}
  /* пока Ци нет, держишь дальше: поток продолжится, когда Ци восполнится (в зоне Ци это идёт само) */
- const n=Math.min(h.rate()*dt,Math.max(0,save.qi),h.room());
+ holdT+=dt;/* скорость растёт каждую секунду на базовую (арифметическая прогрессия): 1×, 2×, 3×… */
+ const n=Math.min(h.rate()*(1+holdT)*dt,Math.max(0,save.qi),h.room());
  if(n>0){save.qi-=n;h.add(n)}
  holdUiT+=dt;if(holdUiT>=.08){holdUiT=0;h.ui();updateUI()}
  holdSaveT+=dt;if(holdSaveT>=4){holdSaveT=0;persist()}
