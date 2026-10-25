@@ -78,7 +78,7 @@ function techniqueDescription(type,n){
 /* какие зоны тела допустимы в маршруте техники (торс разрешён всегда как соединительная зона) */
 const TECH_ZONES={shield:{head:1},dodge:{leg:1},qiSingle:{hand:1},qiArea:{hand:1},stun:{head:1,leg:1},qiShield:{head:1,hand:1},heal:{},blade:{hand:1,leg:1},repel:{head:1,hand:1,leg:1},pull:{},mirage:{leg:1},poison:{hand:1}};
 /* самый длинный допустимый маршрут по звёздам и меридианам игрока для типа техники (поиск в глубину с ограничением шагов) */
-function findBestChain(type,cap=PATH_CAP){
+function findBestChain(type,cap=Infinity){
  const zs=TECH_ZONES[type];if(!zs)return null;
  const N=save.starPts.length;if(N<(MIN_STARS[type]||1))return null;
  const adj=Array.from({length:N},()=>[]);
@@ -105,7 +105,7 @@ function findBestChain(type,cap=PATH_CAP){
    если есть — заменяется только более длинным маршрутом. Если маршрута нет совсем — выдаётся чертёж-подсказка. */
 function autoFormTechnique(type){
  const path=findBestChain(type);
- if(!path){addBlueprint({type,n:PATH_CAP,tier:'high',src:'boss'});return{mode:'bp'}}
+ if(!path){addBlueprint({type,n:100,tier:'high',src:'boss'});return{mode:'bp'}}
  const tech={type,name:techniqueName(type),nodes:path};if(type==='stun')tech.cast=5;
  const ex=save.techniques.findIndex(t=>t.type===type);
  if(ex<0){save.techniques.push(tech);persist();return{mode:'new',n:path.length}}

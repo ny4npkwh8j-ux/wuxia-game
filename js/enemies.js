@@ -163,7 +163,7 @@ function mobDrop(e){
  const newType=t=>(t==='qiShield'||t==='stun')&&!hasScroll(t);
  let type=techs[Math.floor(Math.random()*techs.length)];
  if(newType(type)){if(Math.random()>.01){const alt=techs.filter(t=>!newType(t));if(!alt.length)return;type=alt[Math.floor(Math.random()*alt.length)]}}
- const n=Math.max(MIN_STARS[type],Math.min(PATH_CAP,e.stars||MIN_STARS[type])),tier=(e.stars||0)<=10?'low':'mid';
+ const n=Math.max(MIN_STARS[type],e.stars||MIN_STARS[type]),tier=(e.stars||0)<=10?'low':'mid';
  const bp=addBlueprint({type,n,tier,src:'mob'});
  cornerToast('📄 '+techniqueName(type)+' · '+n+' ★');floatText(e.x,e.y-52,'📄 '+techniqueName(type),'#e6d0ff',14);
 }

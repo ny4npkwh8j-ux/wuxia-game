@@ -64,7 +64,8 @@ function qiColVolume(maxQi,stars,core){return Math.max(1,qiVolume(maxQi,stars))}
 function colQiMult(avg){return 1+.5*Math.max(0,Math.min(1,((avg||.3)-.3)))}/* бонус Ци колонн при слиянии в ядро: ×1 (низшее качество) … ×1.5 (высшее) */
 function coreDensQi(coef){return Math.round(1000*Math.max(.3,Math.min(1,(coef||0)/CORE_MULT_MAX)))}/* прибавка Ци за стадию уплотнения: ~1000 при высшем качестве ядра */
 /* техника на полную длину (столько звёзд, сколько есть, но не больше PATH_CAP) = 1; каждая недостающая звезда -5% */
-function techniquePower(n,stars){const ref=Math.min(PATH_CAP,Math.max(3,Math.floor(stars||0)));return Math.pow(1.05,Math.min(PATH_CAP,Math.max(0,n))-ref)}
+/* эталон — маршрут в min(40, звёзд) звёзд = 1; каждая недостающая звезда −5%, каждая лишняя сверх 40 — +5% (длина техники больше не ограничена 40) */
+function techniquePower(n,stars){const ref=Math.min(PATH_CAP,Math.max(3,Math.floor(stars||0)));return Math.pow(1.05,Math.max(0,n)-ref)}
 function colFactor(cols,M){return cols>0?Math.pow(M||1,cols):1}
 /* множитель стадии: ядро (если есть) вместо колонн; ядро усиливает всё: здоровье, силу, Ци, силу техник и стойкость */
 function stageFactor(cols,M,core){return core>0?core:colFactor(cols,M)}
@@ -76,17 +77,17 @@ function myStage(){return stageFactor(save.pillars,save.pillarCoef,myCore())}
 function myQiVol(){return qiVolume(save.maxQi,save.stars)}
 function myQiCol(){return qiColVolume(save.maxQi,save.stars,myCore())}
 function myMult(t){return techniquePower(t.nodes.length,save.stars)*bodyHp(save.stars)*myStage()*myQiCol()}
-function mobMult(stars){return powerMult(Math.min(PATH_CAP,stars),stars,0,1)}
+function mobMult(stars){return powerMult(stars,stars,0,1)}
 /* качество колонн босса не ниже лучшего в игре и не ниже качества колонн самого игрока (чтобы боссы не отставали от прокачанного игрока) */
 function bossCoef(){return Math.max(PILLAR_Q[0][3],save.pillarCoef||0)}
 /* качество колонн противника: босс — по лучшему/по игроку, моб с колоннами — лучшее из таблицы */
 function entCoef(e){return e.isBoss?bossCoef():(e.columns>0?PILLAR_Q[0][3]:1)}
-function bossMult(b){return powerMult(PATH_CAP,100,b.columns||0,bossCoef())*qiVolume(bodyQi(100,b.columns||0,PILLAR_Q[0][2]),100)}
+function bossMult(b){return powerMult(100,100,b.columns||0,bossCoef())*qiVolume(bodyQi(100,b.columns||0,PILLAR_Q[0][2]),100)}
 /* сила любого противника по тем же формулам, что и у игрока */
 function entQiVol(e){return qiVolume(e.maxQi,e.stars||0)}
-function entMult(e){return powerMult(Math.min(PATH_CAP,e.stars||0),e.stars||0,e.columns||0,entCoef(e),e.core||0)*qiColVolume(e.maxQi,e.stars||0,e.core||0)}
+function entMult(e){return powerMult(e.stars||0,e.stars||0,e.columns||0,entCoef(e),e.core||0)*qiColVolume(e.maxQi,e.stars||0,e.core||0)}
 /* сила игрока как цели оглушения (максимальная техника по его звёздам) */
-function playerRefMult(){return techniquePower(Math.min(PATH_CAP,save.stars),save.stars)*bodyHp(save.stars)*myStage()*myQiCol()}
+function playerRefMult(){return techniquePower(save.stars,save.stars)*bodyHp(save.stars)*myStage()*myQiCol()}
 /* сила обычного удара кулаком: привязана к звёздам (100 звёзд = 100 урона) */
 function playerStr(){return bodyStr(save.stars)*myStage()*(typeof pillPower==='function'?pillPower():1)*(typeof soulDmgK==='function'?soulDmgK():1)}
 /* удар кулаком противника: колонны усиливают его так же, как удар игрока (ядро уже учтено в e.str) */
@@ -99,7 +100,7 @@ function toughness(cols,M,core){return Math.max(1,stageFactor(cols,M,core))}
 function myToughness(){return toughness(save.pillars,save.pillarCoef,myCore())*(typeof arenaState!=='undefined'&&arenaState&&arenaState.poss?arenaState.poss.tr:1)}
 function entToughness(e){return toughness(e.columns||0,entCoef(e),e.core||0)}
 function techShieldMax(t){return TECH_BASE.shield*techniquePower(t.nodes.length,save.stars)*bodyHp(save.stars)*myQiCol()}
-function entShieldMax(e){const S=e.stars||0;return TECH_BASE.shield*techniquePower(Math.min(PATH_CAP,S),S)*bodyHp(S)*qiColVolume(e.maxQi,S,e.core||0)}
+function entShieldMax(e){const S=e.stars||0;return TECH_BASE.shield*techniquePower(S,S)*bodyHp(S)*qiColVolume(e.maxQi,S,e.core||0)}
 /* рывок: 5% от запаса Ци, но после 400 Ци цена растёт не быстрее 3% от запаса */
 function dodgeCost(maxQi){return Math.ceil(Math.min(.05*maxQi,Math.max(400,.03*maxQi)))}
 function techCost(t){if(t.type==='dodge')return dodgeCost(save.maxQi);if(t.type==='qiShield')return 0;return Math.ceil((TECH_COST[t.type]+.3*save.stars)*myQiVol())}

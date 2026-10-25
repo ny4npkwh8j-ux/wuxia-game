@@ -108,7 +108,7 @@ function soulPossess(){
 }
 /* способности захваченного тела как техники игрока: длина маршрута — по звёздам тела */
 function possTechs(e){
- const n=Math.max(3,Math.min(PATH_CAP,Math.floor(e.stars||3))),out=[];
+ const n=Math.max(3,Math.floor(e.stars||3)),out=[];
  for(const type of (e.techs||[])){if(!TECH_ZONES[type])continue;out.push({type,name:techniqueName(type),nodes:new Array(n).fill(0)})}
  return out;
 }
