@@ -64,7 +64,9 @@ function soulMaxQi(){const st=soulStage();return st?Math.round(save.maxQi*SOUL_Q
 function soulQiNow(){const m=soulMaxQi();if(typeof save.soulQi!=='number'||!Number.isFinite(save.soulQi))save.soulQi=m;save.soulQi=Math.max(0,Math.min(save.soulQi,m));return save.soulQi}
 function soulDmgK(){const s=arenaState;if(!s||!hasSoul())return 1;if(s.poss)return s.poss.k;if(s.soulOut)return SOUL_OUTK[soulStage()-1];return 1}
 function soulHpFrac(s){return s.soulOut&&hasSoul()?soulQiNow()/Math.max(1,soulMaxQi()):s.hp/s.maxHp}
-function arenaTechs(){const s=arenaState;return s&&s.poss?s.poss.techs:save.techniques}
+/* душа вне тела владеет только Ударом Ци; остальные техники проявляются лишь в теле (своём или захваченном) */
+const SOUL_SPD=[2.5,3,3.5];
+function arenaTechs(){const s=arenaState;return s&&s.poss?s.poss.techs:s&&s.soulOut?save.techniques.filter(t=>t.type==='qiSingle'):save.techniques}
 function soulHit(amount){
  const s=arenaState,st=soulStage();if(s.invuln>0)return;
  const loss=amount*SOUL_DMGRATE[st-1];save.soulQi=soulQiNow()-loss;s.possCh=null;
@@ -94,12 +96,12 @@ function soulAct(){
  if(s.poss)return possEnd('leave');
  if(!s.soulOut){
   if(soulQiNow()<soulMaxQi()*.2)return toast('Ци души слишком мало для выхода.');
-  s.body={x:s.px,y:s.py,hp:s.hp,maxHp:s.maxHp,dead:false,hit:0,ang:s.facing||0};s.soulOut=true;s.possCh=null;burst(s.px,s.py,24,'#ffd23a',260,.8,3);toast('Душа покинула тело. Тело осталось стоять на месте.');return}
+  s.body={x:s.px,y:s.py,hp:s.hp,maxHp:s.maxHp,dead:false,hit:0,ang:s.facing||0};s.soulOut=true;s.possCh=null;burst(s.px,s.py,24,'#ffd23a',260,.8,3);toast('Душа покинула тело. Тело осталось стоять на месте.');if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);return}
  s.possCh=null;const B=s.body;
  if(!B||B.dead)return toast('Тело уничтожено — вернуться некуда.');
  const d=Math.hypot(s.px-B.x,s.py-B.y);
  if(d>SOUL_RET[st-1])return toast('Тело слишком далеко для возвращения (нужно ближе '+SOUL_RET[st-1]+').');
- s.px=B.x;s.py=B.y;s.hp=B.hp;s.maxHp=B.maxHp;s.body=null;s.soulOut=false;burst(s.px,s.py,24,'#ffd23a',260,.8,3);toast('Душа вернулась в тело.');
+ s.px=B.x;s.py=B.y;s.hp=B.hp;s.maxHp=B.maxHp;s.body=null;s.soulOut=false;burst(s.px,s.py,24,'#ffd23a',260,.8,3);toast('Душа вернулась в тело.');if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);
 }
 function soulPossess(){
  const s=arenaState;if(!s||!s.soulOut||s.poss||s.possCh)return;const e=soulTarget();if(!e)return toast('Рядом нет цели для захвата.');
