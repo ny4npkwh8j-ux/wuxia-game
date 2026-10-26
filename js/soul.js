@@ -4,7 +4,7 @@
    Этап даёт множитель к здоровью и запасу Ци. Связь с качеством прошлых стадий: ядро ниже среднего качества (множитель < SOUL_CORE_MID) не даёт душе подняться выше II этапа.
    Сохранение (только добавленные ключи): soulStage 0..3, soulDeposit. Выход из тела и захват — отдельными патчами. */
 const SOUL_NAMES=['','ЗАЧАТОК ДУШИ','СТАБИЛЬНАЯ ДУША','СОВЕРШЕННАЯ ДУША'];
-const SOUL_MULT=[1,1.3,1.6,2.0];
+const SOUL_MULT=[1,1.1,1.2,1.3];
 const SOUL_QI=[0,300000,600000,1200000],SOUL_SHARDS=[0,3000,6000,12000];
 const SOUL_CORE_MID=1.9;
 function soulStage(){return save.soulStage||0}
@@ -47,7 +47,7 @@ async function soulFromShards(){
 function soulAdvance(payFn){
  if(!soulCanGrow()||soulStage()>=3)return;/* защита: этап не выше III и не выше предела по качеству ядра */
  payFn();const n=soulStage()+1,r=SOUL_MULT[n]/SOUL_MULT[n-1];
- save.soulStage=n;save.soulDeposit=0;save.stageLevel=4;
+ save.soulStage=n;save.soulMV=2;save.soulDeposit=0;save.stageLevel=4;
  /* здоровье и запас Ци растут вместе с множителем этапа (как при уплотнении ядра) */
  save.maxQi=Math.round(save.maxQi*r);save.health=Math.round(save.health*r);save.qi=Math.min(save.qi,save.maxQi);
  persist();updateUI();closeSoul();
