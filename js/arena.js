@@ -23,7 +23,7 @@ function migrateArenaEntities(state){
   if(b.id==null)b.id=nid();if(!b.zone)b.zone=i;if(!b.home)b.home={x:BOSS_HOMES[i-1][0],y:BOSS_HOMES[i-1][1]};
   if(b.hp<=0&&b.respawnT==null)b.respawnT=BOSS_RESPAWN;
   state.bosses.push(b)}
- ensureBossZones(state);
+ ensureBossZones(state);seedAnimals(state);
  if(state.maxHp!==save.health){const r=state.maxHp?Math.min(1,state.hp/state.maxHp):1;state.maxHp=save.health;state.hp=Math.max(1,Math.round(save.health*r))}
 }
 let arenaState=null,raf=0,aw=0,ah=0;const ac=$('arenaCanvas'),ax=ac.getContext('2d');

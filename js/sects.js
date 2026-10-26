@@ -74,7 +74,7 @@ function sectTick(){
  }
  /* основание */
  if(sl.length<SECT_MAX&&Math.random()<.4){
-  const free=s.enemies.filter(m=>m.hp>0&&(m.stars||0)>0&&!m.lord&&!m.sect&&m.foeId==null&&!m.hostile);
+  const free=s.enemies.filter(m=>m.hp>0&&!m.animal&&(m.stars||0)>0&&!m.lord&&!m.sect&&m.foeId==null&&!m.hostile);
   const cands=free.filter(m=>m.stars>=SECT_MIN_STARS);
   for(let k=0;k<12&&cands.length;k++){
    const m=cands.splice(Math.floor(Math.random()*cands.length),1)[0],pm=entPow(m);

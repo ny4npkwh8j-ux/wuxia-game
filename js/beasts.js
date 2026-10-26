@@ -53,3 +53,42 @@ function drawBeastShape(c,k,time,wp,mv,flash,wind){
   bEll(c,-4,0,13,11,0,A);bEll(c,40,-4,2.5,2.5,0,'#ffe060');bEll(c,40,4,2.5,2.5,0,'#ffe060');
  }
 }
+
+/* ===== животные: малые версии боссов-зверей =====
+   Простой рост (только звёзды, до ANIMAL_CAP), без колонн/ядра/сект; часть из них — свита босса своего вида (e.escort = номер босса). */
+const ANIMAL_CAP=60,ANIMAL_START=24;
+function animalStars(idx){return Math.min(ANIMAL_CAP,Math.max(3,Math.round((6+7*bossPidx(idx))*(.6+Math.random()*.8))))}
+function makeAnimal(x,y,idx,stars){
+ const e=applyKit({id:nid(),x,y,r:18,s:50+Math.random()*25,ang:0,hit:0,seenT:0,wanderT:0,animal:true,beast:beastKind(idx),kin:idx,hunger:100,noSectT:1e12,zoneBound:false},{stars:stars||animalStars(idx),techs:['qiSingle','dodge']});
+ return e;
+}
+function animalSpot(state){for(let t=0;t<30;t++){const x=800+Math.random()*(state.world-1600),y=800+Math.random()*(state.world-1600);if(!(state.obstacles||[]).some(o=>Math.abs(o.x-x)<o.w/2+40&&Math.abs(o.y-y)<o.h/2+40))return{x,y}}return{x:state.world/2,y:state.world/2}}
+/* старые и новые сохранения: один раз рассыпаем животных по карте */
+function seedAnimals(state){
+ if(state.animalsV)return;state.animalsV=1;
+ for(let i=0;i<ANIMAL_START;i++){const p=animalSpot(state);state.enemies.push(makeAnimal(p.x,p.y,1+i%BOSS_N))}
+}
+/* свита: у каждого живого босса рядом держатся несколько зверей его вида */
+function escortCap(b){return 2+bossPidx(b.index||1)}
+function escortTick(){
+ const s=arenaState;if(!s)return;
+ for(const b of aliveBosses(s)){
+  const idx=b.index||1,have=s.enemies.filter(m=>m.hp>0&&m.escort===idx).length;if(have>=escortCap(b))continue;
+  const h=b.home||b,a=Math.random()*TAU,d=150+Math.random()*250,x=h.x+Math.cos(a)*d,y=h.y+Math.sin(a)*d;
+  if(blocked(x,y,24))continue;
+  const m=makeAnimal(x,y,idx,Math.round(animalStars(idx)*.8));m.escort=m.team=idx;m.zoneBound=true;s.enemies.push(m);
+ }
+}
+function drawAnimal(e,p,time){
+ const k=e.beast||beastKind(e.kin),B=BEASTS[k],mv=e.mv||0,st=e.stars||0;
+ ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y,26,B.aur,.25);ax.globalCompositeOperation='source-over';
+ ax.fillStyle='rgba(0,0,0,.28)';ax.beginPath();ax.ellipse(p.x+1,p.y+14,15,5,0,0,TAU);ax.fill();
+ ax.save();ax.translate(p.x,p.y);ax.rotate(e.ang||0);ax.scale(.5,.5);drawBeastShape(ax,k,time,e.wp||0,mv,0,e.wind);
+ if(e.hit>0){ax.globalAlpha=Math.min(.8,e.hit/.18*.8);drawBeastShape(ax,k,time,e.wp||0,mv,1,e.wind);ax.globalAlpha=1}
+ ax.restore();
+ if(e.stun>0){ax.fillStyle='#fff3a0';for(let i=0;i<3;i++){const a=time*3.4+i*TAU/3;star4(ax,p.x+Math.cos(a)*12,p.y-26+Math.sin(a)*4,4);ax.fill()}}
+ if(e.shield>0){ax.save();ax.strokeStyle='rgba(99,233,255,.55)';ax.lineWidth=1.6;ax.setLineDash([5,5]);ax.beginPath();ax.arc(p.x,p.y,24,0,TAU);ax.stroke();ax.restore()}
+ const as=arenaState,near=Math.hypot(e.x-as.px,e.y-as.py)<MOB_LABEL_R||e.hit>0||e.hostile||e.foeId!=null;
+ if(near||e.hp<e.maxHp*.995)drawBar(ax,p.x,p.y-30,32,e.hp/(e.maxHp||100),4);
+ if(near)outText(ax,'🐾 '+B.name.toLowerCase()+' ★'+st,p.x,p.y-36,B.aur,10);
+}

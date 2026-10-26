@@ -49,7 +49,7 @@ function entTick(e,dt){
 function makeMob(x,y,bossIndex){return applyKit({id:nid(),x,y,r:20,s:(45+Math.random()*25),ang:0,hit:0,seenT:0,wanderT:0},rollKit(bossIndex))}
 function rerollLiveMobs(bossIndex){
  const s=arenaState;if(!s)return;
- for(const e of s.enemies){if(e.hp<=0)continue;const k=rollKit(bossIndex);if(cultScore(e)>=(k.columns||0)*100+k.stars)continue;/* выросшие сами не сбрасываются */applyKit(e,k);if(!k.columns)e.columns=0;e.s=(45+Math.random()*25)*(1+k.stars/500)}
+ for(const e of s.enemies){if(e.hp<=0||e.animal)continue;const k=rollKit(bossIndex);if(cultScore(e)>=(k.columns||0)*100+k.stars)continue;/* выросшие сами не сбрасываются */applyKit(e,k);if(!k.columns)e.columns=0;e.s=(45+Math.random()*25)*(1+k.stars/500)}
 }
 function damageEnemy(e,damage,src,melee){
  if(e.vessel)return false;/* своё захваченное тело не бьём */
@@ -136,6 +136,7 @@ const MOB_LABEL_R=260;
 const MOB_DOT={shield:'#63e9ff',dodge:'#69ef8b',qiSingle:'#ffd84d',qiArea:'#ff9a3a',qiShield:'#ffe23a'};
 function drawEnemy(e,W,H,time){
  const p=worldToScreen(e.x,e.y);if(p.x<-70||p.x>W+70||p.y<-80||p.y>H+70)return;
+ if(e.animal){drawAnimal(e,p,time);return}
  const st=e.stars||0,sty=enemyStyle(st),t=enemyTier(st),o=SPR.enemy,k=sectOf(e.ang||0),sc=EN.SC[t];
  if(sty.aura){ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y,34*(1+.07*Math.sin(time*3+e.x)),sty.aura,.3+st/300);ax.globalCompositeOperation='source-over'}
  ax.fillStyle='rgba(0,0,0,.28)';ax.beginPath();ax.ellipse(p.x+1,p.y+22,16*sc,6*sc,0,0,TAU);ax.fill();
@@ -159,6 +160,7 @@ function drawEnemy(e,W,H,time){
  if(e.stun>0)outText(ax,e.stun.toFixed(1)+'с',p.x,p.y-56-(st>0?4:-4),'#c9a8ff',10);
 }
 function mobDrop(e){
+ if(e.animal)return;/* добыча с животных — отдельной системой */
  const techs=e.techs||[];if(!techs.length||Math.random()>.2)return;
  const newType=t=>(t==='qiShield'||t==='stun')&&!hasScroll(t);
  let type=techs[Math.floor(Math.random()*techs.length)];
@@ -177,7 +179,7 @@ function spawnEnemy(){
  if(side===2){y=Math.max(margin,arenaState.py-(900+Math.random()*1400));x=Math.max(margin,Math.min(arenaState.world-margin,arenaState.px+(Math.random()-.5)*1800))}
  if(side===3){y=Math.min(arenaState.world-margin,arenaState.py+(900+Math.random()*1400));x=Math.max(margin,Math.min(arenaState.world-margin,arenaState.px+(Math.random()-.5)*1800))}
  if(blocked(x,y,24))return;
- arenaState.enemies.push(makeMob(x,y,arenaTier(arenaState)));
+ arenaState.enemies.push(Math.random()<.12?makeAnimal(x,y,1+Math.floor(Math.random()*BOSS_N)):makeMob(x,y,arenaTier(arenaState)));
 }
 function enemyStyle(st){return st>=71?{pal:PAL.e3,aura:'#ffe27a'}:st>=41?{pal:PAL.e2,aura:'#b47bff'}:st>=1?{pal:PAL.e1,aura:'#ff9a3a'}:{pal:PAL.e0,aura:null}}
 /* enemy atlas: 8 columns (canvas-angle sectors) x 5 tier rows */
@@ -216,7 +218,7 @@ function mobIdle(e,dt){
 /* рост на одну звезду: все параметры пересчитываются по тем же формулам, доля здоровья и Ци сохраняется */
 function growMob(e){
  if((e.columns||0)>0||e.core>0)return;
- const cap=MOB_NAT_STARS;if((e.stars||0)>=cap)return;
+ const cap=e.animal?ANIMAL_CAP:MOB_NAT_STARS;if((e.stars||0)>=cap)return;
  const r=e.maxHp?e.hp/e.maxHp:1,q=e.maxQi?e.qi/e.maxQi:1;
  applyKit(e,{stars:e.stars+1,techs:(e.techs||[]).slice()});e.hp=Math.max(1,e.maxHp*r);e.qi=e.maxQi*q;
 }
@@ -225,7 +227,7 @@ function cultScore(e){return (e.columns||0)*100+(e.stars||0)}
 function tryBreakthrough(i){
  const s=arenaState,b=s.bosses[i],z=(s.springs||[]).find(q=>q.bz===(b.zone||b.index||i+1));if(!z)return false;
  const need=(bossPidx(b.index||i+1)-1)*100+100-30;let best=null;
- for(const m of s.enemies){if(m.hp<=0||m.isBoss)continue;if(Math.hypot(m.x-z.x,m.y-z.y)>z.r*RING_MID)continue;if(cultScore(m)<need)continue;if(!best||cultScore(m)>cultScore(best))best=m}
+ for(const m of s.enemies){if(m.hp<=0||m.isBoss||m.animal)continue;if(Math.hypot(m.x-z.x,m.y-z.y)>z.r*RING_MID)continue;if(cultScore(m)<need)continue;if(!best||cultScore(m)>cultScore(best))best=m}
  if(!best)return false;
  const nb=newBoss(b.index||i+1,b.zone);nb.x=best.x;nb.y=best.y;best.hp=0;best.removed=true;s.bosses[i]=nb;
  burst(nb.x,nb.y,40,'#ffd85b',320,1,3.4);toast('Моб совершил прорыв и стал боссом '+nb.index+'!');chron('Моб совершил прорыв и стал Боссом '+nb.index);return true;
@@ -275,6 +277,7 @@ function entRebuild(e,stars,cols,note){
 function evolveTick(e,dt){
  if(!arenaState)return;
  e.growT=(e.growT||0)+dt;
+ if(e.animal){if((e.stars||0)<ANIMAL_CAP&&e.growT>=MOB_GROW_SEC*1.6){e.growT=0;growMob(e)}return}/* животные: только звёзды, медленно */
  if(e.core>0){
   const d=e.dens||0;if(d>=CORE_DENS_MAX)return;
   const cost=500*(d+1);
@@ -427,7 +430,7 @@ function huntStep(e,dt,force){
 function purgeDead(){const a=arenaState.enemies;for(let i=a.length-1;i>=0;i--)if(a[i].hp<=0)a.splice(i,1)}
 function warTick(dt){
  const s=arenaState;if(!s)return;s.purgeT=(s.purgeT||0)+dt;if(s.purgeT>=5){s.purgeT=0;purgeDead()}s.warT=(s.warT||0)+dt;s.chalT=(s.chalT||0)+dt;s.recT=(s.recT||0)+dt;s.sectT=(s.sectT||0)+dt;if(s.sectT>=8){s.sectT=0;sectTick()}s.zoneT=(s.zoneT==null?99:s.zoneT)+dt;if(s.zoneT>=1.5){s.zoneT=0;zoneTick()}s.shopT=(s.shopT||0)+dt;if(s.shopT>=20){s.shopT=0;mobShopRoll()}
- if(s.recT>=8){s.recT=0;recruitTick()}
+ if(s.recT>=8){s.recT=0;recruitTick();escortTick()}
  if(s.warT>=5){s.warT=0;skirmishRoll()}
  if(s.chalT>=30){s.chalT=0;challengeRoll()}
 }
@@ -473,7 +476,7 @@ function recruitTick(){
  const s=arenaState,pl=m=>Math.hypot(m.x-s.px,m.y-s.py);
  for(const b of aliveBosses(s)){
   let n=armyOf(b.index).length;if(n>=armyCap(b))continue;const h=b.home||b;
-  const cand=s.enemies.filter(m=>m.hp>0&&(m.stars||0)>0&&!m.lord&&!m.sect&&m.foeId==null&&!(m.hostile&&pl(m)<700)&&Math.hypot(m.x-h.x,m.y-h.y)<1600)
+  const cand=s.enemies.filter(m=>m.hp>0&&!m.animal&&(m.stars||0)>0&&!m.lord&&!m.sect&&m.foeId==null&&!(m.hostile&&pl(m)<700)&&Math.hypot(m.x-h.x,m.y-h.y)<1600)
    .sort((a,c)=>Math.hypot(a.x-h.x,a.y-h.y)-Math.hypot(c.x-h.x,c.y-h.y));
   for(const m of cand){if(n>=armyCap(b))break;m.lord=m.team=b.index;m.zoneBound=true;n++}
  }
