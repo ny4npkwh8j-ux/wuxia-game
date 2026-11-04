@@ -34,7 +34,7 @@ function entCost(e,t){return t==='dodge'?dodgeCost(e.maxQi):t==='qiShield'?0:Mat
 /* здоровье, сила и запас Ци — по тем же формулам, что у игрока (bodyHp / bodyStr / bodyQi) */
 function applyKit(e,kit){
  if(kit.columns!=null)e.columns=kit.columns;
- const S=kit.stars,C=e.core>0?e.core:1,mh=bodyHp(S)*C,mq=bodyQi(S,e.columns||0,(e.isBoss||e.columns>0)?PILLAR_Q[0][2]:0)+(e.qiPlus??(e.core>0?4500:0));/* Ци ядром не умножается: бонус колонн ×1.5 + уплотнение */
+ const S=kit.stars,C=e.core>0?e.core:1,mh=bodyHp(S)*C*(e.isBoss?3:1),mq=bodyQi(S,e.columns||0,(e.isBoss||e.columns>0)?PILLAR_Q[0][2]:0)+(e.qiPlus??(e.core>0?4500:0));/* Ци ядром не умножается: бонус колонн ×1.5 + уплотнение */
  Object.assign(e,{v:ENT_V,stars:S,str:bodyStr(S)*C,techs:kit.techs,technique:kit.techs[0]||null,hp:mh,maxHp:mh,qi:mq,maxQi:mq,shield:0,shieldMax:0,qiShieldOn:kit.techs.includes('qiShield'),qsFlash:0,wind:null,mcd:0,cd:{atk:e.isBoss?.8:1+Math.random()*1.5,sh:0,dash:1+Math.random()*2,stun:2,area:0}});
  return e;
 }
@@ -56,7 +56,7 @@ function damageEnemy(e,damage,src,melee){
  if(src!=='ent'&&isMate(e))return false;/* своих по секте игрока удар не берёт */
  if(src!=='ent')provoke(e);
  if(melee)damage*=1-entArmorCut(e);
- if(e.hp<=0)return false;const raw=damage/entToughness(e);let dmg=raw;
+ if(e.hp<=0)return false;const raw=damage/entToughness(e)*(1-(e.dr||0));let dmg=raw;
  if(e.shield>0){const a=Math.min(e.shield,dmg);e.shield-=a;dmg-=a}
  if(dmg>0&&e.qiShieldOn&&e.qi>0){const a=Math.min(dmg,e.qi/QI_SHIELD_RATIO);e.qi=Math.max(0,e.qi-a*QI_SHIELD_RATIO);dmg-=a;e.qsFlash=1;if(e.qi<=0)e.qiShieldOn=false}
  if(dmg>0)e.hp=Math.max(0,e.hp-dmg);e.hit=.25;
@@ -356,6 +356,7 @@ function duelStep(e,dt){
 }
 function entKill(k,v){
  const s=arenaState;
+ if(k.isBoss)bossKillCredit(k,v);
  dropVictimLoot(v);
  k.foeId=null;
  if(v.isBoss){

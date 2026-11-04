@@ -145,7 +145,7 @@ function arenaLoop(t){
  applyQiZones(dt);
  if(s.stun>0){s.stun-=dt;if(s.stun<=0){s.stun=0;s.stunImm=3}}else if(s.stunImm>0)s.stunImm=Math.max(0,s.stunImm-dt);
  const m=s.stun>0?0:Math.hypot(s.dx,s.dy);let moved=0;
- if(m>.08){s.lastMoveX=s.dx/m;s.lastMoveY=s.dy/m;const ox=s.px,oy=s.py;movePlayer(s.dx*260*dt*(s.soulOut&&!s.poss&&typeof soulStage==='function'?SOUL_SPD[Math.max(1,soulStage())-1]:1),s.dy*260*dt*(s.soulOut&&!s.poss&&typeof soulStage==='function'?SOUL_SPD[Math.max(1,soulStage())-1]:1));moved=Math.hypot(s.px-ox,s.py-oy);if(!s.kbAim||bodyFollowsMove(s))s.facing=lerpAng(s.facing,Math.atan2(s.dy,s.dx),dt*16)}
+ if(m>.08){s.lastMoveX=s.dx/m;s.lastMoveY=s.dy/m;const ox=s.px,oy=s.py;movePlayer(s.dx*260*dt*moveK(s),s.dy*260*dt*moveK(s));moved=Math.hypot(s.px-ox,s.py-oy);if(!s.kbAim||bodyFollowsMove(s))s.facing=lerpAng(s.facing,Math.atan2(s.dy,s.dx),dt*16)}
  if(s.kbAim)updateMouseAim();
  if(s.dashTime>0){const ox=s.px,oy=s.py,step=s.dashSpeed*dt;movePlayer(s.lastMoveX*step,s.lastMoveY*step);moved+=Math.hypot(s.px-ox,s.py-oy);s.dashTime=Math.max(0,s.dashTime-dt);s.ghostAcc+=dt;if(s.ghostAcc>.028){s.ghostAcc=0;s.ghosts.push({x:s.px,y:s.py,ang:s.facing,wp:s.wp,t:0,max:.32})}}
  s.mv+=((moved>.05?1:0)-s.mv)*Math.min(1,dt*10);s.wp+=moved*.11;
@@ -180,7 +180,7 @@ function arenaLoop(t){
  save.qi=Math.max(0,Math.min(save.maxQi,save.qi));
  soulTick(dt);
  updateFx(dt);emitFx(dt,m<=.08);
- if(s.hp<=0){save.qi=0;const lost=Math.floor(save.rewards*.3);save.rewards-=lost;if(lost>0)(s.loot=s.loot||[]).push({x:s.px,y:s.py,k:1,v:lost});const lostItem=playerGearDrop(s);/* карта постоянна: остаётся как есть, игрок возрождается там, где меньше всего мобов */
+ if(s.hp<=0){playerKilledByBoss(s);save.qi=0;const lost=Math.floor(save.rewards*.3);save.rewards-=lost;if(lost>0)(s.loot=s.loot||[]).push({x:s.px,y:s.py,k:1,v:lost});const lostItem=playerGearDrop(s);/* карта постоянна: остаётся как есть, игрок возрождается там, где меньше всего мобов */
   const q=quietSpot(s);s.px=s.camx=q.x;s.py=s.camy=q.y;s.hp=s.maxHp=save.health;s.shield=0;s.invuln=2;persist();saveArenaCheckpoint();stopArena();show('home');toast('Ты пал на арене. Вся Ци утрачена, потеряно '+fmt(lost)+' осколков души (они лежат на месте гибели). Ты возродишься в тихом месте карты.'+(lostItem?' Выпала вещь: '+GEAR[lostItem].name+'.':''));return}
  updateArenaUI();drawArena(t/1000);raf=requestAnimationFrame(arenaLoop);
 }

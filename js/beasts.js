@@ -72,6 +72,7 @@ function seedAnimals(state){
 function escortCap(b){return 2+bossPidx(b.index||1)}
 function escortTick(){
  const s=arenaState;if(!s)return;
+ for(const m of s.enemies)if(m.expire&&s.t>m.expire&&m.hp>0){m.hp=0;m.removed=true}
  for(const b of aliveBosses(s)){
   const idx=b.index||1,have=s.enemies.filter(m=>m.hp>0&&m.escort===idx).length;if(have>=escortCap(b))continue;
   const h=b.home||b,a=Math.random()*TAU,d=150+Math.random()*250,x=h.x+Math.cos(a)*d,y=h.y+Math.sin(a)*d;
@@ -91,4 +92,63 @@ function drawAnimal(e,p,time){
  const as=arenaState,near=Math.hypot(e.x-as.px,e.y-as.py)<MOB_LABEL_R||e.hit>0||e.hostile||e.foeId!=null;
  if(near||e.hp<e.maxHp*.995)drawBar(ax,p.x,p.y-30,32,e.hp/(e.maxHp||100),4);
  if(near)outText(ax,'🐾 '+B.name.toLowerCase()+' ★'+st,p.x,p.y-36,B.aur,10);
+}
+
+/* ===== способности боссов-зверей (по описанию карточек) =====
+   Урон — от «удара» босса (TECH_BASE.qiSingle × сила), эффекты на игроке: s.dot (горение/кровь/яд), s.slowT (замедление). */
+function bossHit(b){return TECH_BASE.qiSingle*entMult(b)}
+function plHurt(b,k,pierce){/* pierce — урон мимо щитов и брони */
+ const s=arenaState,a=bossHit(b)*k;s.lastDmgBoss={i:b.index,t:s.t};
+ if(pierce){if(s.invuln>0)return;const v=a/myToughness();s.hp=Math.max(0,s.hp-v);floatText(s.px,s.py-34,'-'+fmt(Math.max(1,v)),'#ff3a8a',16);s.hurt=1;s.hitFlash=1;burst(s.px,s.py,9,'#ff3a8a',200,.45,2.6);s.invuln=.22}
+ else takeDamage(a,'melee');
+}
+function plDot(b,t,k,col){const s=arenaState;s.dot={t,dps:bossHit(b)*k,col,i:b.index}}
+function plQiDrain(frac){const m=save.maxQi||0,d=Math.min(save.qi,m*frac);save.qi-=d;return d}
+function moveK(s){return (s.slowT>0?.45:1)*(s.soulOut&&!s.poss&&typeof soulStage==='function'&&soulStage()>0?SOUL_SPD[soulStage()-1]:1)}
+function playerDotTick(dt){
+ const s=arenaState;if(!s)return;s.slowT=Math.max(0,(s.slowT||0)-dt);const d=s.dot;if(!d)return;
+ d.t-=dt;if(s.hp>0&&!s.soulOut){s.hp=Math.max(0,s.hp-d.dps*dt/myToughness());s.lastDmgBoss={i:d.i,t:s.t};if(Math.random()<dt*8)addPart({k:'spark',x:s.px+rnd(-12,12),y:s.py+rnd(-10,10),vx:0,vy:-30,t:0,max:.6,size:2.6,col:d.col,drag:1})}
+ if(d.t<=0)s.dot=null;
+}
+function bossMeleeFx(b){/* вызывается при каждом физическом ударе босса */
+ const k=b.beast||beastKind(b.index);
+ if(k==='hell'){plDot(b,5,.1,'#ff6a20');const q=plQiDrain(.03);if(q>0)floatText(arenaState.px,arenaState.py-50,'🔥-'+fmt(q)+' Ци','#ff9a3a',11)}
+ else if(k==='bird')plDot(b,6,.07,'#ff2a3a');
+ else if(k==='spider')plDot(b,8,.06,'#9bff6a');
+}
+function bossSpecial(b,dt,d){
+ const s=arenaState,k=b.beast||beastKind(b.index),T=b.spT||(b.spT={a:2+Math.random()*3,b:4+Math.random()*3});
+ T.a-=dt;T.b-=dt;
+ if(k==='abyss'){/* дальний бой, поглощение Ци, регенерация */
+  b.hp=Math.min(b.maxHp,b.hp+b.maxHp*.01*dt);
+  if(T.a<=0&&d<520){T.a=5;plHurt(b,.6);const q=plQiDrain(.08);b.qi=Math.min(b.maxQi,b.qi+q);b.hp=Math.min(b.maxHp,b.hp+q*.5);burst(s.px,s.py,14,'#ffc83a',200,.6,2.6);if(q>0)floatText(s.px,s.py-50,'-'+fmt(q)+' Ци','#ffd23a',11)}
+ }else if(k==='dark'){/* танк, теневые атаки */
+  if(T.a<=0&&d<700){T.a=7;b.shadow={x:s.px,y:s.py,t:.9}}
+  if(b.shadow){b.shadow.t-=dt;if(b.shadow.t<=0){const sh=b.shadow;b.shadow=null;burst(sh.x,sh.y,26,'#201810',260,.7,3.4);if(Math.hypot(s.px-sh.x,s.py-sh.y)<110)plHurt(b,1.2)}}
+ }else if(k==='bird'){/* воздушный бой, призыв стаи воронов */
+  if(T.a<=0&&d<900){T.a=9;for(let i=0;i<3;i++){const a=Math.random()*TAU,m=makeAnimal(b.x+Math.cos(a)*60,b.y+Math.sin(a)*60,3,Math.max(5,Math.round(animalStars(3)*.5)));m.expire=s.t+25;m.hostile=true;m.team=b.index;m.crow=true;s.enemies.push(m)}toast('Кровокрыл призвал стаю воронов!')}
+ }else if(k==='spider'){/* контроль, яд, ловушки: паутина */
+  if(T.a<=0&&d<450){T.a=8;s.slowT=2.5;plQiDrain(.05);burst(s.px,s.py,18,'#e8e8e8',140,.8,2.4);floatText(s.px,s.py-50,'🕸 паутина','#ffffff',12)}
+ }else if(k==='fox'){/* иллюзии, маскировка, ментальный урон */
+  if(T.a<=0&&d>250&&d<900){T.a=6;const a=Math.atan2(s.py-b.y,s.px-b.x)+Math.PI+(Math.random()-.5);b.x=s.px+Math.cos(a)*130;b.y=s.py+Math.sin(a)*130;burst(b.x,b.y,20,'#b48aff',220,.6,3)}
+  if(T.b<=0&&d<450){T.b=7;plHurt(b,.5,true);plQiDrain(.15);s.slowT=1;floatText(s.px,s.py-50,'ментальный удар','#d8b8ff',12)}
+ }else if(k==='golem'){/* ближний бой, разрушение */
+  if(T.a<=0&&d<140){T.a=7;burst(b.x,b.y,30,'#ffa040',280,.7,3.4);shake(8);plHurt(b,1);s.slowT=1.5}
+ }else if(k==='void'){/* дальний бой, игнор защиты, телепорт */
+  if(T.a<=0&&d>350&&d<1000){T.a=6;const a=Math.random()*TAU;b.x=s.px+Math.cos(a)*220;b.y=s.py+Math.sin(a)*220;burst(b.x,b.y,20,'#ff3a6a',220,.6,3)}
+  if(T.b<=0&&d<650){T.b=4;plHurt(b,.8,true);burst(s.px,s.py,16,'#ff3a6a',200,.5,2.6)}
+ }else if(k==='hell'){/* ближний бой, огненный урон: рывок */
+  if(T.a<=0&&d>150&&d<500){T.a=6;const a=Math.atan2(s.py-b.y,s.px-b.x);moveBoss(b,Math.cos(a)*(d-70),Math.sin(a)*(d-70));burst(b.x,b.y,18,'#ff6a20',220,.5,3)}
+ }
+}
+/* убийство делает босса сильнее: ускоряется рост, к осколкам добавляется добыча жертвы */
+function bossKillCredit(b,v){
+ if(!b||!b.isBoss||b.hp<=0)return;b.kills=(b.kills||0)+1;b.growT=(b.growT||0)+60;
+ if(v){b.sh1=(b.sh1||0)+Math.floor(v.stars||0);if(v.columns>0||v.core>0)b.sh2=(b.sh2||0)+(v.core>0?10:v.columns)}
+ else{b.sh1=(b.sh1||0)+100}
+ floatText(b.x,b.y-90,'☠ '+b.kills,'#ff5a4a',14);
+}
+function playerKilledByBoss(s){
+ s.dot=null;s.slowT=0;const L=s.lastDmgBoss;if(!L||s.t-L.t>8)return;s.lastDmgBoss=null;
+ const b=aliveBosses(s).find(q=>q.index===L.i);bossKillCredit(b,null);
 }

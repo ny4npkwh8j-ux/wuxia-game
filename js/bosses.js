@@ -1,6 +1,6 @@
 'use strict';
 /* версия записи босса и его полный набор техник (все типы, что бывают у игрока) */
-const BOSS_V=3;
+const BOSS_V=4;
 const BOSS_KIT=['shield','dodge','qiSingle','qiArea','qiShield','stun','heal'];
 /* шесть боссов (0–5 колонн) одновременно на карте, каждый стоит в своей «сверхзоне» Ци; убитый воскресает через BOSS_RESPAWN секунд */
 const BOSS_ZONE_PW=20,BOSS_RESPAWN=180,BOSS_HOMES=[[5000,3300],[7600,4200],[7400,7000],[4600,8300],[2200,6600],[2400,2600],[14000,3000],[17500,7200],[3000,14000],[7500,17500],[13500,13000],[17000,17000]],BOSS_ZONE_R=960,BOSS_INNER_R=336,BOSS_LEASH=1200;
@@ -12,6 +12,7 @@ function newBoss(index=1,zone){
  const cols=bossPidx(index)-1,tier=index>=2?2:1,h=BOSS_HOMES[zone-1],b={id:nid(),zone,x:h[0],y:h[1],home:{x:h[0],y:h[1]},r:tier===1?34:38,s:tier===1?72:78,ang:0,hit:0,isBoss:true,tier,index,beast:index>MAX_BOSS_INDEX?BOSS_EXTRA[index].beast:undefined,columns:cols,invuln:0,seenT:0,wanderT:0,mv:0,wp:0};
  /* 100 звёзд + колонны: здоровье, сила, Ци и сила техник — по тем же формулам, что у игрока */
  applyKit(b,{stars:100,techs:BOSS_KIT.slice()});b.v=BOSS_V;
+ const bk=b.beast||beastKind(index);if(bk==='hell')b.s*=1.5;if(bk==='golem')b.dr=.4;if(bk==='dark')b.dr=.3;
  return b;
 }
 function aliveBosses(s){return (s&&s.bosses?s.bosses:[]).filter(b=>b&&b.hp>0)}
@@ -40,7 +41,7 @@ function dropBossScroll(b,tier){
 /* ---- stun (hold to cast) ---- */
 /* ---- boss ---- */
 function bossLoop(dt){
- const s=arenaState;if(!s||!s.bosses)return;
+ const s=arenaState;if(!s||!s.bosses)return;playerDotTick(dt);
  for(let i=0;i<s.bosses.length;i++){const b=s.bosses[i];
   if(b.hp<=0){b.respawnT=(b.respawnT==null?BOSS_RESPAWN:b.respawnT)-dt;
    if(b.respawnT<BOSS_RESPAWN-45){b.brkT=(b.brkT||0)+dt;if(b.brkT>=5){b.brkT=0;if(Math.random()<.5&&tryBreakthrough(i))continue}}
@@ -76,7 +77,8 @@ function bossStep(b,dt){
  else if(d>55){const ox=b.x,oy=b.y;moveBoss(b,Math.cos(b.ang)*b.s*dt,Math.sin(b.ang)*b.s*dt);const md=Math.hypot(b.x-ox,b.y-oy);b.mv+=((md>.05?1:0)-(b.mv||0))*Math.min(1,dt*8);b.wp=(b.wp||0)+md*.09}
  else b.mv=0;
  /* физический удар — собственная сила босса по формуле игрока (10 + 0,9 за звезду) */
- if(d<58&&b.mcd<=0){takeDamage(entMelee(b),'melee');b.mcd=.65}
+ if(seePlayer)bossSpecial(b,dt,d);
+ if(d<58&&b.mcd<=0){s.lastDmgBoss={i:b.index,t:s.t};takeDamage(entMelee(b),'melee');bossMeleeFx(b);b.mcd=.65}
 }
 function moveBoss(b,dx,dy){let nx=Math.max(100,Math.min(arenaState.world-100,b.x+dx)),ny=Math.max(100,Math.min(arenaState.world-100,b.y+dy));if(!blocked(nx,b.y,b.r,b.id))b.x=nx;if(!blocked(b.x,ny,b.r,b.id))b.y=ny}
 /* boss portraits (frame rects inside the boss atlas) */
