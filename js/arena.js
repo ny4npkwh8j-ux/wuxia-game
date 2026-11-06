@@ -19,6 +19,9 @@ function migrateArenaEntities(state){
  for(let i=1;i<=BOSS_N;i++){
   let b=oldB.find(q=>q&&(q.index||(q.tier===2?2:1))===i);
   if(!b)b=newBoss(i);
+  else if(b.v===3&&b.stars>=100&&b.techs){/* v3→v4: только здоровье ×3 и свойства зверя; колонны, ядро, осколки и рост босса сохраняются */
+   const r=b.maxHp?Math.min(1,Math.max(0,b.hp)/b.maxHp):1;applyKit(b,{stars:b.stars,techs:b.techs.slice()});b.hp=b.hp<=0?0:Math.max(1,Math.round(b.maxHp*r));b.v=BOSS_V;
+   const bk=b.beast||beastKind(i);if(bk==='hell'&&!b.fast){b.s*=1.5;b.fast=1}if(bk==='golem')b.dr=.4;if(bk==='dark')b.dr=.3}
   else if(b.v!==BOSS_V){const r=b.maxHp?Math.min(1,Math.max(0,b.hp)/b.maxHp):1,nb=newBoss(i,b.zone);nb.x=b.x;nb.y=b.y;nb.hp=b.hp<=0?0:Math.max(1,Math.round(nb.maxHp*r));if(b.respawnT!=null)nb.respawnT=b.respawnT;b=nb}
   if(b.id==null)b.id=nid();if(!b.zone)b.zone=i;if(!b.home)b.home={x:BOSS_HOMES[i-1][0],y:BOSS_HOMES[i-1][1]};
   if(b.hp<=0&&b.respawnT==null)b.respawnT=BOSS_RESPAWN;
