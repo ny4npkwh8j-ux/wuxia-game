@@ -266,7 +266,7 @@ function teamAlert(t){const s=arenaState,b=aliveBosses(s).find(q=>(q.index||0)==
 /* ---- эволюция противников по схеме игрока: звёзды → колонны → ядро ----
    Идёт, пока противник культивирует в зоне Ци. Платит осколками (e.sh1 — души, e.sh2 — 2 этапа, их приносят победы) или временем.
    Шансы и цены — те же, что у игрока; неудача: первая колонна — минус 20 звёзд, дальше — минус колонна, ядро — потеря всех колонн. */
-const EVO_DENS_SEC=600,EVO_COL_SEC=150,EVO_CORE_SEC=900,FULL_KIT=['shield','dodge','qiSingle','qiArea','qiShield','stun','heal'];
+const EVO_DENS_SEC=600,EVO_COL_SEC=150,EVO_CORE_SEC=600,FULL_KIT=['shield','dodge','qiSingle','qiArea','qiShield','stun','heal'];
 function entMaxCols(e){return MAX_PILLARS}/* потолка у мобов нет: число сильных регулируют бои между ними */
 function entRebuild(e,stars,cols,note){
  const r=e.maxHp?e.hp/e.maxHp:1,q=e.maxQi?e.qi/e.maxQi:1;
@@ -280,7 +280,7 @@ function evolveTick(e,dt){
  if(e.animal){if((e.stars||0)<ANIMAL_CAP&&e.growT>=MOB_GROW_SEC*1.6){e.growT=0;growMob(e)}return}/* животные: только звёзды, медленно */
  if(e.core>0){
   const d=e.dens||0;if(d>=CORE_DENS_MAX)return;
-  const cost=500*(d+1);
+  const cost=250*(d+1);
   if((e.sh2||0)>=cost||e.growT>=EVO_DENS_SEC){
    if((e.sh2||0)>=cost)e.sh2-=cost;e.growT=0;
    const r=(1+.1*(d+1))/(1+.1*d);e.dens=d+1;e.core*=r;e.qiPlus=(e.qiPlus??4500)+1000;entRebuild(e,100,0,'уплотнил ядро ('+e.dens+'/'+CORE_DENS_MAX+')');
@@ -300,8 +300,8 @@ function evolveTick(e,dt){
   const pay=(e.sh2||0)>=CORE_SHARD_COST;
   if(pay||e.growT>=EVO_CORE_SEC){
    if(pay)e.sh2-=CORE_SHARD_COST;e.growT=0;
-   if(Math.random()*100<coreChanceFor(C,0)){const q=coreQualityFor(C,entCoef(e));e.core=q.coef;e.qiPlus=C*Math.round(PILLAR_Q[0][2]*1.5);entRebuild(e,100,0,'сформировал ядро: '+q.name+'!')}
-   else entRebuild(e,100,0,'потерял все колонны при создании ядра');
+   if(Math.random()*100<Math.min(100,coreChanceFor(C,0)+10*(e.cpity||0))){e.cpity=0;const q=coreQualityFor(C,entCoef(e));e.core=q.coef;e.qiPlus=C*Math.round(PILLAR_Q[0][2]*1.5);entRebuild(e,100,0,'сформировал ядро: '+q.name+'!')}
+   else{e.cpity=(e.cpity||0)+1;entRebuild(e,100,C-1,'потерял колонну при неудаче ядра')}
   }
   return;
  }

@@ -5,7 +5,9 @@ function starsLocked(){return save.pillars>=1||hasCore()}
 function coreUnlocked(){return !hasCore()&&save.pillars>=CORE_MIN_PILLARS}
 function coreQiFraction(){return Math.min(1,(save.coreDeposit||0)/CORE_QI_COST)}
 function coreShardsLeft(){return Math.max(0,Math.ceil(CORE_SHARD_COST*(1-coreQiFraction())-1e-9))}
-function coreChance(){return coreChanceFor(save.pillars,save.coreChanceExtra||0)}
+function coreChanceBase(){return coreChanceFor(save.pillars,save.coreChanceExtra||0)}
+/* «счётчик жалости»: каждая неудача подряд даёт +10% к шансу следующей попытки (до 100%) */
+function coreChance(){return Math.min(100,coreChanceBase()+10*(save.pityC||0))}
 const CORE_DEPOSIT_STEP=1000;
 
 /* ---------- отрисовка: кадры из листов и процедурные колонны ---------- */
@@ -89,17 +91,17 @@ function contributeCoreQi(){
 }
 async function formCoreFromQi(){
  if(!coreUnlocked()||(save.coreDeposit||0)<CORE_QI_COST)return;
- if(!await confirmDialog('Создать ядро? Шанс успеха: '+coreChance()+'%. Колонны будут уничтожены, при неудаче — все.','Создать'))return;
+ if(!await confirmDialog('Создать ядро? Шанс успеха: '+coreChance()+'%. Колонны сольются в ядро; при неудаче рассыплется одна колонна.','Создать'))return;
  attemptCore(()=>{save.coreDeposit-=CORE_QI_COST});
 }
 async function payCoreRewards(){
  const left=coreShardsLeft();if(!coreUnlocked()||left<=0)return;
  if(save.rewards2<left)return toast('Нужно '+fmt(left)+' осколков 2 этапа.');
- if(!await confirmDialog('Создать ядро? Шанс успеха: '+coreChance()+'%. Колонны будут уничтожены, при неудаче — все.','Создать'))return;
+ if(!await confirmDialog('Создать ядро? Шанс успеха: '+coreChance()+'%. Колонны сольются в ядро; при неудаче рассыплется одна колонна.','Создать'))return;
  attemptCore(()=>{save.rewards2-=left;save.coreDeposit=0});
 }
 function investCoreChance(){
- if(!coreUnlocked()||coreChance()>=90)return;
+ if(!coreUnlocked()||coreChanceBase()>=90)return;
  if(save.rewards2<CORE_CHANCE_UNIT)return toast('Нужно '+CORE_CHANCE_UNIT+' осколков 2 этапа.');
  save.rewards2-=CORE_CHANCE_UNIT;save.coreChanceExtra=(save.coreChanceExtra||0)+CORE_CHANCE_UNIT;persist();renderCore();
 }
@@ -110,14 +112,17 @@ function attemptCore(payFn){
  if(Math.random()*100<chance){
   /* бонус Ци колонн сохраняется и умножается на ×1…×1.5 по качеству; ядро запас Ци не умножает, здоровье — умножает */
   {const sumB=(save.pillarBs&&save.pillarBs.length?save.pillarBs.reduce((a,b)=>a+b,0):n*(save.pillarQiBonus||0));save.maxQi=Math.round(Math.max(100,save.maxQi+sumB*(colQiMult(save.pillarCoef)-1)));save.coreQiV=2}
-  save.health*=q.coef;
+  save.pityC=0;save.health*=q.coef;
   save.coreCoef=q.coef;save.coreQuality=q.name;save.pillars=0;save.pillarQs=[];save.pillarBs=[];save.stageLevel=3;save.qi=Math.min(save.qi,save.maxQi);
   persist();updateUI();
   playStageAnimation({kind:'core',success:true,title:'Ядро: '+q.name,text:'Колонны рассыпались и сплавились в ядро. Всё стало сильнее в ×'+q.coef+' раз.',onClose:openCore});
  }else{
-  save.pillars=0;save.pillarQs=[];save.pillarBs=[];save.maxQi=Math.max(100,save.maxQi-n*(save.pillarQiBonus||0));save.qi=Math.min(save.qi,save.maxQi);
+  /* неудача мягкая: рассыпается одна случайная колонна, остальные целы; следующая попытка удачнее (+10%) */
+  save.pityC=(save.pityC||0)+1;
+  {const k=Math.floor(Math.random()*save.pillars),b=(save.pillarBs||[])[k]||save.pillarQiBonus||0;save.maxQi=Math.max(100,save.maxQi-b);save.pillarQs.splice(k,1);save.pillarBs.splice(k,1);save.pillars--;pillarsRecalc();}
+  save.qi=Math.min(save.qi,save.maxQi);
   persist();updateUI();
-  playStageAnimation({kind:'core',success:false,title:'Ядро не удалось',text:'Ресурсы потеряны, все колонны разрушены.',onClose:()=>{}});
+  playStageAnimation({kind:'core',success:false,title:'Ядро не удалось',text:'Вложенное потеряно, одна колонна рассыпалась. Остальные целы, следующая попытка удачнее (+10%).',onClose:()=>{}});
  }
 }
 
@@ -195,8 +200,8 @@ function dropHint(e){
 
 /* ---------- уплотнение ядра: 5 стадий, без риска; Ци и осколки 2 этапа можно сочетать ---------- */
 const CORE_DENS_MAX=5;
-function densQiCost(){return 50000*((save.coreDens||0)+1)}
-function densShardCost(){return 500*((save.coreDens||0)+1)}
+function densQiCost(){return 25000*((save.coreDens||0)+1)}
+function densShardCost(){return 250*((save.coreDens||0)+1)}
 function densQiFraction(){return Math.min(1,(save.coreDeposit||0)/densQiCost())}
 function densShardsLeft(){return Math.max(0,Math.ceil(densShardCost()*(1-densQiFraction())-1e-9))}
 function renderDens(){

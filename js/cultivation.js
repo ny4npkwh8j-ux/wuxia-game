@@ -61,13 +61,14 @@ function removeRandomStars(n){
  save.stars=save.starPts.length;save.meridians=save.meridianEdges.length;save.qi=Math.min(save.qi,save.maxQi);
  return n;
 }
-function pillarChanceNow(){return save.pillarQi<PILLAR_OK_QI&&save.pillarQi>0?Math.min(90,10*Math.floor(Math.max(0,save.pillarChanceExtra||0)/10000)):pillarChance(save.pillarChanceExtra)}
+function pillarChanceNow(){return Math.min(100,(save.pillarQi<PILLAR_OK_QI&&save.pillarQi>0?Math.min(90,10*Math.floor(Math.max(0,save.pillarChanceExtra||0)/10000)):pillarChance(save.pillarChanceExtra))+10*(save.pity||0))}
 async function attemptPillar(cost,payFn,poured,lowQi){
  payFn();pillarsEnsure();
- const chance=lowQi?Math.min(90,10*Math.floor(Math.max(0,save.pillarChanceExtra||0)/10000)):pillarChance(save.pillarChanceExtra),wasFirst=save.pillars===0;
+ const chance=Math.min(100,(lowQi?Math.min(90,10*Math.floor(Math.max(0,save.pillarChanceExtra||0)/10000)):pillarChance(save.pillarChanceExtra))+10*(save.pity||0)),wasFirst=save.pillars===0;
  const bq=colQualityFromQi(poured==null?pillarCost(1):poured,pillarQualityFor(save.stars));
  save.pillarChanceExtra=0;save.pillarQi=0;save.pillarChanceQi=0;
  if(Math.random()*100<chance){
+  save.pity=0;
   if(wasFirst){
    save.pillarQs=[bq.coef];save.pillarBs=[bq.qi];pillarsRecalc();save.pillarStars=save.stars;placingStar=false;$('cultHint').classList.remove('show');
    save.pillars=1;save.stageLevel=2;
@@ -79,8 +80,9 @@ async function attemptPillar(cost,payFn,poured,lowQi){
    toast('Колонна '+roman(save.pillars)+' сформирована · '+pillarQualityName(bq.coef)+'.');
   }
  }else{
-  if(wasFirst){const lost=removeRandomStars(20);toast('Формирование первой колонны не удалось! Утрачено '+lost+' звёзд, вложенные ресурсы потеряны.')}
-  else{if(save.pillars>0){const k=Math.floor(Math.random()*save.pillars),b=(save.pillarBs||[])[k]||save.pillarQiBonus||0;save.maxQi=Math.max(100,save.maxQi-b);save.pillarQs.splice(k,1);save.pillarBs.splice(k,1);save.pillars--;pillarsRecalc()}toast('Формирование не удалось! Колонна разрушена. Осталось: '+save.pillars+'.')}
+  save.pity=(save.pity||0)+1;/* мягкая неудача: вложенное потеряно, но колонны целы, а следующая попытка удачнее (+10%) */
+  if(wasFirst){const lost=removeRandomStars(5);toast('Формирование первой колонны не удалось: утрачено '+lost+' звёзд и вложенное. Следующая попытка удачнее (+10%).')}
+  else toast('Формирование не удалось: вложенное потеряно, колонны целы. Следующая попытка удачнее (+10%).')
  }
  save.qi=Math.min(save.qi,save.maxQi);persist();renderPillar();
 }
