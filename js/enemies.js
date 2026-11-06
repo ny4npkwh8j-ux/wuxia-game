@@ -42,7 +42,7 @@ function applyKit(e,kit){
 function entTick(e,dt){
  const cd=e.cd||(e.cd={atk:2,sh:0,dash:2,stun:2});
  cd.atk-=dt;cd.sh-=dt;cd.dash-=dt;cd.stun=(cd.stun??0)-dt;cd.area=(cd.area??0)-dt;
- e.mcd=Math.max(0,(e.mcd||0)-dt);if(e.poison)poisonTick(e,dt);
+ e.mcd=Math.max(0,(e.mcd||0)-dt);if(e.poison)poisonTick(e,dt);if(e.pills)mobPillUse(e);
  if(e.maxQi!=null)e.qi=Math.min(e.maxQi,e.qi+.5*Math.min(100,e.stars||0)/100*dt);
  e.qsFlash=Math.max(0,(e.qsFlash||0)-dt*3);
 }
@@ -414,13 +414,17 @@ function fearStep(e,dt){
 }
 /* равные по силе — добыча: охотник идёт к ближайшему равному и начинает бой */
 function huntStep(e,dt,force){
- const s=arenaState;if(e.hunter==null)e.hunter=Math.random()<.5;
+ const s=arenaState;if(e.hunter==null)e.hunter=Math.random()<.8;/* амбиция: большинство хочет стать сильнейшими */
  if((!e.hunter&&!force)||!((e.stars||0)>0))return false;
+ if(!force&&e.maxHp&&(e.hp<e.maxHp*.6||(e.maxQi>0&&e.qi<e.maxQi*.4))){e.prey=null;return false}/* не лезет в бой раненым или без Ци — сначала восстанавливается */
  e.huntT=(e.huntT||0)-dt;
  if(e.huntT<=0){
   e.huntT=.8+Math.random()*.6;e.prey=null;let bd=force?1600:700;
   const cand=s.enemies.concat(aliveBosses(s));
-  for(const x of cand){if(x===e||x.hp<=0||x.foeId!=null||(e.team&&x.team===e.team)||(e.lord&&x.lord===e.lord))continue;const d=Math.hypot(x.x-e.x,x.y-e.y);if(d<bd&&equalFoes(e,x)){bd=d;e.prey=x.id}}
+  const my=entPow(e);let bs=1e9;
+  for(const x of cand){if(x===e||x.hp<=0||x.animal||x.foeId!=null||(e.team&&x.team===e.team)||(e.lord&&x.lord===e.lord))continue;const d=Math.hypot(x.x-e.x,x.y-e.y);if(d>=bd||!equalFoes(e,x))continue;
+   const r=entPow(x)/my,wound=x.maxHp?x.hp/x.maxHp:1;if(!force&&r>1.15&&wound>.7)continue;/* заведомо сильнее и здоров — не трогает */
+   const sc=d*(.6+.4*wound)*(1+Math.max(0,r-1));if(sc<bs){bs=sc;e.prey=x.id}}
  }
  const f=e.prey!=null?findEnt(e.prey):null;if(!f||f.foeId!=null){e.prey=null;return false}
  const d=Math.hypot(f.x-e.x,f.y-e.y);
