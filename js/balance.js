@@ -81,7 +81,7 @@ function mobMult(stars){return powerMult(stars,stars,0,1)}
 /* качество колонн босса не ниже лучшего в игре и не ниже качества колонн самого игрока (чтобы боссы не отставали от прокачанного игрока) */
 function bossCoef(){return Math.max(PILLAR_Q[0][3],save.pillarCoef||0)}
 /* качество колонн противника: босс — по лучшему/по игроку, моб с колоннами — лучшее из таблицы */
-function entCoef(e){return e.isBoss?bossCoef():(e.columns>0?PILLAR_Q[0][3]:1)}
+function entCoef(e){return e.isBoss?bossCoef():(e.columns>0?entTal(e):1)}
 function bossMult(b){return powerMult(100,100,b.columns||0,bossCoef())*qiVolume(bodyQi(100,b.columns||0,PILLAR_Q[0][2]),100)}
 /* сила любого противника по тем же формулам, что и у игрока */
 function entQiVol(e){return qiVolume(e.maxQi,e.stars||0)}

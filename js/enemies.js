@@ -32,9 +32,15 @@ const ENT_RANGE={mob:{single:300,area:350,stun:500},boss:{single:600,area:450,st
 /* цена техник — по тем же правилам, что и у игрока */
 function entCost(e,t){return t==='dodge'?dodgeCost(e.maxQi):t==='qiShield'?0:Math.ceil((TECH_COST[t]+.3*(e.stars||0))*entQiVol(e))}
 /* здоровье, сила и запас Ци — по тем же формулам, что у игрока (bodyHp / bodyStr / bodyQi) */
+/* талант моба: качество его колонн/ядра (коэф. .3…1.3, как PILLAR_Q); большинство — обычные, исключительные редки */
+function entTal(e){if(e.tal==null){let g=0;for(let i=0;i<6;i++)g+=Math.random();g=(g-3)/Math.sqrt(.5);e.tal=+Math.max(.3,Math.min(1.3,.82+.2*g)).toFixed(2)}return e.tal}
+function talQi(t){const lo=PILLAR_Q[5],f=Math.max(0,Math.min(1,(t-lo[3])/(PILLAR_Q[0][3]-lo[3])));return Math.round(lo[2]+(PILLAR_Q[0][2]-lo[2])*f)}
+function talName(t){return t>=1.3?'исключительный':t>=1.15?'превосходный':t>=1?'отличный':t>=.7?'хороший':t>=.5?'обычный':'слабый'}
+/* путь: одарённые идут в ядро уже с 3 колонн, средние — с 4 или 5, слабые остаются на колоннах */
+function coreAt(e){const t=entTal(e);return t>=1?3:t>=.85?4:t>=.6?5:99}
 function applyKit(e,kit){
  if(kit.columns!=null)e.columns=kit.columns;
- const S=kit.stars,C=e.core>0?e.core:1,mh=bodyHp(S)*C*(e.isBoss?3:1),mq=bodyQi(S,e.columns||0,(e.isBoss||e.columns>0)?PILLAR_Q[0][2]:0)+(e.qiPlus??(e.core>0?4500:0));/* Ци ядром не умножается: бонус колонн ×1.5 + уплотнение */
+ const S=kit.stars,C=e.core>0?e.core:1,mh=bodyHp(S)*C*(e.isBoss?3:1),mq=bodyQi(S,e.columns||0,e.isBoss?PILLAR_Q[0][2]:e.columns>0?talQi(entTal(e)):0)+(e.qiPlus??(e.core>0?4500:0));/* Ци ядром не умножается: бонус колонн ×1.5 + уплотнение */
  Object.assign(e,{v:ENT_V,stars:S,str:bodyStr(S)*C,techs:kit.techs,technique:kit.techs[0]||null,hp:mh,maxHp:mh,qi:mq,maxQi:mq,shield:0,shieldMax:0,qiShieldOn:kit.techs.includes('qiShield'),qsFlash:0,wind:null,mcd:0,cd:{atk:e.isBoss?.8:1+Math.random()*1.5,sh:0,dash:1+Math.random()*2,stun:2,area:0}});
  return e;
 }
@@ -296,11 +302,11 @@ function evolveTick(e,dt){
   return;
  }
  const max=entMaxCols(e);
- if(C>=max&&C>=CORE_MIN_PILLARS){
+ if(C>=coreAt(e)&&C>=CORE_MIN_PILLARS){
   const pay=(e.sh2||0)>=CORE_SHARD_COST;
   if(pay||e.growT>=EVO_CORE_SEC){
    if(pay)e.sh2-=CORE_SHARD_COST;e.growT=0;
-   if(Math.random()*100<Math.min(100,coreChanceFor(C,0)+10*(e.cpity||0))){e.cpity=0;const q=coreQualityFor(C,entCoef(e));e.core=q.coef;e.qiPlus=C*Math.round(PILLAR_Q[0][2]*1.5);entRebuild(e,100,0,'сформировал ядро: '+q.name+'!')}
+   if(Math.random()*100<Math.min(100,coreChanceFor(C,0)+10*(e.cpity||0))){e.cpity=0;const q=coreQualityFor(C,entCoef(e));e.core=q.coef;e.qiPlus=C*Math.round(talQi(entTal(e))*1.5);entRebuild(e,100,0,'сформировал ядро: '+q.name+'!')}
    else{e.cpity=(e.cpity||0)+1;entRebuild(e,100,C-1,'потерял колонну при неудаче ядра')}
   }
   return;
