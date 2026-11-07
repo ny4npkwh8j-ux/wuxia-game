@@ -18,7 +18,7 @@ function openPillar(){renderPillar();$('pillarModal').classList.add('show')}
 function closePillar(){$('pillarModal').classList.remove('show')}
 /* цена колонны: Ци — как раньше (10 000 × номер); осколки — для колонн 2+ в 100 раз дешевле (100 × номер),
    для первой по-прежнему 10 000 осколков души. Ци и осколки можно сочетать: внесённая доля Ци уменьшает доплату осколками. */
-function activeShardCost(){return save.pillars===0?10000:COL_SH}/* осколки: 1 этап → 2 этап в 100 раз дешевле */
+function activeShardCost(){return Math.round((save.pillars===0?10000:COL_SH)*starEase())}/* осколки: 1 этап → 2 этап в 100 раз дешевле */
 function pillarQiFraction(){return Math.min(1,(save.pillarQi||0)/activeColumnCost())}
 function pillarShardsLeft(){return Math.max(0,Math.ceil(activeShardCost()*(1-pillarQiFraction())-1e-9))}
 function pillarBalance(){return shBalance(save.pillars===0?1:2)}

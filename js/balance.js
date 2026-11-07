@@ -1,6 +1,7 @@
 'use strict';
 const PILLAR_STEP=500,MAX_PILLARS=5,FIRST_PILLAR_STARS=50,PATH_CAP=40;
-function pillarCost(n){return 10000}/* все колонны стоят одинаково — как первая */
+function starEase(){return Math.max(.6,1-.004*Math.max(0,(save.stars||0)-100))}/* после сотни звёзд прорыв на колонну дешевле: −0,4% за звезду, до −40% */
+function pillarCost(n){return Math.round(10000*starEase())}/* все колонны стоят одинаково — как первая */
 function activeColumnCost(){return pillarCost(save.pillars+1)}
 function pillarChance(extra){return Math.min(90,30+10*Math.floor(Math.max(0,extra)/10000))}
 function currentQualityCoef(){return save.pillars>0?save.pillarCoef:pillarQualityFor(save.stars).coef}
@@ -41,8 +42,8 @@ const CORE_Q=[[1.3,'ИСКЛЮЧИТЕЛЬНОЕ'],[1.15,'ПРЕВОСХОДНО
 const CORE_MULT_MIN=1.3,CORE_MULT_MAX=2.5;
 function coreQualityFor(pillars,coef){const c=Math.max(.3,Math.min(1.3,coef||.3));let nm=CORE_Q[5][1];for(const q of CORE_Q)if(c>=q[0]-1e-9){nm=q[1];break}return{name:nm,coef:+(CORE_MULT_MIN+(c-.3)/1.0*(CORE_MULT_MAX-CORE_MULT_MIN)).toFixed(3),score:c}}
 /* шанс как у колонн (30%, до 90%), +10% за каждую колонну сверх третьей и +10% за каждые 500 вложенных осколков 2 этапа */
-function coreChanceFor(pillars,extra){return Math.min(90,30+10*Math.max(0,pillars-CORE_MIN_PILLARS)+10*Math.floor(Math.max(0,extra)/CORE_CHANCE_UNIT))}
-function pillarQualityFor(stars){for(const q of PILLAR_Q)if(stars>=q[0])return{name:q[1],qi:q[2],coef:q[3]};return{name:PILLAR_Q[5][1],qi:PILLAR_Q[5][2],coef:PILLAR_Q[5][3]}}
+function coreChanceFor(pillars,extra,coef){return Math.max(5,Math.min(90,Math.round(30+10*Math.max(0,pillars-CORE_MIN_PILLARS)+30*((coef==null?1:coef)-1)+10*Math.floor(Math.max(0,extra)/CORE_CHANCE_UNIT))))}/* + число колонн, + качество колонн (−21…+9) */
+function pillarQualityFor(stars){for(const q of PILLAR_Q)if(stars>=q[0])return{name:q[1],qi:Math.round(q[2]*(stars>100?1+Math.min(2,(stars-100)/200):1)),coef:q[3]};/* больше 100 звёзд — больше Ци за колонну (+50% на 200★, до ×3) */return{name:PILLAR_Q[5][1],qi:PILLAR_Q[5][2],coef:PILLAR_Q[5][3]}}
 /* качество колонны зависит от влитой Ци: до PILLAR_MIN_QI формирование невозможно, <PILLAR_OK_QI — гарантированная неудача (кроме шанса осколками),
    5000 Ци = самое низкое качество, 10000 = полное (по звёздам); между ними линейно */
 const PILLAR_MIN_QI=3000,PILLAR_OK_QI=5000;

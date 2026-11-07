@@ -40,7 +40,7 @@ function talName(t){return t>=1.3?'исключительный':t>=1.15?'пре
 function coreAt(e){return entMaxCols(e)}
 /* попытка создать ядро: общая для планового пути и для отчаянного прорыва; e.coreCols запоминает, с каким числом колонн оно создано (потолок души) */
 function mobCoreAttempt(e,C,penalty){
- if(Math.random()*100<Math.min(100,coreChanceFor(C,0)+10*(e.cpity||0)-(penalty||0))){e.cpity=0;const q=coreQualityFor(C,entCoef(e));e.core=q.coef;e.coreCols=C;e.qiPlus=C*Math.round(talQi(entTal(e))*1.5);entRebuild(e,100,0,'сформировал ядро: '+q.name+'!');return true}
+ if(Math.random()*100<Math.min(100,coreChanceFor(C,0,entTal(e))+10*(e.cpity||0)-(penalty||0))){e.cpity=0;const q=coreQualityFor(C,entCoef(e));e.core=q.coef;e.coreCols=C;e.qiPlus=C*Math.round(talQi(entTal(e))*1.5);entRebuild(e,100,0,'сформировал ядро: '+q.name+'!');return true}
  e.cpity=(e.cpity||0)+1;entRebuild(e,100,C-1,'потерял колонну при неудаче ядра');return false;
 }
 /* отчаяние: в бою при угрозе смерти моб с 3+ колоннами идёт на ранний прорыв — риск выше, потолок ниже, зато шанс выжить */
@@ -297,7 +297,7 @@ function evolveTick(e,dt){
  e.growT=(e.growT||0)+dt;
  if(e.animal){if((e.stars||0)<ANIMAL_CAP&&e.growT>=MOB_GROW_SEC*1.6){e.growT=0;growMob(e)}return}/* животные: только звёзды, медленно */
  if(e.core>0){
-  const d=e.dens||0;if(d>=CORE_DENS_MAX)return;
+  const d=e.dens||0;if(d>=coreDensMax(e))return;
   const cost=densShardCost0(d);
   if(entShBal(e,3)>=cost||e.growT>=EVO_DENS_SEC){
    if(entShBal(e,3)>=cost)entShPay(e,3,cost);e.growT=0;

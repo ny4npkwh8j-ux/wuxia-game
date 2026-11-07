@@ -5,7 +5,7 @@ function starsLocked(){return save.pillars>=1||hasCore()}
 function coreUnlocked(){return !hasCore()&&save.pillars>=CORE_MIN_PILLARS}
 function coreQiFraction(){return Math.min(1,(save.coreDeposit||0)/CORE_QI_COST)}
 function coreShardsLeft(){return Math.max(0,Math.ceil(CORE_SHARD_COST*(1-coreQiFraction())-1e-9))}
-function coreChanceBase(){return coreChanceFor(save.pillars,save.coreChanceExtra||0)}
+function coreChanceBase(){return coreChanceFor(save.pillars,save.coreChanceExtra||0,save.pillarCoef||1)}
 /* «счётчик жалости»: каждая неудача подряд даёт +10% к шансу следующей попытки (до 100%) */
 function coreChance(){return Math.min(100,coreChanceBase()+10*(save.pityC||0))}
 const CORE_DEPOSIT_STEP=1000;
@@ -71,7 +71,7 @@ function renderCore(){
  if(hasCore()){
   $('coreForm').style.display='none';
   const d=save.coreDens||0;
-  $('coreInfo').innerHTML='<b>'+save.coreQuality+'</b> ×'+myCore().toFixed(2)+' · уплотнение <b>'+d+'/'+CORE_DENS_MAX+'</b>';
+  $('coreInfo').innerHTML='<b>'+save.coreQuality+'</b> ×'+myCore().toFixed(2)+' · уплотнение <b>'+d+'/'+coreDensMax()+'</b>';
   renderDens();return}
  $('coreDens').style.display='none';
  $('coreForm').style.display='block';
@@ -200,42 +200,45 @@ function dropHint(e){
 
 /* ---------- уплотнение ядра: 5 стадий, без риска; Ци и осколки 2 этапа можно сочетать ---------- */
 const CORE_DENS_MAX=5;
+/* потолок уплотнения зависит от числа колонн, из которых сплавлено ядро (3 → 3, 4 → 4, 5 → 5); старые ядра без записи считаются полными */
+function coreDensMaxFor(cols){return cols==null?CORE_DENS_MAX:Math.max(1,Math.min(CORE_DENS_MAX,cols))}
+function coreDensMax(e){return coreDensMaxFor(e?e.coreCols:save.coreCols)}
 function densQiCost(){return 25000*((save.coreDens||0)+1)}
 function densShardCost(){return COL_SH/2*((save.coreDens||0)+1)}
 function densQiFraction(){return Math.min(1,(save.coreDeposit||0)/densQiCost())}
 function densShardsLeft(){return Math.max(0,Math.ceil(densShardCost()*(1-densQiFraction())-1e-9))}
 function renderDens(){
- const box=$('coreDens'),d=save.coreDens||0,done=d>=CORE_DENS_MAX;
+ const box=$('coreDens'),d=save.coreDens||0,done=d>=coreDensMax();
  box.style.display=done?'none':'block';if(done)return;
  const left=densShardsLeft(),bal=shBalance(3);
  $('densBarFill').style.width=(densQiFraction()*100)+'%';
- $('densProgress').textContent='Стадия '+(d+1)+'/'+CORE_DENS_MAX+' · Ци '+fmt(save.coreDeposit||0)+' / '+fmt(densQiCost());
+ $('densProgress').textContent='Стадия '+(d+1)+'/'+coreDensMax()+' · Ци '+fmt(save.coreDeposit||0)+' / '+fmt(densQiCost());
  $('densDepositBtn').disabled=(save.coreDeposit||0)>=densQiCost();$('densDepositBtn').textContent='Влить Ци · '+densHoldRate().toFixed(1)+'/с';
  $('densQiBtn').disabled=(save.coreDeposit||0)<densQiCost();$('densQiBtn').textContent='Уплотнить';
  $('densShBtn').disabled=left<=0||bal<left;$('densShBtn').textContent='Осколки · '+fmt(left);
 }
 function contributeDensQi(){
- if(!hasCore()||(save.coreDens||0)>=CORE_DENS_MAX)return;const need=densQiCost()-(save.coreDeposit||0);if(need<=0)return;
+ if(!hasCore()||(save.coreDens||0)>=coreDensMax())return;const need=densQiCost()-(save.coreDeposit||0);if(need<=0)return;
  const n=Math.min(Math.floor(save.qi),need,CORE_DEPOSIT_STEP);if(n<100)return toast('Нужно хотя бы 100 Ци.');
  save.qi-=n;save.coreDeposit=(save.coreDeposit||0)+n;persist();renderCore();
 }
 async function densifyFromQi(){
- if(!hasCore()||(save.coreDens||0)>=CORE_DENS_MAX||(save.coreDeposit||0)<densQiCost())return;
+ if(!hasCore()||(save.coreDens||0)>=coreDensMax()||(save.coreDeposit||0)<densQiCost())return;
  if(!await confirmDialog('Уплотнить ядро? Риска нет.','Уплотнить'))return;
  densify(()=>{save.coreDeposit-=densQiCost()});
 }
 async function densifyFromShards(){
- const left=densShardsLeft();if(!hasCore()||(save.coreDens||0)>=CORE_DENS_MAX||left<=0)return;
+ const left=densShardsLeft();if(!hasCore()||(save.coreDens||0)>=coreDensMax()||left<=0)return;
  if(shBalance(3)<left)return toast('Нужно '+fmt(left)+' осколков 3 этапа (ядра) или старших.');
  if(!await confirmDialog('Уплотнить ядро? Риска нет.','Уплотнить'))return;
  densify(()=>{shPay(3,left);save.coreDeposit=0});
 }
 function densify(payFn){
- if(!hasCore()||(save.coreDens||0)>=CORE_DENS_MAX)return;
+ if(!hasCore()||(save.coreDens||0)>=coreDensMax())return;
  payFn();const d0=save.coreDens||0,r=(1+.1*(d0+1))/(1+.1*d0);
  save.coreDens=d0+1;save.coreDeposit=0;
  /* здоровье растёт вместе с множителем ядра, а Ци — на фиксированную прибавку */
  save.maxQi+=coreDensQi(save.coreCoef);save.health=Math.round(save.health*r);save.qi=Math.min(save.qi,save.maxQi);
  persist();updateUI();closeCore();
- playStageAnimation({kind:'dens',d0,success:true,title:'Уплотнение ядра '+save.coreDens+'/'+CORE_DENS_MAX,text:save.coreDens>=CORE_DENS_MAX?'Ядро уплотнилось полностью. Сила: ×'+myCore().toFixed(2):'Ядро сжалось и стало плотнее. Сила: ×'+myCore().toFixed(2),onClose:openCore});
+ playStageAnimation({kind:'dens',d0,success:true,title:'Уплотнение ядра '+save.coreDens+'/'+coreDensMax(),text:save.coreDens>=coreDensMax()?'Ядро уплотнилось полностью. Сила: ×'+myCore().toFixed(2):'Ядро сжалось и стало плотнее. Сила: ×'+myCore().toFixed(2),onClose:openCore});
 }
