@@ -66,18 +66,18 @@ function playerGearDrop(s){
 }
 /* мобы ходят к Меняле и покупают снаряжение за накопленные осколки (цены те же, что у игрока) */
 function mobBestBuy(e){
- let best=null;for(const id in GEAR){const it=GEAR[id],have=it.tier===1?(e.sh1||0):(e.sh2||0);if(have<it.price||!gearUseful(e,id))continue;if(!best||gearScore(id)>gearScore(best))best=id}
+ let best=null;for(const id in GEAR){const it=GEAR[id],have=entShBal(e,it.tier===1?1:2);if(have<it.price||!gearUseful(e,id))continue;if(!best||gearScore(id)>gearScore(best))best=id}
  return best;
 }
 /* алхимия мобов: излишки осколков (сверх нужного на рост) идут на пилюли здоровья и Ци; в бою их пьют, когда худо */
-function mobReserve(e,k){const S=e.stars||0;return k===1?(S<100?10+5*S:0):((e.columns||0)<MAX_PILLARS?100:0)}
+function mobReserve(e,k){const S=e.stars||0;return k===1?(S<100?10+5*S:0):((e.columns||0)<MAX_PILLARS?COL_SH:0)}
 function mobPillTotal(e){return Object.values(e.pills||{}).reduce((a,b)=>a+b,0)}
 function mobPillPlan(e){
  if(typeof PILLS==='undefined'||mobPillTotal(e)>=4)return null;
- for(const id of ['hp2','qi2','hp1','qi1']){const p=PILLS[id],have=(p.k===1?e.sh1:e.sh2)||0;if(have-mobReserve(e,p.k)>=p.n&&((e.pills&&e.pills[id])||0)<2)return id}
+ for(const id of ['hp2','qi2','hp1','qi1']){const p=PILLS[id],have=entShBal(e,p.k);if(have-mobReserve(e,p.k)>=p.n&&((e.pills&&e.pills[id])||0)<2)return id}
  return null;
 }
-function mobBuyPills(e){let id,n=0;while(n++<4&&(id=mobPillPlan(e))){const p=PILLS[id];if(p.k===1)e.sh1-=p.n;else e.sh2-=p.n;e.pills=e.pills||{};e.pills[id]=(e.pills[id]||0)+1;floatText(e.x,e.y-48,p.icon,'#ffffff',14)}}
+function mobBuyPills(e){let id,n=0;while(n++<4&&(id=mobPillPlan(e))){const p=PILLS[id];entShPay(e,p.k,p.n);e.pills=e.pills||{};e.pills[id]=(e.pills[id]||0)+1;floatText(e.x,e.y-48,p.icon,'#ffffff',14)}}
 function mobPillUse(e){
  if(!e.pills||e.hp<=0||!(e.foeId!=null||e.hostile)||(e.pillCd||0)>(arenaState?arenaState.t:0))return;
  const hurt=e.hp<e.maxHp*.4,dry=e.maxQi>0&&e.qi<e.maxQi*.2;if(!hurt&&!dry)return;
@@ -93,6 +93,6 @@ function mobShopStep(e,dt){
  e.shopT=(e.shopT||0)+dt;
  if(e.shopT>120){e.shopping=false;return false}
  const d=Math.hypot(n.x-e.x,n.y-e.y);
- if(d<90){const id=mobBestBuy(e);if(id){const it=GEAR[id];if(it.tier===1)e.sh1-=it.price;else e.sh2-=it.price;entEquip(e,id);floatText(e.x,e.y-34,it.icon,'#ffffff',16)}mobBuyPills(e);e.shopping=false;return false}
+ if(d<90){const id=mobBestBuy(e);if(id){const it=GEAR[id];entShPay(e,it.tier===1?1:2,it.price);entEquip(e,id);floatText(e.x,e.y-34,it.icon,'#ffffff',16)}mobBuyPills(e);e.shopping=false;return false}
  e.ang=Math.atan2(n.y-e.y,n.x-e.x);e.wanderAng=e.ang;e.wanderT=.5;moveEnemy(e,Math.cos(e.ang)*e.s*.7*dt,Math.sin(e.ang)*e.s*.7*dt);return true;
 }

@@ -12,11 +12,11 @@ const PILLS={
  pow:{name:'Пилюля силы',icon:'💪',kind:'pow',sec:60,k:1,n:300,desc:'+30% к силе (урон ударов и техник) на 60 с.'},
  grd:{name:'Пилюля стойкости',icon:'🧱',kind:'grd',sec:60,k:1,n:300,desc:'−25% получаемого урона на 60 с.'}
 };
-function shopPay(k,n){const key=k===1?'rewards':'rewards2';if(save[key]<n)return false;save[key]-=n;return true}
-function costText(k,n){return fmt(n)+(k===1?' души':' 2 этапа')}
-function canPay(k,n){return (k===1?save.rewards:save.rewards2)>=n}
+function shopPay(k,n){return shPay(k,n)}
+function costText(k,n){return fmt(n)+' '+(SH_NAME[k]||'')}
+function canPay(k,n){return shBalance(k)>=n}
 function renderNpc(){
- $('npcBal').textContent='Осколки души: '+fmt(save.rewards)+' · Осколки 2 этапа: '+fmt(save.rewards2)+(save.rewards3>0?' · 3 этапа: '+fmt(save.rewards3):'');
+ $('npcBal').textContent='Осколки души: '+fmt(save.rewards)+' · Осколки 2 этапа: '+fmt(save.rewards2)+(save.rewards3>0?' · 3 этапа: '+fmt(save.rewards3):'')+(save.rewards4>0?' · 4 этапа: '+fmt(save.rewards4):'');
  const el=$('npcList');el.innerHTML='';
  const tabs=document.createElement('div');tabs.className='row';tabs.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
  for(const [id,t] of [['exch','Обмен'],['tech','Техники'],['gear','Снаряжение'],['pill','Пилюли']]){const b=document.createElement('button');b.className='bigbtn'+(npcTab===id?'':' secondary');b.style.cssText='flex:1;min-width:80px;padding:9px 6px';b.textContent=t;b.onclick=()=>{npcTab=id;renderNpc()};tabs.appendChild(b)}
@@ -112,3 +112,6 @@ function renderInvPills(el){
  const ids=Object.keys(PILLS).filter(id=>pillCount(id)>0),p=document.createElement('p');p.className='sc-empty';
  p.textContent=ids.length?ids.map(id=>PILLS[id].name+' ×'+pillCount(id)).join(' · ')+'. Применяются в бою кнопкой 💊.':'Пока нет. Пилюли продаёт Меняла.';el.appendChild(p);
 }
+
+/* цены осколками 2 этапа растут вместе с новым дропом (= звёзды моба): общий множитель SHARD_PRICE_K */
+(function(){for(const id in GEAR)if(GEAR[id].tier===2)GEAR[id].price*=SHARD_PRICE_K;for(const id in PILLS)if(PILLS[id].k===2)PILLS[id].n*=SHARD_PRICE_K;for(const it of SHOP_TECH)it.a*=SHARD_PRICE_K})();

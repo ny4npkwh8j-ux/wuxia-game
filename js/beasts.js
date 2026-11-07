@@ -144,7 +144,7 @@ function bossSpecial(b,dt,d){
 /* убийство делает босса сильнее: ускоряется рост, к осколкам добавляется добыча жертвы */
 function bossKillCredit(b,v){
  if(!b||!b.isBoss||b.hp<=0)return;b.kills=(b.kills||0)+1;b.growT=(b.growT||0)+60;
- if(v){b.sh1=(b.sh1||0)+Math.floor(v.stars||0);if(v.columns>0||v.core>0)b.sh2=(b.sh2||0)+(v.core>0?10:v.columns)}
+ if(v){b.sh1=(b.sh1||0)+Math.floor(v.stars||0);if(v.columns>0||v.core>0){const f=ESH[shTierOf(v)];b[f]=(b[f]||0)+Math.floor(v.stars||0)}}
  else{b.sh1=(b.sh1||0)+100}
  floatText(b.x,b.y-90,'☠ '+b.kills,'#ff5a4a',14);
 }

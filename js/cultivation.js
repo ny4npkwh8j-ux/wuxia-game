@@ -18,12 +18,12 @@ function openPillar(){renderPillar();$('pillarModal').classList.add('show')}
 function closePillar(){$('pillarModal').classList.remove('show')}
 /* цена колонны: Ци — как раньше (10 000 × номер); осколки — для колонн 2+ в 100 раз дешевле (100 × номер),
    для первой по-прежнему 10 000 осколков души. Ци и осколки можно сочетать: внесённая доля Ци уменьшает доплату осколками. */
-function activeShardCost(){return save.pillars===0?10000:100}/* осколки: 1 этап → 2 этап в 100 раз дешевле */
+function activeShardCost(){return save.pillars===0?10000:COL_SH}/* осколки: 1 этап → 2 этап в 100 раз дешевле */
 function pillarQiFraction(){return Math.min(1,(save.pillarQi||0)/activeColumnCost())}
 function pillarShardsLeft(){return Math.max(0,Math.ceil(activeShardCost()*(1-pillarQiFraction())-1e-9))}
-function pillarBalance(){return save.pillars===0?save.rewards:save.rewards2}
+function pillarBalance(){return shBalance(save.pillars===0?1:2)}
 function pillarChanceStep(){return Math.floor(Math.max(0,save.pillarChanceExtra||0)/10000)+1} /* какой по счёту шаг +10% сейчас покупается (1, 2, 3…) */
-function pillarChanceCost(){return (save.pillars===0?100:10)*pillarChanceStep()} /* осколки: база × номер шага (первая колонна: 100, 200, 300…; следующие: 20, 40, 60… / 30, 60, 90…) */
+function pillarChanceCost(){return (save.pillars===0?100:COL_SH/10)*pillarChanceStep()} /* осколки: база × номер шага (первая колонна: 100, 200, 300…; следующие: 20, 40, 60… / 30, 60, 90…) */
 function pillarChanceQiCost(){return 10000*pillarChanceStep()} /* Ци: 10 000 × номер колонны × номер шага */
 function renderPillar(){
  const done=save.pillars>=MAX_PILLARS,first=save.pillars===0,okStars=save.stars>=FIRST_PILLAR_STARS||!first;
@@ -108,7 +108,7 @@ async function payPillarRewards(){
  if(first&&save.stars<FIRST_PILLAR_STARS)return;
  if(bal<left)return toast('Нужно '+fmt(left)+' осколков'+(first?' души':' 2 этапа')+'.');
  if(!await confirmDialog(first?('Сформировать первую колонну? Шанс успеха: '+pillarChance(save.pillarChanceExtra)+'%.'):('Сформировать колонну? Шанс успеха: '+pillarChance(save.pillarChanceExtra)+'%. При неудаче будет разрушена одна из уже сформированных колонн.'),'Сформировать'))return;
- attemptPillar(left,()=>{if(first)save.rewards-=left;else save.rewards2-=left},activeColumnCost(),false);
+ attemptPillar(left,()=>{shPay(first?1:2,left)},activeColumnCost(),false);
 }
 function investPillarChanceQi(){
  const cost=pillarChanceQiCost();if(pillarChance(save.pillarChanceExtra)>=90)return;
@@ -118,7 +118,7 @@ function investPillarChanceQi(){
 function investPillarChance(){
  const first=save.pillars===0,bal=pillarBalance(),cost=pillarChanceCost();
  if(bal<cost)return toast('Нужно ещё '+fmt(cost)+' осколков'+(first?' души':' 2 этапа')+'.');
- if(first)save.rewards-=cost;else save.rewards2-=cost;
+ shPay(first?1:2,cost);
  save.pillarChanceExtra+=10000;persist();renderPillar();
 }
 function openColumns(){

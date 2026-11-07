@@ -46,7 +46,7 @@ function mobCoreAttempt(e,C,penalty){
 /* отчаяние: в бою при угрозе смерти моб с 3+ колоннами идёт на ранний прорыв — риск выше, потолок ниже, зато шанс выжить */
 function despairCore(e){
  const s=arenaState;if(!s||e.animal||e.isBoss||e.core>0||(e.columns||0)<CORE_MIN_PILLARS||e.foeId==null||e.hp>=e.maxHp*.35||(e.despT||0)>s.t)return;
- e.despT=s.t+90;const C=e.columns,pay=(e.sh2||0)>=CORE_SHARD_COST;if(pay)e.sh2-=CORE_SHARD_COST;
+ e.despT=s.t+90;const C=e.columns,pay=entShBal(e,3)>=CORE_SHARD_COST;if(pay)entShPay(e,3,CORE_SHARD_COST);
  floatText(e.x,e.y-52,'⚡ прорыв!','#ffd85b',14);mobCoreAttempt(e,C,pay?0:20);
 }
 function applyKit(e,kit){
@@ -285,6 +285,7 @@ function teamAlert(t){const s=arenaState,b=aliveBosses(s).find(q=>(q.index||0)==
    Шансы и цены — те же, что у игрока; неудача: первая колонна — минус 20 звёзд, дальше — минус колонна, ядро — потеря всех колонн. */
 const EVO_DENS_SEC=600,EVO_COL_SEC=150,EVO_CORE_SEC=600,FULL_KIT=['shield','dodge','qiSingle','qiArea','qiShield','stun','heal'];
 function entMaxCols(e){return MAX_PILLARS}/* потолка у мобов нет: число сильных регулируют бои между ними */
+function densShardCost0(d){return COL_SH/2*(d+1)}
 function entRebuild(e,stars,cols,note){
  const r=e.maxHp?e.hp/e.maxHp:1,q=e.maxQi?e.qi/e.maxQi:1;
  applyKit(e,{stars,techs:FULL_KIT.slice(),columns:cols});e.hp=Math.max(1,e.maxHp*r);e.qi=e.maxQi*q;
@@ -297,9 +298,9 @@ function evolveTick(e,dt){
  if(e.animal){if((e.stars||0)<ANIMAL_CAP&&e.growT>=MOB_GROW_SEC*1.6){e.growT=0;growMob(e)}return}/* животные: только звёзды, медленно */
  if(e.core>0){
   const d=e.dens||0;if(d>=CORE_DENS_MAX)return;
-  const cost=250*(d+1);
-  if((e.sh2||0)>=cost||e.growT>=EVO_DENS_SEC){
-   if((e.sh2||0)>=cost)e.sh2-=cost;e.growT=0;
+  const cost=densShardCost0(d);
+  if(entShBal(e,3)>=cost||e.growT>=EVO_DENS_SEC){
+   if(entShBal(e,3)>=cost)entShPay(e,3,cost);e.growT=0;
    const r=(1+.1*(d+1))/(1+.1*d);e.dens=d+1;e.core*=r;e.qiPlus=(e.qiPlus??4500)+1000;entRebuild(e,100,0,'уплотнил ядро ('+e.dens+'/'+CORE_DENS_MAX+')');
   }
   return;
@@ -314,17 +315,17 @@ function evolveTick(e,dt){
  }
  const max=entMaxCols(e);
  if(C>=coreAt(e)&&C>=CORE_MIN_PILLARS){
-  const pay=(e.sh2||0)>=CORE_SHARD_COST;
+  const pay=entShBal(e,3)>=CORE_SHARD_COST;
   if(pay||e.growT>=EVO_CORE_SEC){
-   if(pay)e.sh2-=CORE_SHARD_COST;e.growT=0;
+   if(pay)entShPay(e,3,CORE_SHARD_COST);e.growT=0;
    mobCoreAttempt(e,C,0);
   }
   return;
  }
  if(C>=max)return;
- const first=C===0,key=first?'sh1':'sh2',cost=first?10000:100,pay=(e[key]||0)>=cost;
+ const first=C===0,tr=first?1:2,cost=first?10000:COL_SH,pay=entShBal(e,tr)>=cost;
  if(pay||e.growT>=EVO_COL_SEC){
-  if(pay)e[key]-=cost;e.growT=0;
+  if(pay)entShPay(e,tr,cost);e.growT=0;
   /* с каждой неудачей шанс растёт (+10%, до 90%) — иначе у существ колонны почти не появлялись бы */
   if(Math.random()*100<Math.min(90,pillarChance(0)+10*(e.pity||0))){e.pity=0;entRebuild(e,100,C+1,'сформировал колонну ('+(C+1)+')')}
   else if(e.pity=(e.pity||0)+1,first)entRebuild(e,80,0,'потерял 20 звёзд при неудаче колонны');
@@ -467,16 +468,16 @@ function dropLoot(x,y,k,v){
 /* что падает с убитого: награда по его культивации + всё, что он сам успел накопить */
 function dropVictimLoot(v){
  gearDeathDrop(v);
- const cols=v.columns||0,stage2=cols>0||v.core>0,rw=v.core>0?10:(stage2?cols:Math.floor(v.stars||0));
- if(stage2)dropLoot(v.x,v.y,2,rw);else dropLoot(v.x,v.y,1,rw);
- if(v.sh1>0){dropLoot(v.x,v.y,1,v.sh1);v.sh1=0}if(v.sh2>0){dropLoot(v.x,v.y,2,v.sh2);v.sh2=0}
- return{k:stage2?2:1,v:rw};
+ const t=shTierOf(v),rw=Math.floor(v.stars||0);/* осколки своего этапа = числу звёзд */
+ dropLoot(v.x,v.y,shLootK(t),rw);
+ for(let j=1;j<=4;j++){const f=ESH[j];if(v[f]>0){dropLoot(v.x,v.y,shLootK(j),v[f]);v[f]=0}}
+ return{k:t,v:rw};
 }
 function lootPickups(dt){
  const s=arenaState;if(!s||!s.loot||!s.loot.length)return;s.lootT=(s.lootT||0)+dt;if(s.lootT<.25)return;s.lootT=0;
  for(const e of s.enemies.concat(aliveBosses(s))){
   if(e.hp<=0||!((e.stars||0)>0))continue;
-  for(let i=s.loot.length-1;i>=0;i--){const q=s.loot[i];if(Math.hypot(q.x-e.x,q.y-e.y)<46){if(q.k===3){if(gearUseful(e,q.item)){entEquip(e,q.item);s.loot.splice(i,1)}}else{if(q.k===2)e.sh2=(e.sh2||0)+q.v;else e.sh1=(e.sh1||0)+q.v;s.loot.splice(i,1)}}}
+  for(let i=s.loot.length-1;i>=0;i--){const q=s.loot[i];if(Math.hypot(q.x-e.x,q.y-e.y)<46){if(q.k===3){if(gearUseful(e,q.item)){entEquip(e,q.item);s.loot.splice(i,1)}}else{{const f=ESH[shLootTier(q.k)];e[f]=(e[f]||0)+q.v}s.loot.splice(i,1)}}}
  }
 }
 function nearestLoot(e,r){const s=arenaState;let best=null,bd=r;for(const q of (s.loot||[])){if(q.k===3&&!gearUseful(e,q.item))continue;const d=Math.hypot(q.x-e.x,q.y-e.y);if(d<bd){bd=d;best=q}}return best}
@@ -484,7 +485,7 @@ function drawLoot(time){
  const s=arenaState;if(!s||!s.loot)return;const W=aw/devicePixelRatio,H=ah/devicePixelRatio;
  for(const q of s.loot){const p=worldToScreen(q.x,q.y);if(p.x<-40||p.x>W+40||p.y<-40||p.y>H+40)continue;
   if(q.k===3){const bob=Math.sin(time*3+q.x)*2;ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y+bob,18,'#7fe0ff',.5);ax.globalCompositeOperation='source-over';ax.font='20px sans-serif';ax.textAlign='center';ax.fillText((GEAR[q.item]||{icon:'?'}).icon,p.x,p.y+7+bob);continue}
-  const col=q.k===2?'#c9a8ff':'#ffd85b',bob=Math.sin(time*3+q.x)*2;
+  const col=SH_COL[shLootTier(q.k)]||'#ffd85b',bob=Math.sin(time*3+q.x)*2;
   ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y+bob,16+Math.min(14,Math.sqrt(q.v)),col,.55);ax.globalCompositeOperation='source-over';
   ax.fillStyle=col;ax.beginPath();ax.moveTo(p.x,p.y-8+bob);ax.lineTo(p.x+5,p.y+bob);ax.lineTo(p.x,p.y+8+bob);ax.lineTo(p.x-5,p.y+bob);ax.closePath();ax.fill();
   outText(ax,fmt(q.v),p.x,p.y-12+bob,col,10)}

@@ -2,7 +2,7 @@
 /* ===== NPC: мирные торговцы. Не атакуют и не получают урона; сейчас — обмен осколков 1 ↔ 2 этапа (100 : 1, комиссия 20%).
    Позже здесь же появятся артефакты и алхимия (поле goods). ===== */
 const NPCS=[{id:'trader',name:'Меняла',x:5000,y:5320,r:26,pal:'e3',goods:['exchange']}];
-const EXCH_RATE=100,EXCH_FEE=.2,EXCH_STEPS=[1,10,100];
+const EXCH_RATE=SHARD_RATE,EXCH_FEE=.2,EXCH_STEPS=[1,10,100];
 /* осколков 1 этапа нужно отдать за n осколков 2 этапа (с комиссией) и сколько получишь за n осколков 2 этапа обратно */
 function exchCostShards1(n){return Math.ceil(n*EXCH_RATE/(1-EXCH_FEE))}
 function exchBackShards1(n){return Math.floor(n*EXCH_RATE*(1-EXCH_FEE))}

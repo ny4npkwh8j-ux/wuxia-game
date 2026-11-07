@@ -131,7 +131,7 @@ function worldToScreen(x,y){return{x:x-arenaState.camx+aw/devicePixelRatio/2,y:y
 function killReward(e){
  const s=arenaState;if(!s)return;
  if(e.sect!=null)sectKilledByPlayer(e);
- const L=dropVictimLoot(e),stage2=L.k===2,rw=L.v;
+ const L=dropVictimLoot(e),stage2=L.k>=2,rw=L.v;
  dropHint(e);
  if(e.isBoss){toast('Босс повержен: выпало '+fmt(rw)+(stage2?' осколков 2 этапа':' осколков души')+' — подбери');floatText(e.x,e.y-84,'+'+fmt(rw),stage2?'#c9a8ff':'#ffd85b',20);shake(12);onBossDefeated(e)}
  else{if(rw>0)floatText(e.x,e.y-28,'💎'+fmt(rw),stage2?'#c9a8ff':'#ffd85b',12);mobDrop(e)}
@@ -188,7 +188,7 @@ function arenaLoop(t){
  updateArenaUI();drawArena(t/1000);raf=requestAnimationFrame(arenaLoop);
 }
 /* ---- arena UI ---- */
-function collect(){let changed=false;for(let i=arenaState.orbs.length-1;i>=0;i--){const q=arenaState.orbs[i];if(Math.hypot(q.x-arenaState.px,q.y-arenaState.py)<42){save.qi=Math.min(save.maxQi,save.qi+q.value);arenaState.orbs.splice(i,1);changed=true;toast('Сфера Ци: +'+q.value)}}for(let i=arenaState.chests.length-1;i>=0;i--){const q=arenaState.chests[i];if(Math.hypot(q.x-arenaState.px,q.y-arenaState.py)<48){save.rewards+=q.value;arenaState.chests.splice(i,1);changed=true;toast('Сундук: +'+q.value+' осколков в резерв')}}for(let i=(arenaState.loot||[]).length-1;i>=0;i--){const q=arenaState.loot[i];if(Math.hypot(q.x-arenaState.px,q.y-arenaState.py)<50){if(q.k===3){gearGive(q.item,true);arenaState.loot.splice(i,1);changed=true;toast('Подобран предмет: '+((GEAR[q.item]||{}).name||'вещь')+' (в инвентаре)')}else{if(q.k===2)save.rewards2+=q.v;else save.rewards+=q.v;arenaState.loot.splice(i,1);changed=true;toast('Подобрано '+fmt(q.v)+(q.k===2?' осколков 2 этапа':' осколков души'))}}}for(let i=arenaState.points.length-1;i>=0;i--){const q=arenaState.points[i];if(Math.hypot(q.x-arenaState.px,q.y-arenaState.py)<52){save.rewards+=q.value;arenaState.points.splice(i,1);changed=true;toast('Точка силы: +'+q.value+' осколков')}}if(changed)persist()}
+function collect(){let changed=false;for(let i=arenaState.orbs.length-1;i>=0;i--){const q=arenaState.orbs[i];if(Math.hypot(q.x-arenaState.px,q.y-arenaState.py)<42){save.qi=Math.min(save.maxQi,save.qi+q.value);arenaState.orbs.splice(i,1);changed=true;toast('Сфера Ци: +'+q.value)}}for(let i=arenaState.chests.length-1;i>=0;i--){const q=arenaState.chests[i];if(Math.hypot(q.x-arenaState.px,q.y-arenaState.py)<48){save.rewards+=q.value;arenaState.chests.splice(i,1);changed=true;toast('Сундук: +'+q.value+' осколков в резерв')}}for(let i=(arenaState.loot||[]).length-1;i>=0;i--){const q=arenaState.loot[i];if(Math.hypot(q.x-arenaState.px,q.y-arenaState.py)<50){if(q.k===3){gearGive(q.item,true);arenaState.loot.splice(i,1);changed=true;toast('Подобран предмет: '+((GEAR[q.item]||{}).name||'вещь')+' (в инвентаре)')}else{{const t=shLootTier(q.k);save[SH_KEY[t]]=(save[SH_KEY[t]]||0)+q.v;arenaState.loot.splice(i,1);changed=true;toast('Подобрано '+fmt(q.v)+' осколков '+SH_NAME[t])}}}}for(let i=arenaState.points.length-1;i>=0;i--){const q=arenaState.points[i];if(Math.hypot(q.x-arenaState.px,q.y-arenaState.py)<52){save.rewards+=q.value;arenaState.points.splice(i,1);changed=true;toast('Точка силы: +'+q.value+' осколков')}}if(changed)persist()}
 function qiZoneDelta(x,y){
  const s=arenaState;let d=0;
  for(const z of s.hazards)if(Math.hypot(x-z.x,y-z.y)<=z.r)d-=z.pw||3;

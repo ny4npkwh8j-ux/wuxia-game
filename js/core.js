@@ -75,7 +75,7 @@ function renderCore(){
   renderDens();return}
  $('coreDens').style.display='none';
  $('coreForm').style.display='block';
- const sc=save.pillars*(save.pillarCoef||1),q=coreQualityFor(save.pillars,save.pillarCoef||1),chance=coreChance(),bal=save.rewards2,left=coreShardsLeft(),canQ=coreUnlocked();
+ const sc=save.pillars*(save.pillarCoef||1),q=coreQualityFor(save.pillars,save.pillarCoef||1),chance=coreChance(),bal=shBalance(3),left=coreShardsLeft(),canQ=coreUnlocked();
  $('coreInfo').innerHTML=canQ?('Колонны <b>'+save.pillars+'</b> · ядро <b>'+q.name+'</b> ×'+q.coef+' · шанс <b>'+chance+'%</b>'+(hasHint('core')?'<br><span class="mhint">'+hintText('core')+'</span>':'')):('Ядро — с '+CORE_MIN_PILLARS+'-й колонны');
  $('coreBarFill').style.width=(coreQiFraction()*100)+'%';
  $('coreProgress').textContent='Ци '+fmt(save.coreDeposit||0)+' / '+fmt(CORE_QI_COST);
@@ -96,14 +96,14 @@ async function formCoreFromQi(){
 }
 async function payCoreRewards(){
  const left=coreShardsLeft();if(!coreUnlocked()||left<=0)return;
- if(save.rewards2<left)return toast('Нужно '+fmt(left)+' осколков 2 этапа.');
+ if(shBalance(3)<left)return toast('Нужно '+fmt(left)+' осколков 3 этапа (ядра) или старших.');
  if(!await confirmDialog('Создать ядро? Шанс успеха: '+coreChance()+'%. Колонны сольются в ядро; при неудаче рассыплется одна колонна.','Создать'))return;
- attemptCore(()=>{save.rewards2-=left;save.coreDeposit=0});
+ attemptCore(()=>{shPay(3,left);save.coreDeposit=0});
 }
 function investCoreChance(){
  if(!coreUnlocked()||coreChanceBase()>=90)return;
- if(save.rewards2<CORE_CHANCE_UNIT)return toast('Нужно '+CORE_CHANCE_UNIT+' осколков 2 этапа.');
- save.rewards2-=CORE_CHANCE_UNIT;save.coreChanceExtra=(save.coreChanceExtra||0)+CORE_CHANCE_UNIT;persist();renderCore();
+ if(shBalance(3)<CORE_CHANCE_UNIT)return toast('Нужно '+CORE_CHANCE_UNIT+' осколков 3 этапа (ядра) или старших.');
+ shPay(3,CORE_CHANCE_UNIT);save.coreChanceExtra=(save.coreChanceExtra||0)+CORE_CHANCE_UNIT;persist();renderCore();
 }
 function attemptCore(payFn){
  payFn();const chance=coreChance(),n=save.pillars,q=coreQualityFor(n,save.pillarCoef||1);
@@ -201,13 +201,13 @@ function dropHint(e){
 /* ---------- уплотнение ядра: 5 стадий, без риска; Ци и осколки 2 этапа можно сочетать ---------- */
 const CORE_DENS_MAX=5;
 function densQiCost(){return 25000*((save.coreDens||0)+1)}
-function densShardCost(){return 250*((save.coreDens||0)+1)}
+function densShardCost(){return COL_SH/2*((save.coreDens||0)+1)}
 function densQiFraction(){return Math.min(1,(save.coreDeposit||0)/densQiCost())}
 function densShardsLeft(){return Math.max(0,Math.ceil(densShardCost()*(1-densQiFraction())-1e-9))}
 function renderDens(){
  const box=$('coreDens'),d=save.coreDens||0,done=d>=CORE_DENS_MAX;
  box.style.display=done?'none':'block';if(done)return;
- const left=densShardsLeft(),bal=save.rewards2;
+ const left=densShardsLeft(),bal=shBalance(3);
  $('densBarFill').style.width=(densQiFraction()*100)+'%';
  $('densProgress').textContent='Стадия '+(d+1)+'/'+CORE_DENS_MAX+' · Ци '+fmt(save.coreDeposit||0)+' / '+fmt(densQiCost());
  $('densDepositBtn').disabled=(save.coreDeposit||0)>=densQiCost();$('densDepositBtn').textContent='Влить Ци · '+densHoldRate().toFixed(1)+'/с';
@@ -226,9 +226,9 @@ async function densifyFromQi(){
 }
 async function densifyFromShards(){
  const left=densShardsLeft();if(!hasCore()||(save.coreDens||0)>=CORE_DENS_MAX||left<=0)return;
- if(save.rewards2<left)return toast('Нужно '+fmt(left)+' осколков 2 этапа.');
+ if(shBalance(3)<left)return toast('Нужно '+fmt(left)+' осколков 3 этапа (ядра) или старших.');
  if(!await confirmDialog('Уплотнить ядро? Риска нет.','Уплотнить'))return;
- densify(()=>{save.rewards2-=left;save.coreDeposit=0});
+ densify(()=>{shPay(3,left);save.coreDeposit=0});
 }
 function densify(payFn){
  if(!hasCore()||(save.coreDens||0)>=CORE_DENS_MAX)return;

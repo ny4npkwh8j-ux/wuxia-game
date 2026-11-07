@@ -5,7 +5,7 @@
    Сохранение (только добавленные ключи): soulStage 0..3, soulDeposit. Выход из тела и захват — отдельными патчами. */
 const SOUL_NAMES=['','ЗАЧАТОК ДУШИ','СТАБИЛЬНАЯ ДУША','СОВЕРШЕННАЯ ДУША'];
 const SOUL_MULT=[1,1.1,1.2,1.3];
-const SOUL_QI=[0,300000,600000,1200000],SOUL_SHARDS=[0,3000,6000,12000];
+const SOUL_QI=[0,300000,600000,1200000],SOUL_SHARDS=[0,COL_SH,COL_SH*2,COL_SH*4];
 const SOUL_CORE_MID=1.9;
 function soulStage(){return save.soulStage||0}
 function hasSoul(){return soulStage()>0}
@@ -31,7 +31,7 @@ function renderSoul(){
  $('soulProgress').textContent=(st?'Этап ':'Зарождение · ')+(st+1)+'/3 · Ци '+fmt(save.soulDeposit||0)+' / '+fmt(need);
  $('soulDepositBtn').disabled=!can||(save.soulDeposit||0)>=need;$('soulDepositBtn').textContent='Влить Ци · '+soulHoldRate().toFixed(1)+'/с';
  $('soulQiBtn').disabled=!can||(save.soulDeposit||0)<need;$('soulQiBtn').textContent=st?'Возвысить':'Зародить';
- $('soulShBtn').disabled=!can||left<=0||save.rewards2<left;$('soulShBtn').textContent='Осколки · '+fmt(left);
+ $('soulShBtn').disabled=!can||left<=0||shBalance(4)<left;$('soulShBtn').textContent='Осколки · '+fmt(left);
 }
 async function soulFromQi(){
  if(!soulCanGrow()||(save.soulDeposit||0)<soulQiCost())return;
@@ -40,9 +40,9 @@ async function soulFromQi(){
 }
 async function soulFromShards(){
  const left=soulShardsLeft();if(!soulCanGrow()||left<=0)return;
- if(save.rewards2<left)return toast('Нужно '+fmt(left)+' осколков 2 этапа.');
+ if(shBalance(4)<left)return toast('Нужно '+fmt(left)+' осколков 4 этапа (души).');
  if(!await confirmDialog(soulStage()?'Возвысить душу? Риска нет.':'Зародить душу? Риска нет.','Подтвердить'))return;
- soulAdvance(()=>{save.rewards2-=left;save.soulDeposit=0});
+ soulAdvance(()=>{shPay(4,left);save.soulDeposit=0});
 }
 function soulAdvance(payFn){
  if(!soulCanGrow()||soulStage()>=3)return;/* защита: этап не выше III и не выше предела по качеству ядра */
