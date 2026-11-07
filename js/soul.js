@@ -98,7 +98,7 @@ function bodyHit(amount,kind){
 }
 function soulTarget(){
  const s=arenaState;let best=null,bd=SOUL_RANGE;
- for(const e of s.enemies.concat(aliveBosses(s))){if(e.hp<=0||e.vessel||isMate(e))continue;const d=Math.hypot(e.x-s.px,e.y-s.py);if(d<bd){bd=d;best=e}}
+ for(const e of s.enemies.concat(aliveBosses(s))){if(e.hp<=0||e.vessel)continue;const d=Math.hypot(e.x-s.px,e.y-s.py);if(d<bd){bd=d;best=e}}
  return best;
 }
 function soulCanTake(e,st){

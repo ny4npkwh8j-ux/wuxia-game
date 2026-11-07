@@ -9,7 +9,7 @@ const MOB_START=40,MOB_MAX=400,WORLD=20000,BOSS_N=12;/* карта 20000×20000 
 const VISION_RADIUS=520,TARGET_MEMORY_TIME=4,MAX_BOSS_INDEX=MAX_PILLARS+1;
 const CHARGE_MAX=1.2,CHARGE_MIN_F=.4,CHARGE_MAX_F=1.5;
 function chargeFactor(held){held=Math.max(0,Math.min(CHARGE_MAX,held||0));return CHARGE_MIN_F+(CHARGE_MAX_F-CHARGE_MIN_F)*(held/CHARGE_MAX)}
-function healRate(t){return 10+.6*Math.min(PATH_CAP,t.nodes.length)}
+function healRate(t){return 12+2*t.nodes.length}/* лечение: без потолка по длине маршрута и заметно мощнее (40 звёзд: 92 Ци/с вместо 34) */
 const PILLAR_Q=[[100,'ИСКЛЮЧИТЕЛЬНАЯ',1000,1.30],[90,'ПРЕВОСХОДНАЯ',900,1.15],[80,'ОТЛИЧНАЯ',800,1.00],[70,'ХОРОШАЯ',700,.70],[60,'ОБЫЧНАЯ',600,.50],[50,'НИЧТОЖНАЯ',500,.30]];
 /* ядро — третий этап: открывается с 3-й колонны; цена Ци или осколками 2 этапа (вместе тоже); колонны сплавляются в ядро */
 /* ---- осколки: у каждого этапа свои (1 звёзды · 2 колонны · 3 ядро · 4 душа), курс ×SHARD_RATE между соседними,
@@ -134,6 +134,6 @@ function entShieldMax(e){const S=e.stars||0;return TECH_BASE.shield*techniquePow
 function dodgeCost(maxQi){return Math.ceil(Math.min(.05*maxQi,Math.max(400,.03*maxQi)))}
 function techCost(t){if(t.type==='dodge')return dodgeCost(save.maxQi);if(t.type==='qiShield')return 0;return Math.ceil((TECH_COST[t.type]+.3*save.stars)*myQiVol())}
 function castTime(base){return Math.max(.3,base-.1*(save.meridians||0))}
-function starRegen(){return .5*Math.min(100,save.stars)/100}
+function starRegen(){return .5*Math.max(0,save.stars)/100}/* восстановление Ци от звёзд растёт и после 100 */
 function spendStarCost(cost){const useQi=Math.min(Math.floor(save.qi),cost);save.qi-=useQi;const rest=cost-useQi;if(rest>0)save.rewards-=rest;return rest}
 function canAfford(cost){return Math.floor(save.qi)+Math.floor(save.rewards)>=cost}

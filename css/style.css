@@ -101,3 +101,5 @@
 .usheet .row>.bigbtn{font-size:13.5px}
 .cbar{padding-left:10px;padding-right:8px}.cbar .stats{gap:4px}.cbar .pill{padding:4px 6px;font-size:12px;gap:3px}.cbar .pill .ico{width:15px;height:15px}.ibtn{width:36px;height:36px}
 .cbar{padding-left:8px;padding-right:6px}.cbar .stats{gap:3px;min-width:0}.cbar .pill{padding:4px 5px;font-size:11.5px;gap:3px}.cbar .pill .ico{width:14px;height:14px}.ibtn{width:34px;height:34px}.ibtn .ico{width:20px;height:20px}
+
+.card.hp .shieldbar{position:static;transform:none;width:100%;height:6px;margin:3px 0 0;border-radius:6px}
