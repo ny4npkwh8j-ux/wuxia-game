@@ -12,8 +12,13 @@ function hasSoul(){return soulStage()>0}
 function soulUnlocked(){return hasCore()&&(save.coreDens||0)>=coreDensMax()}
 /* потолок души: ядро из 3 колонн — только начальная, из 4–5 — до последней; ядро ниже среднего качества — на этап ниже.
    Для прорыва дальше последней (трансформация души, позже) ядро из 4 колонн потребует в 10 раз больше, чем из 5: soulNextK(). */
+/* шансы прорыва души: [ранг ядра][ступень]; 0 — ступень недоступна по качеству ядра */
+const SOUL_CHANCE=[null,[70,15,0,0],[80,40,10,0],[90,65,35,10],[95,80,60,35],[98,90,80,65]];
+function soulChanceBase(){const r=Math.max(1,coreRank()||1);return (SOUL_CHANCE[r]||SOUL_CHANCE[3])[soulStage()]||0}
+function soulChance(){const b=soulChanceBase();return b?Math.min(100,b+10*(save.pityS||0)):0}
+function soulRankCap(){const t=SOUL_CHANCE[Math.max(1,coreRank()||1)]||SOUL_CHANCE[3];let c=0;for(let i=0;i<SOUL_MAX;i++)if(t[i]>0)c=i+1;return c}
 function soulCols(){return save.coreCols==null?5:save.coreCols}
-function soulCap(){const byCols=soulCols()<=3?1:SOUL_MAX,byQ=(save.coreCoef||0)>=SOUL_CORE_MID?SOUL_MAX:SOUL_MAX-1;return Math.min(byCols,byQ)}
+function soulCap(){const byCols=soulCols()<=3?1:SOUL_MAX;return Math.min(byCols,soulRankCap())}
 function soulNextK(){return soulCols()>=5?1:soulCols()===4?10:1e6}
 function soulMult(){return SOUL_MULT[soulStage()]||1}
 function soulQiCost(){return SOUL_QI[soulStage()+1]||0}
@@ -27,30 +32,37 @@ function closeSoul(){$('soulModal').classList.remove('show')}
 function renderSoul(){
  const st=soulStage(),cap=soulCap(),done=st>=SOUL_MAX,capped=!done&&st>=cap,can=soulCanGrow();
  let info=st?('<b>'+SOUL_NAMES[st]+'</b> · ×'+soulMult().toFixed(1)+' · этап <b>'+st+'/'+SOUL_MAX+'</b>'):'Душа ещё не зародилась';
- if(capped)info+='<br><span class="mhint">Потолок души задан ядром: '+(soulCols()<=3?'ядро из 3 колонн — выше начальной душа не вырастет.':'ядро ниже среднего качества — выше пиковой душа не вырастет.')+'</span>';
+ if(capped)info+='<br><span class="mhint">Потолок души задан ядром: '+(soulCols()<=3?'ядро из 3 колонн — выше начальной душа не вырастет.':'качество ядра не позволяет подняться выше этой ступени.')+'</span>';
  $('soulInfo').innerHTML=info;
  const box=$('soulForm');box.style.display=(done||capped)?'none':'block';if(done||capped)return;
  const need=soulQiCost(),left=soulShardsLeft();
  $('soulBarFill').style.width=(soulQiFraction()*100)+'%';
- $('soulProgress').textContent=(st?'Этап ':'Зарождение · ')+(st+1)+'/'+SOUL_MAX+' · Ци '+fmt(save.soulDeposit||0)+' / '+fmt(need);
+ $('soulProgress').textContent=(st?'Этап ':'Зарождение · ')+(st+1)+'/'+SOUL_MAX+' · шанс '+soulChance()+'% · Ци '+fmt(save.soulDeposit||0)+' / '+fmt(need);
  $('soulDepositBtn').disabled=!can||(save.soulDeposit||0)>=need;$('soulDepositBtn').textContent='Влить Ци · '+soulHoldRate().toFixed(1)+'/с';
  $('soulQiBtn').disabled=!can||(save.soulDeposit||0)<need;$('soulQiBtn').textContent=st?'Возвысить':'Зародить';
  $('soulShBtn').disabled=!can||left<=0||shBalance(4)<left;$('soulShBtn').textContent='Осколки · '+fmt(left);
 }
+function soulCoolLeft(){return Math.max(0,Math.ceil(((save.soulCool||0)-Date.now())/1000))}
 async function soulFromQi(){
  if(!soulCanGrow()||(save.soulDeposit||0)<soulQiCost())return;
- if(!await confirmDialog(soulStage()?'Возвысить душу? Риска нет.':'Зародить душу? Риска нет.','Подтвердить'))return;
- soulAdvance(()=>{save.soulDeposit-=soulQiCost()});
+ if(soulCoolLeft()>0)return toast('Душа восстанавливается после неудачи: ещё '+soulCoolLeft()+' с.');
+ if(!await confirmDialog((soulStage()?'Возвысить душу?':'Зародить душу?')+' Шанс успеха: '+soulChance()+'%. При неудаче теряется половина вложенного.','Подтвердить'))return;
+ soulAdvance(()=>{save.soulDeposit-=soulQiCost()},()=>{save.soulDeposit+=Math.floor(soulQiCost()/2)});
 }
 async function soulFromShards(){
  const left=soulShardsLeft();if(!soulCanGrow()||left<=0)return;
  if(shBalance(4)<left)return toast('Нужно '+fmt(left)+' осколков 4 этапа (души).');
- if(!await confirmDialog(soulStage()?'Возвысить душу? Риска нет.':'Зародить душу? Риска нет.','Подтвердить'))return;
- soulAdvance(()=>{shPay(4,left);save.soulDeposit=0});
+ if(soulCoolLeft()>0)return toast('Душа восстанавливается после неудачи: ещё '+soulCoolLeft()+' с.');
+ if(!await confirmDialog((soulStage()?'Возвысить душу?':'Зародить душу?')+' Шанс успеха: '+soulChance()+'%. При неудаче теряется половина вложенного.','Подтвердить'))return;
+ soulAdvance(()=>{shPay(4,left);save.soulDeposit=0},()=>{save.rewards4=(save.rewards4||0)+Math.floor(left/2)});
 }
-function soulAdvance(payFn){
+function soulAdvance(payFn,refundFn){
  if(!soulCanGrow()||soulStage()>=SOUL_MAX)return;/* защита: этап не выше IV и не выше предела по качеству ядра */
- payFn();const n=soulStage()+1,r=SOUL_MULT[n]/SOUL_MULT[n-1];
+ payFn();
+ if(Math.random()*100>=soulChance()){/* неудача: возвращается половина, душа восстанавливается 2 мин, следующая попытка удачнее (+10%) */
+  if(refundFn)refundFn();save.pityS=(save.pityS||0)+1;save.soulCool=Date.now()+120000;persist();updateUI();renderSoul();
+  playStageAnimation({kind:'core',success:false,title:'Прорыв души не удался',text:'Половина вложенного потеряна, душа нестабильна — отдохни 2 минуты. Следующая попытка удачнее (+10%).',onClose:()=>{}});return}
+ save.pityS=0;const n=soulStage()+1,r=SOUL_MULT[n]/SOUL_MULT[n-1];
  save.soulStage=n;save.soulMV=2;save.soulDeposit=0;save.stageLevel=4;
  /* здоровье и запас Ци растут вместе с множителем этапа (как при уплотнении ядра) */
  save.maxQi=Math.round(save.maxQi*r);save.health=Math.round(save.health*r);save.qi=Math.min(save.qi,save.maxQi);

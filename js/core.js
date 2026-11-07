@@ -71,7 +71,7 @@ function renderCore(){
  if(hasCore()){
   $('coreForm').style.display='none';
   const d=save.coreDens||0;
-  $('coreInfo').innerHTML='<b>'+save.coreQuality+'</b> ×'+myCore().toFixed(2)+' · уплотнение <b>'+d+'/'+coreDensMax()+'</b>';
+  $('coreInfo').innerHTML='<b>'+CORE_RANKS[coreRank()]+'</b> (ранг '+coreRank()+'/5) ×'+myCore().toFixed(2)+' · плотность <b>'+d*20+'%</b> из возможных <b>'+coreDensMax()*20+'%</b>';
   renderDens();return}
  $('coreDens').style.display='none';
  $('coreForm').style.display='block';
@@ -106,14 +106,14 @@ function investCoreChance(){
  shPay(3,CORE_CHANCE_UNIT);save.coreChanceExtra=(save.coreChanceExtra||0)+CORE_CHANCE_UNIT;persist();renderCore();
 }
 function attemptCore(payFn){
- payFn();const chance=coreChance(),n=save.pillars,q=coreQualityFor(n,save.pillarCoef||1);
+ payFn();const chance=coreChance(),n=save.pillars,rk=coreRankFor(coreScore(n,save.pillarCoef||1,save.stars,Math.random()*.2-.1)),q=coreQualityFor(n,save.pillarCoef||1,rk);
  save.coreDeposit=0;save.coreChanceExtra=0;
  closeCore();
  if(Math.random()*100<chance){
   /* бонус Ци колонн сохраняется и умножается на ×1…×1.5 по качеству; ядро запас Ци не умножает, здоровье — умножает */
   {const sumB=(save.pillarBs&&save.pillarBs.length?save.pillarBs.reduce((a,b)=>a+b,0):n*(save.pillarQiBonus||0));save.maxQi=Math.round(Math.max(100,save.maxQi+sumB*(colQiMult(save.pillarCoef)-1)));save.coreQiV=2}
   save.pityC=0;save.coreCols=n;save.health*=q.coef;
-  save.coreCoef=q.coef;save.coreQuality=q.name;save.pillars=0;save.pillarQs=[];save.pillarBs=[];save.stageLevel=3;save.qi=Math.min(save.qi,save.maxQi);
+  save.coreCoef=q.coef;save.coreQuality=q.name;save.coreRank=rk;save.pillars=0;save.pillarQs=[];save.pillarBs=[];save.stageLevel=3;save.qi=Math.min(save.qi,save.maxQi);
   persist();updateUI();
   playStageAnimation({kind:'core',success:true,title:'Ядро: '+q.name,text:'Колонны рассыпались и сплавились в ядро. Всё стало сильнее в ×'+q.coef+' раз.',onClose:openCore});
  }else{
@@ -201,8 +201,9 @@ function dropHint(e){
 /* ---------- уплотнение ядра: 5 стадий, без риска; Ци и осколки 2 этапа можно сочетать ---------- */
 const CORE_DENS_MAX=5;
 /* потолок уплотнения зависит от числа колонн, из которых сплавлено ядро (3 → 3, 4 → 4, 5 → 5); старые ядра без записи считаются полными */
-function coreDensMaxFor(cols){return cols==null?CORE_DENS_MAX:Math.max(1,Math.min(CORE_DENS_MAX,cols))}
-function coreDensMax(e){return coreDensMaxFor(e?e.coreCols:save.coreCols)}
+function coreRank(e){if(e)return e.coreRank||coreRankLegacy(e.core);return save.coreRank||(hasCore()?coreRankLegacy(save.coreCoef):0)}
+function coreDensMaxFor(cols,rank){return Math.max(1,Math.min(cols==null?CORE_DENS_MAX:cols,CORE_DENS_MAX,CORE_RANK_DENS[rank||5]))}
+function coreDensMax(e){return coreDensMaxFor(e?e.coreCols:save.coreCols,coreRank(e)||5)}
 function densQiCost(){return 25000*((save.coreDens||0)+1)}
 function densShardCost(){return COL_SH/2*((save.coreDens||0)+1)}
 function densQiFraction(){return Math.min(1,(save.coreDeposit||0)/densQiCost())}

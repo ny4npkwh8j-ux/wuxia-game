@@ -40,7 +40,7 @@ function talName(t){return t>=1.3?'исключительный':t>=1.15?'пре
 function coreAt(e){return entMaxCols(e)}
 /* попытка создать ядро: общая для планового пути и для отчаянного прорыва; e.coreCols запоминает, с каким числом колонн оно создано (потолок души) */
 function mobCoreAttempt(e,C,penalty){
- if(Math.random()*100<Math.min(100,coreChanceFor(C,0,entTal(e))+10*(e.cpity||0)-(penalty||0))){e.cpity=0;const q=coreQualityFor(C,entCoef(e));e.core=q.coef;e.coreCols=C;e.qiPlus=C*Math.round(talQi(entTal(e))*1.5);entRebuild(e,100,0,'сформировал ядро: '+q.name+'!');return true}
+ if(Math.random()*100<Math.min(100,coreChanceFor(C,0,entTal(e))+10*(e.cpity||0)-(penalty||0))){e.cpity=0;const rk=coreRankFor(coreScore(C,entCoef(e),100,Math.random()*.2-.1)),q=coreQualityFor(C,entCoef(e),rk);e.core=q.coef;e.coreCols=C;e.coreRank=rk;e.qiPlus=C*Math.round(talQi(entTal(e))*1.5);entRebuild(e,100,0,'сформировал ядро: '+q.name+'!');return true}
  e.cpity=(e.cpity||0)+1;entRebuild(e,100,C-1,'потерял колонну при неудаче ядра');return false;
 }
 /* отчаяние: в бою при угрозе смерти моб с 3+ колоннами идёт на ранний прорыв — риск выше, потолок ниже, зато шанс выжить */

@@ -40,7 +40,12 @@ function entShPay(e,t,n){
 /* качество ядра = среднее качество колонн (коэффициент .30…1.30); множитель ко всем параметрам ×1.3…×2.5 линейно */
 const CORE_Q=[[1.3,'ИСКЛЮЧИТЕЛЬНОЕ'],[1.15,'ПРЕВОСХОДНОЕ'],[1,'ОТЛИЧНОЕ'],[.7,'ХОРОШЕЕ'],[.5,'ОБЫЧНОЕ'],[0,'НИЧТОЖНОЕ']];
 const CORE_MULT_MIN=1.3,CORE_MULT_MAX=2.5;
-function coreQualityFor(pillars,coef){const c=Math.max(.3,Math.min(1.3,coef||.3));let nm=CORE_Q[5][1];for(const q of CORE_Q)if(c>=q[0]-1e-9){nm=q[1];break}return{name:nm,coef:+(CORE_MULT_MIN+(c-.3)/1.0*(CORE_MULT_MAX-CORE_MULT_MIN)).toFixed(3),score:c}}
+/* ранг ядра (1–5) по «баллу»: среднее качество колонн + число колонн + звёзды + удача прорыва; ранг задаёт потолок плотности (в стадиях уплотнения 0–5, 1 стадия = 20%) */
+const CORE_RANKS=['','ДЕФЕКТНОЕ','ОБЫЧНОЕ','ХОРОШЕЕ','СОВЕРШЕННОЕ','НЕБЕСНОЕ'],CORE_RANK_DENS=[0,2,3,4,5,5];
+function coreRankFor(score){return score<.55?1:score<.8?2:score<1.05?3:score<1.3?4:5}
+function coreScore(cols,coef,stars,luck){return (coef||.3)+.05*Math.max(0,cols-3)+.1*Math.max(0,Math.min(1,((stars||0)-100)/100))+(luck||0)}
+function coreRankLegacy(mult){return coreRankFor(Math.max(.3,Math.min(1.3,.3+((mult||CORE_MULT_MIN)-CORE_MULT_MIN)/(CORE_MULT_MAX-CORE_MULT_MIN))))}
+function coreQualityFor(pillars,coef,rank){const c=Math.max(.3,Math.min(1.3,coef||.3));let nm=CORE_Q[5][1];for(const q of CORE_Q)if(c>=q[0]-1e-9){nm=q[1];break}return{name:rank?CORE_RANKS[rank]:CORE_RANKS[coreRankFor(c)],coef:+(CORE_MULT_MIN+(c-.3)/1.0*(CORE_MULT_MAX-CORE_MULT_MIN)).toFixed(3),score:c}}
 /* шанс как у колонн (30%, до 90%), +10% за каждую колонну сверх третьей и +10% за каждые 500 вложенных осколков 2 этапа */
 function coreChanceFor(pillars,extra,coef){return Math.max(5,Math.min(90,Math.round(30+10*Math.max(0,pillars-CORE_MIN_PILLARS)+30*((coef==null?1:coef)-1)+10*Math.floor(Math.max(0,extra)/CORE_CHANCE_UNIT))))}/* + число колонн, + качество колонн (−21…+9) */
 function pillarQualityFor(stars){for(const q of PILLAR_Q)if(stars>=q[0])return{name:q[1],qi:Math.round(q[2]*(stars>100?1+Math.min(2,(stars-100)/200):1)),coef:q[3]};/* больше 100 звёзд — больше Ци за колонну (+50% на 200★, до ×3) */return{name:PILLAR_Q[5][1],qi:PILLAR_Q[5][2],coef:PILLAR_Q[5][3]}}

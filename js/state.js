@@ -1,5 +1,5 @@
 'use strict';
-const BUILD_VERSION='0.8.56';
+const BUILD_VERSION='0.8.57';
 const SAVE_KEY='wuxiaSave';
 const SAVE_SCHEMA='cultivation_arena_v2';
 const $=id=>document.getElementById(id);
@@ -14,7 +14,7 @@ try{
  if(raw){Object.assign(save,JSON.parse(raw));}
  if(save.arenaCheckpoint&&Array.isArray(save.arenaCheckpoint.enemies))save.arenaCheckpoint.enemies=save.arenaCheckpoint.enemies.filter(e=>e&&e.hp>0);/* убитые раньше копились в сохранении и раздували его */
  save.pillarProgress??=0;save.pillarQi??=0;save.pillarRewards??=0;save.techniques??=[];save.arenaCheckpoint??=null;save.stageLevel??=1;save.rewards??=0;save.scrolls??=[];
- save.hints??=[];save.lostLoot??=[];save.pity??=0;save.pityC??=0;save.coreDens??=0;save.coreCoef??=0;save.coreQuality??=null;save.coreDeposit??=0;save.coreChanceExtra??=0;
+ save.hints??=[];save.lostLoot??=[];save.pity??=0;save.pityC??=0;save.pityS??=0;save.soulCool??=0;save.coreDens??=0;save.coreCoef??=0;save.coreQuality??=null;save.coreDeposit??=0;save.coreChanceExtra??=0;
  save.rewards2??=0;save.pillarChanceQi??=0;save.pillarChanceExtra??=0;save.pillarQuality??=null;save.pillarCoef??=0;save.pillarQiBonus??=0;save.pillarStars??=0;
  if(save.pillarMult&&!save.pillarCoef){save.pillarCoef=save.pillarMult;delete save.pillarMult}
  if(save.pillars>0&&!save.pillarCoef){const q=pillarQualityFor(save.stars);save.pillarCoef=q.coef;save.pillarQiBonus=q.qi;save.pillarQuality=q.name;save.pillarStars=save.stars}
