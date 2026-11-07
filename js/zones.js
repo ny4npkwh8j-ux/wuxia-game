@@ -56,7 +56,7 @@ function zoneStep(e,dt){
  const want=zoneMinRing(e,z);e.spT=(e.spT||0)-dt;
  if(!e.spot||e.spot.zid!==z.id||e.spT<=0){e.spot=zoneSpot(e,z,want);e.spT=8+Math.random()*10}
  const dz=Math.hypot(e.x-e.spot.x,e.y-e.spot.y),ring=zoneRing(z,e.x,e.y);
- if(ring<3){e.cult=true;evolveTick(e,dt*zoneGrow(z,ring))}
+ if(ring<3){e.cult=true;e.zoneT=arenaState.t;evolveTick(e,dt*zoneGrow(z,ring))}
  if(dz>40){e.wanderAng=Math.atan2(e.spot.y-e.y,e.spot.x-e.x);e.ang=e.wanderAng;const sp=dz>300?.7:.45;moveEnemy(e,Math.cos(e.ang)*e.s*sp*dt,Math.sin(e.ang)*e.s*sp*dt)}
  return true;
 }

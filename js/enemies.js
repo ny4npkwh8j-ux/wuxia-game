@@ -56,7 +56,30 @@ function applyKit(e,kit){
  return e;
 }
 /* общий тик противника (моб или босс): кулдауны, восстановление Ци как у игрока */
+/* ---- старость: срок жизни растёт со звёздами, а старение замедляется с каждой стадией; на душе останавливается ----
+   без звёзд ~10 мин; рост звезды/колонны/ядра/уплотнения омолаживает; в зоне Ци старость идёт вдвое медленнее; пожилые становятся охотниками за осколками */
+const AGE_BASE=600,AGE_PER_STAR=12;
+function lifeSpan(e){return AGE_BASE+AGE_PER_STAR*Math.min(300,e.stars||0)}
+function ageRate(e){
+ if((e.soulStage||0)>0)return 0;
+ if(e.core>0)return .3*(1-.15*Math.min(5,e.dens||0));
+ if((e.columns||0)>0)return .6*(1-.1*Math.min(5,e.columns));
+ return 1-.004*Math.min(100,e.stars||0);
+}
+function ageTick(e,dt){
+ const s=arenaState;if(!s||e.isBoss||e.animal||e.vessel||e.hp<=0)return;
+ const L=lifeSpan(e);if(e.age==null)e.age=Math.random()*L*.4;
+ e.age+=dt*ageRate(e)*((e.zoneT!=null&&s.t-e.zoneT<2)?.5:1);
+ e.old=e.age>L*.7;if(e.old&&!e.hunter)e.hunter=true;
+ if(e.age>=L)oldDeath(e);
+}
+function oldDeath(e){
+ dropVictimLoot(e);e.hp=0;e.removed=true;e.foeId=null;
+ burst(e.x,e.y,14,'#cfcfcf',160,.9,2.6);
+ if(e.core>0||(e.columns||0)>=3)chron('Старость забрала культиватора'+(e.core>0?' с ядром':' ('+e.columns+' кол.)'));
+}
 function entTick(e,dt){
+ ageTick(e,dt);
  const cd=e.cd||(e.cd={atk:2,sh:0,dash:2,stun:2});
  cd.atk-=dt;cd.sh-=dt;cd.dash-=dt;cd.stun=(cd.stun??0)-dt;cd.area=(cd.area??0)-dt;
  e.mcd=Math.max(0,(e.mcd||0)-dt);if(e.poison)poisonTick(e,dt);if(e.pills)mobPillUse(e);if(e.foeId!=null&&(e.columns||0)>=CORE_MIN_PILLARS)despairCore(e);
@@ -235,6 +258,7 @@ function mobIdle(e,dt){
 /* рост на одну звезду: все параметры пересчитываются по тем же формулам, доля здоровья и Ци сохраняется */
 function growMob(e){
  if((e.columns||0)>0||e.core>0)return;
+ e.age=Math.max(0,(e.age||0)-8);/* каждая звезда продлевает жизнь */
  const cap=e.animal?ANIMAL_CAP:MOB_NAT_STARS;if((e.stars||0)>=cap)return;
  const r=e.maxHp?e.hp/e.maxHp:1,q=e.maxQi?e.qi/e.maxQi:1;
  applyKit(e,{stars:e.stars+1,techs:(e.techs||[]).slice()});e.hp=Math.max(1,e.maxHp*r);e.qi=e.maxQi*q;
@@ -289,6 +313,7 @@ function densShardCost0(d){return COL_SH/2*(d+1)}
 function entRebuild(e,stars,cols,note){
  const r=e.maxHp?e.hp/e.maxHp:1,q=e.maxQi?e.qi/e.maxQi:1;
  applyKit(e,{stars,techs:FULL_KIT.slice(),columns:cols});e.hp=Math.max(1,e.maxHp*r);e.qi=e.maxQi*q;
+ if(note&&/^(сформировал|уплотнил)/.test(note)&&e.age>0)e.age*=.6;/* прорыв омолаживает */
  if(note&&e.isBoss&&arenaState)toast('Босс '+e.index+' '+note);
  if(arenaState)burst(e.x,e.y,e.isBoss?30:14,'#ffd85b',260,.9,3);
 }
