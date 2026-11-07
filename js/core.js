@@ -112,7 +112,7 @@ function attemptCore(payFn){
  if(Math.random()*100<chance){
   /* бонус Ци колонн сохраняется и умножается на ×1…×1.5 по качеству; ядро запас Ци не умножает, здоровье — умножает */
   {const sumB=(save.pillarBs&&save.pillarBs.length?save.pillarBs.reduce((a,b)=>a+b,0):n*(save.pillarQiBonus||0));save.maxQi=Math.round(Math.max(100,save.maxQi+sumB*(colQiMult(save.pillarCoef)-1)));save.coreQiV=2}
-  save.pityC=0;save.health*=q.coef;
+  save.pityC=0;save.coreCols=n;save.health*=q.coef;
   save.coreCoef=q.coef;save.coreQuality=q.name;save.pillars=0;save.pillarQs=[];save.pillarBs=[];save.stageLevel=3;save.qi=Math.min(save.qi,save.maxQi);
   persist();updateUI();
   playStageAnimation({kind:'core',success:true,title:'Ядро: '+q.name,text:'Колонны рассыпались и сплавились в ядро. Всё стало сильнее в ×'+q.coef+' раз.',onClose:openCore});

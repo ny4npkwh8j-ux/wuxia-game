@@ -36,8 +36,19 @@ function entCost(e,t){return t==='dodge'?dodgeCost(e.maxQi):t==='qiShield'?0:Mat
 function entTal(e){if(e.tal==null){let g=0;for(let i=0;i<6;i++)g+=Math.random();g=(g-3)/Math.sqrt(.5);e.tal=+Math.max(.3,Math.min(1.3,.82+.2*g)).toFixed(2)}return e.tal}
 function talQi(t){const lo=PILLAR_Q[5],f=Math.max(0,Math.min(1,(t-lo[3])/(PILLAR_Q[0][3]-lo[3])));return Math.round(lo[2]+(PILLAR_Q[0][2]-lo[2])*f)}
 function talName(t){return t>=1.3?'исключительный':t>=1.15?'превосходный':t>=1?'отличный':t>=.7?'хороший':t>=.5?'обычный':'слабый'}
-/* путь: одарённые идут в ядро уже с 3 колонн, средние — с 4 или 5, слабые остаются на колоннах */
-function coreAt(e){const t=entTal(e);return t>=1?3:t>=.85?4:t>=.6?5:99}
+/* ядро с меньшим числом колонн урезает потолок будущей души, поэтому все стремятся к полному набору колонн; раньше — только от отчаяния (см. despairCore) */
+function coreAt(e){return entMaxCols(e)}
+/* попытка создать ядро: общая для планового пути и для отчаянного прорыва; e.coreCols запоминает, с каким числом колонн оно создано (потолок души) */
+function mobCoreAttempt(e,C,penalty){
+ if(Math.random()*100<Math.min(100,coreChanceFor(C,0)+10*(e.cpity||0)-(penalty||0))){e.cpity=0;const q=coreQualityFor(C,entCoef(e));e.core=q.coef;e.coreCols=C;e.qiPlus=C*Math.round(talQi(entTal(e))*1.5);entRebuild(e,100,0,'сформировал ядро: '+q.name+'!');return true}
+ e.cpity=(e.cpity||0)+1;entRebuild(e,100,C-1,'потерял колонну при неудаче ядра');return false;
+}
+/* отчаяние: в бою при угрозе смерти моб с 3+ колоннами идёт на ранний прорыв — риск выше, потолок ниже, зато шанс выжить */
+function despairCore(e){
+ const s=arenaState;if(!s||e.animal||e.isBoss||e.core>0||(e.columns||0)<CORE_MIN_PILLARS||e.foeId==null||e.hp>=e.maxHp*.35||(e.despT||0)>s.t)return;
+ e.despT=s.t+90;const C=e.columns,pay=(e.sh2||0)>=CORE_SHARD_COST;if(pay)e.sh2-=CORE_SHARD_COST;
+ floatText(e.x,e.y-52,'⚡ прорыв!','#ffd85b',14);mobCoreAttempt(e,C,pay?0:20);
+}
 function applyKit(e,kit){
  if(kit.columns!=null)e.columns=kit.columns;
  const S=kit.stars,C=e.core>0?e.core:1,mh=bodyHp(S)*C*(e.isBoss?3:1),mq=bodyQi(S,e.columns||0,e.isBoss?PILLAR_Q[0][2]:e.columns>0?talQi(entTal(e)):0)+(e.qiPlus??(e.core>0?4500:0));/* Ци ядром не умножается: бонус колонн ×1.5 + уплотнение */
@@ -48,7 +59,7 @@ function applyKit(e,kit){
 function entTick(e,dt){
  const cd=e.cd||(e.cd={atk:2,sh:0,dash:2,stun:2});
  cd.atk-=dt;cd.sh-=dt;cd.dash-=dt;cd.stun=(cd.stun??0)-dt;cd.area=(cd.area??0)-dt;
- e.mcd=Math.max(0,(e.mcd||0)-dt);if(e.poison)poisonTick(e,dt);if(e.pills)mobPillUse(e);
+ e.mcd=Math.max(0,(e.mcd||0)-dt);if(e.poison)poisonTick(e,dt);if(e.pills)mobPillUse(e);if(e.foeId!=null&&(e.columns||0)>=CORE_MIN_PILLARS)despairCore(e);
  if(e.maxQi!=null)e.qi=Math.min(e.maxQi,e.qi+.5*Math.min(100,e.stars||0)/100*dt);
  e.qsFlash=Math.max(0,(e.qsFlash||0)-dt*3);
 }
@@ -306,8 +317,7 @@ function evolveTick(e,dt){
   const pay=(e.sh2||0)>=CORE_SHARD_COST;
   if(pay||e.growT>=EVO_CORE_SEC){
    if(pay)e.sh2-=CORE_SHARD_COST;e.growT=0;
-   if(Math.random()*100<Math.min(100,coreChanceFor(C,0)+10*(e.cpity||0))){e.cpity=0;const q=coreQualityFor(C,entCoef(e));e.core=q.coef;e.qiPlus=C*Math.round(talQi(entTal(e))*1.5);entRebuild(e,100,0,'сформировал ядро: '+q.name+'!')}
-   else{e.cpity=(e.cpity||0)+1;entRebuild(e,100,C-1,'потерял колонну при неудаче ядра')}
+   mobCoreAttempt(e,C,0);
   }
   return;
  }
