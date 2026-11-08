@@ -205,3 +205,52 @@ function drawSoulBall(time){
  ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y+bob,38,'#ffd23a',.55);glow(ax,p.x,p.y+bob,18,'#fff2a0',.9);ax.globalCompositeOperation='source-over';
  ax.fillStyle='#ffd23a';ax.beginPath();ax.arc(p.x,p.y+bob,9,0,TAU);ax.fill();ax.fillStyle='#fffbe0';ax.beginPath();ax.arc(p.x-2,p.y+bob-2,4,0,TAU);ax.fill();
 }
+
+/* ===== души у мобов =====
+   Зарождение: только у мобов с ядром максимальной плотности, редкая попытка по таблице SOUL_CHANCE (потолок — по рангу ядра и колоннам, как у игрока).
+   Смерть тела: душа уходит шариком (шанс растёт со стадией), ищет ближайшее тело слабее себя, 3 с захватывает его и возрождается с душой на пол-стадии ниже
+   (стадия I остаётся I). Не нашла тело за ~25 с — угасает. Старость на душе стоит (ageRate). */
+function mobSoulCap(e){const t=SOUL_CHANCE[Math.max(1,e.coreRank||1)]||SOUL_CHANCE[3];let c=0;for(let i=0;i<t.length;i++){if(t[i]>0)c=i+1;else break}const cols=e.coreCols||e.columns||0;return Math.min(cols<=3?1:SOUL_MAX,c)}
+function mobSoulTry(e){
+ const s=arenaState;if(!s||e.isBoss||e.animal||e.vessel||e.hp<=0||!(e.core>0)||e.foeId!=null)return;
+ const st=e.soulStage||0;if(st>=mobSoulCap(e)||(e.dens||0)<coreDensMax(e))return;
+ if((e.soulT||0)>s.t)return;e.soulT=s.t+240*(1+st)+Math.random()*120;
+ const row=SOUL_CHANCE[Math.max(1,e.coreRank||1)]||SOUL_CHANCE[3];
+ if(Math.random()*100>=(row[st]||0)*.5)return;
+ const r=SOUL_MULT[st+1]/SOUL_MULT[st];e.soulStage=st+1;e.maxHp*=r;e.hp*=r;e.str*=r;if(e.maxQi!=null){e.maxQi*=r;e.qi*=r}
+ floatText(e.x,e.y-52,'✦ душа!','#ffd23a',15);burst(e.x,e.y,20,'#ffd23a',220,.8,3);
+ chron('Культиватор зародил душу: '+SOUL_NAMES[st+1]);
+}
+function mobSoulEscape(e){
+ const s=arenaState;if(!s||e.isBoss||e.animal||e.vessel||!((e.soulStage||0)>0))return;
+ if(Math.random()>=.5+.1*e.soulStage)return;
+ (s.mobSouls=s.mobSouls||[]).push({x:e.x,y:e.y,stage:e.soulStage,stars:e.stars||0,tal:e.tal,t:0,hold:0,tgt:null,sect:e.sect});
+ burst(e.x,e.y,18,'#ffd23a',200,.8,2.8);floatText(e.x,e.y-40,'душа ушла','#ffd23a',13);
+}
+function mobSoulHost(z){const s=arenaState;let best=null,bd=1e9;
+ for(const e of s.enemies){if(e.hp<=0||e.removed||e.isBoss||e.animal||e.vessel||(e.soulStage||0)>0||(e.core>0&&e.core>=1.5&&0))continue;
+  if((e.stars||0)>z.stars*1.1+20)continue;const d=Math.hypot(e.x-z.x,e.y-z.y);if(d<bd&&d<900){bd=d;best=e}}
+ return best}
+function mobSoulTick(dt){
+ const s=arenaState;if(!s||!s.mobSouls||!s.mobSouls.length)return;
+ for(let i=s.mobSouls.length-1;i>=0;i--){const z=s.mobSouls[i];z.t+=dt;
+  if(z.t>25){s.mobSouls.splice(i,1);chron('Душа угасла, не найдя тела');continue}
+  let h=z.tgt!=null?s.enemies.find(q=>q.id===z.tgt&&q.hp>0&&!q.removed&&!(q.soulStage>0)):null;
+  if(!h){z.tgt=null;h=mobSoulHost(z);if(h)z.tgt=h.id}
+  if(!h){z.x+=Math.cos(z.t)*30*dt;z.y+=Math.sin(z.t*1.3)*30*dt;continue}
+  const dx=h.x-z.x,dy=h.y-z.y,d=Math.hypot(dx,dy)||1,sp=SOUL_SPD[Math.min(3,z.stage-1)]*60;
+  if(d>26){z.x+=dx/d*sp*dt;z.y+=dy/d*sp*dt;z.hold=0}
+  else{z.hold+=dt;if(z.hold>=3){
+   const ns=Math.max(1,z.stage-1),r=SOUL_MULT[ns]/SOUL_MULT[0];
+   h.soulStage=ns;h.maxHp*=r;h.hp=Math.min(h.maxHp,h.hp*r+h.maxHp*.3);h.str*=r;if(h.maxQi!=null){h.maxQi*=r;h.qi=h.maxQi*.5}
+   if(z.sect!=null)h.sect=z.sect;h.reborn=(h.reborn||0)+1;
+   floatText(h.x,h.y-52,'✦ новое тело','#ffd23a',15);burst(h.x,h.y,26,'#ffd23a',240,.9,3);chron('Душа захватила новое тело ('+SOUL_NAMES[ns]+')');
+   s.mobSouls.splice(i,1)}}
+ }
+}
+function drawMobSouls(time){
+ const s=arenaState;if(!s||!s.mobSouls)return;
+ for(const z of s.mobSouls){const p=worldToScreen(z.x,z.y),bob=Math.sin(time*4+z.x)*3;
+  ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y+bob,30,'#ffd23a',.5);glow(ax,p.x,p.y+bob,14,'#fff2a0',.85);ax.globalCompositeOperation='source-over';
+  ax.fillStyle='#ffd23a';ax.beginPath();ax.arc(p.x,p.y+bob,7,0,TAU);ax.fill()}
+}

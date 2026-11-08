@@ -79,7 +79,7 @@ function oldDeath(e){
  if(e.core>0||(e.columns||0)>=3)chron('Старость забрала культиватора'+(e.core>0?' с ядром':' ('+e.columns+' кол.)'));
 }
 function entTick(e,dt){
- ageTick(e,dt);
+ ageTick(e,dt);if(e.core>0&&typeof mobSoulTry==='function')mobSoulTry(e);
  const cd=e.cd||(e.cd={atk:2,sh:0,dash:2,stun:2});
  cd.atk-=dt;cd.sh-=dt;cd.dash-=dt;cd.stun=(cd.stun??0)-dt;cd.area=(cd.area??0)-dt;
  e.mcd=Math.max(0,(e.mcd||0)-dt);if(e.poison)poisonTick(e,dt);if(e.pills)mobPillUse(e);if(e.foeId!=null&&(e.columns||0)>=CORE_MIN_PILLARS)despairCore(e);
@@ -100,7 +100,7 @@ function damageEnemy(e,damage,src,melee){
  if(e.shield>0){const a=Math.min(e.shield,dmg);e.shield-=a;dmg-=a}
  if(dmg>0&&e.qiShieldOn&&e.qi>0){const a=Math.min(dmg,e.qi/QI_SHIELD_RATIO);e.qi=Math.max(0,e.qi-a*QI_SHIELD_RATIO);dmg-=a;e.qsFlash=1;if(e.qi<=0)e.qiShieldOn=false}
  if(dmg>0)e.hp=Math.max(0,e.hp-dmg);e.hit=.25;
- if(arenaState){floatText(e.x,e.y-(e.isBoss?66:30),fmt(Math.max(1,raw)),'#ffffff',raw>=30?18:14);burst(e.x,e.y,e.isBoss?7:5,'#ffe9a0',170,.35,2.2);if(e.hp<=0)spawnDeath(e)}
+ if(arenaState){floatText(e.x,e.y-(e.isBoss?66:30),fmt(Math.max(1,raw)),'#ffffff',raw>=30?18:14);burst(e.x,e.y,e.isBoss?7:5,'#ffe9a0',170,.35,2.2);if(e.hp<=0){spawnDeath(e);if(typeof mobSoulEscape==='function')mobSoulEscape(e)}}
  return e.hp<=0;
 }
 /* ИИ противника (моб или босс): возвращает true, пока противник занят (замах) и не должен идти.

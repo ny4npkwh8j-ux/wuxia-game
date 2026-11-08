@@ -1,5 +1,5 @@
 'use strict';
-const BUILD_VERSION='0.8.61';
+const BUILD_VERSION='0.8.62';
 const SAVE_KEY='wuxiaSave';
 const SAVE_SCHEMA='cultivation_arena_v2';
 const $=id=>document.getElementById(id);
