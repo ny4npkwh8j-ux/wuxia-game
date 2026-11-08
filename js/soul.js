@@ -42,6 +42,14 @@ function renderSoul(){
  $('soulQiBtn').disabled=!can||(save.soulDeposit||0)<need;$('soulQiBtn').textContent=st?'Возвысить':'Зародить';
  $('soulShBtn').disabled=!can||left<=0||shBalance(4)<left;$('soulShBtn').textContent='Осколки · '+fmt(left);
 }
+/* смерть игрока с душой: тело смертно и гибнет, душа откатывается на пол-стадии (3/3 → 2/3, полоска наполовину), новое тело развивается заново и быстро */
+function soulDeathRollback(){
+ const n=soulStage();if(n<1)return '';
+ const r=SOUL_MULT[n-1]/SOUL_MULT[n];
+ save.soulStage=n-1;save.soulMV=2;save.soulDeposit=Math.floor(SOUL_QI[n]/2);save.soulQi=null;
+ save.maxQi=Math.max(1,Math.round(save.maxQi*r));save.health=Math.max(1,Math.round(save.health*r));
+ return ' Смертное тело погибло, душа откатилась: '+(n-1?SOUL_NAMES[n-1]:'душа не зародилась')+', полоска возвышения заполнена наполовину.';
+}
 function soulCoolLeft(){return Math.max(0,Math.ceil(((save.soulCool||0)-Date.now())/1000))}
 async function soulFromQi(){
  if(!soulCanGrow()||(save.soulDeposit||0)<soulQiCost())return;

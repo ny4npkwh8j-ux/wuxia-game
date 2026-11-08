@@ -183,8 +183,8 @@ function arenaLoop(t){
  save.qi=Math.max(0,Math.min(save.maxQi,save.qi));
  soulTick(dt);
  updateFx(dt);emitFx(dt,m<=.08);
- if(s.hp<=0){playerKilledByBoss(s);save.qi=0;const lost=Math.floor(save.rewards*.3);save.rewards-=lost;if(lost>0)(s.loot=s.loot||[]).push({x:s.px,y:s.py,k:1,v:lost});const lostItem=playerGearDrop(s);/* карта постоянна: остаётся как есть, игрок возрождается там, где меньше всего мобов */
-  const q=quietSpot(s);s.px=s.camx=q.x;s.py=s.camy=q.y;s.hp=s.maxHp=save.health;s.shield=0;s.invuln=2;persist();saveArenaCheckpoint();stopArena();show('home');toast('Ты пал на арене. Вся Ци утрачена, потеряно '+fmt(lost)+' осколков души (они лежат на месте гибели). Ты возродишься в тихом месте карты.'+(lostItem?' Выпала вещь: '+GEAR[lostItem].name+'.':''));return}
+ if(s.hp<=0){playerKilledByBoss(s);save.qi=0;const soulMsg=typeof soulDeathRollback==='function'?soulDeathRollback():'';const lost=Math.floor(save.rewards*.3);save.rewards-=lost;if(lost>0)(s.loot=s.loot||[]).push({x:s.px,y:s.py,k:1,v:lost});const lostItem=playerGearDrop(s);/* карта постоянна: остаётся как есть, игрок возрождается там, где меньше всего мобов */
+  const q=quietSpot(s);s.px=s.camx=q.x;s.py=s.camy=q.y;s.hp=s.maxHp=save.health;s.shield=0;s.invuln=2;persist();saveArenaCheckpoint();stopArena();show('home');toast('Ты пал на арене. Вся Ци утрачена, потеряно '+fmt(lost)+' осколков души (они лежат на месте гибели). Ты возродишься в тихом месте карты.'+soulMsg+(lostItem?' Выпала вещь: '+GEAR[lostItem].name+'.':''));return}
  updateArenaUI();drawArena(t/1000);raf=requestAnimationFrame(arenaLoop);
 }
 /* ---- arena UI ---- */
