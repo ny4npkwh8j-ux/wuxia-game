@@ -62,6 +62,7 @@ function sectTick(){
   }else for(const q of mem){if(q===m)continue;
    for(const k of ['sh1','sh2','sh3','sh4']){const g=Math.floor((q[k]||0)*.25);if(g>0){q[k]-=g;m[k]=(m[k]||0)+g}}}
   sectMentor(sc,m,mem);
+  if(!sc.pl)sectRaid(sc,m,mem);
   /* зона: ищем свободную зону Ци без хозяина (или со слабым) */
   sc.zT=Math.max(0,(sc.zT||0)-8);
   const cur=sc.zid!=null?zoneList().find(q=>q.id===sc.zid):null;
@@ -83,6 +84,34 @@ function sectTick(){
   }
  }
 }
+/* кооперация за лучшие места: секта (при нехватке сил — вместе с соседними сектами) идёт всей толпой на владельца более сильной зоны Ци.
+   Бой начинает глава — startDuel сам втягивает учеников (и союзных глав) в схватку. Победа освобождает центр: дальше работает обычный выбор зоны сектой. */
+function sectRaid(sc,m,mem){
+ const s=arenaState;if(!s||m.foeId!=null||m.hostile||(sc.raidT||0)>s.t)return;
+ const near=mem.filter(q=>q.hp>0&&q.foeId==null&&Math.hypot(q.x-m.x,q.y-m.y)<800);if(near.length<3)return;
+ const pw=near.reduce((a,q)=>a+entPow(q),0),cur=sc.zid!=null?zoneList().find(q=>q.id===sc.zid):null,curH=cur?zoneHolder(cur):null;
+ if(curH===m)return;/* уже хозяин центра — не рвётся */
+ let best=null,bs=0;
+ for(const z of zoneList()){
+  if(z.bz||z===cur)continue;const h=zoneHolder(z);if(!h||h.hp<=0||h.foeId!=null||h.sect===sc.id||h.isBoss)continue;
+  if(Math.hypot(h.x-m.x,h.y-m.y)>3500)continue;
+  if(cur&&z.pw<=cur.pw)continue;/* штурм только ради лучшего места */
+  const sc2=z.pw-Math.hypot(h.x-m.x,h.y-m.y)/400;if(sc2>bs||!best){bs=sc2;best={z,h}}
+ }
+ if(!best)return;
+ const hp=entPow(best.h)*(best.h.sect?1.3:1);let allies=[],tot=pw;
+ if(tot<hp*1.15){/* не хватает сил — зовём соседние секты, у которых нет своих дел */
+  for(const o of sectList()){if(o===sc||o.pl||o.id===best.h.sect)continue;const om=SM.get(o.id);if(!om||om.hp<=0||om.foeId!=null||Math.hypot(om.x-m.x,om.y-m.y)>1800)continue;
+   const on=sectMembers(o).filter(q=>q.hp>0&&q.foeId==null&&Math.hypot(q.x-om.x,q.y-om.y)<800);if(on.length<2)continue;
+   allies.push(om);tot+=on.reduce((a,q)=>a+entPow(q),0);if(tot>=hp*1.15)break}
+ }
+ sc.raidT=s.t+240;
+ if(tot<hp*1.15)return;
+ startDuel(m,best.h);
+ for(const om of allies){if(om.foeId==null&&!sameSect(om,best.h))startDuel(om,best.h)}
+ sectNote('Секта «'+sc.name+'»'+(allies.length?' с союзниками':'')+' штурмует зону Ци',m);
+}
+
 /* ученик без зоны держится рядом с главой; true — действие выполнено */
 function sectStep(e,dt){
  const sc=sectById(e.sect);if(!sc){e.sect=null;if(e.team>=SECT_TEAM)e.team=null;return false}
