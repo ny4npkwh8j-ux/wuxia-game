@@ -79,6 +79,7 @@ function oldDeath(e){
  if(e.core>0||(e.columns||0)>=3)chron('Старость забрала культиватора'+(e.core>0?' с ядром':' ('+e.columns+' кол.)'));
 }
 function entTick(e,dt){
+ if(e.animal&&typeof animalHungerTick==='function')animalHungerTick(e,dt);
  ageTick(e,dt);if(e.core>0&&typeof mobSoulTry==='function')mobSoulTry(e);
  const cd=e.cd||(e.cd={atk:2,sh:0,dash:2,stun:2});
  cd.atk-=dt;cd.sh-=dt;cd.dash-=dt;cd.stun=(cd.stun??0)-dt;cd.area=(cd.area??0)-dt;
@@ -247,6 +248,7 @@ function mobIdle(e,dt){
  if(e.sect&&sectOrderStep(e,dt))return;/* приказ главы-игрока: следовать / отступать / на охоту */
  let lt=(e.stars||0)>0?nearestLoot(e,e.hunter?900:500):null;if(lt&&forbidZone(e,lt.x,lt.y))lt=null;/* в запретный круг за осколками не лезут */
  if(lt){e.ang=Math.atan2(lt.y-e.y,lt.x-e.x);e.wanderAng=e.ang;e.wanderT=.5;moveEnemy(e,Math.cos(e.ang)*e.s*.7*dt,Math.sin(e.ang)*e.s*.7*dt);e.cult=false;return}
+ if(e.animal&&typeof animalHuntStep==='function'&&animalHuntStep(e,dt))return;
  if(huntStep(e,dt))return;
  /* цель каждого культиватора — зона Ци: сесть в разрешённом круге, расти и когда-нибудь занять центр */
  if(e.sect&&sectStep(e,dt))return;
@@ -398,6 +400,7 @@ function duelStep(e,dt){
 }
 function entKill(k,v){
  const s=arenaState;
+ if(k.animal&&typeof animalFeed==='function')animalFeed(k,v);
  if(k.isBoss)bossKillCredit(k,v);
  dropVictimLoot(v);
  k.foeId=null;
@@ -464,7 +467,7 @@ function huntStep(e,dt,force){
   e.huntT=.8+Math.random()*.6;e.prey=null;let bd=force?1600:700;
   const cand=s.enemies.concat(aliveBosses(s));
   const my=entPow(e);let bs=1e9;
-  for(const x of cand){if(x===e||x.hp<=0||x.animal||x.foeId!=null||(e.team&&x.team===e.team)||(e.lord&&x.lord===e.lord))continue;const d=Math.hypot(x.x-e.x,x.y-e.y);if(d>=bd||!equalFoes(e,x))continue;
+  for(const x of cand){if(x===e||x.hp<=0||(x.animal&&entPow(x)/my>1)||x.foeId!=null||(e.team&&x.team===e.team)||(e.lord&&x.lord===e.lord))continue;const d=Math.hypot(x.x-e.x,x.y-e.y);if(d>=bd||!equalFoes(e,x))continue;
    const r=entPow(x)/my,wound=x.maxHp?x.hp/x.maxHp:1;if(!force&&r>1.15&&wound>.7)continue;/* заведомо сильнее и здоров — не трогает */
    const sc=d*(.6+.4*wound)*(1+Math.max(0,r-1));if(sc<bs){bs=sc;e.prey=x.id}}
  }

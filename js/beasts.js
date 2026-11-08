@@ -152,3 +152,31 @@ function playerKilledByBoss(s){
  s.dot=null;s.slowT=0;const L=s.lastDmgBoss;if(!L||s.t-L.t>8)return;s.lastDmgBoss=null;
  const b=aliveBosses(s).find(q=>q.index===L.i);bossKillCredit(b,null);
 }
+
+/* ===== голод зверей и день/ночь =====
+   Сытость 0–100 убывает со временем; ниже порога зверь охотится на равных или более слабых людей-мобов (еда: Ци и рост), на нуле берётся и за чуть более сильных.
+   День/ночь влияет ТОЛЬКО на активность зверей (ночью голодают быстрее и выходят на охоту охотнее); скорость культивации не меняется. */
+const DAY_LEN=480,HUNGER_RATE=.2,HUNGER_HUNT=40,HUNGER_HUNT_NIGHT=55;
+function isNight(){const s=arenaState;return !!s&&((s.t||0)%DAY_LEN)/DAY_LEN>=.55}
+function animalHungerTick(e,dt){
+ if(e.hunger==null)e.hunger=100;e.hunger=Math.max(0,e.hunger-dt*HUNGER_RATE*(isNight()?1.6:1));
+}
+function animalHuntStep(e,dt){
+ const s=arenaState;if(!s||e.foeId!=null||e.hunger==null||e.vessel||e.hostile)return false;
+ const thr=isNight()?HUNGER_HUNT_NIGHT:HUNGER_HUNT;if(e.hunger>=thr||e.hp<e.maxHp*.5)return false;
+ e.huntT=(e.huntT||0)-dt;
+ if(e.huntT<=0){
+  e.huntT=1+Math.random();e.prey=null;let bd=e.hunger<=0?1300:900;const my=entPow(e),lim=e.hunger<=0?1.4:1.15;
+  for(const x of s.enemies){if(x===e||x.hp<=0||x.animal||x.isBoss||x.foeId!=null||x.vessel||(e.team&&x.team===e.team))continue;
+   const d=Math.hypot(x.x-e.x,x.y-e.y);if(d>=bd||entPow(x)/my>lim)continue;bd=d;e.prey=x.id}
+ }
+ const f=e.prey!=null?findEnt(e.prey):null;if(!f||f.hp<=0||f.foeId!=null){e.prey=null;return false}
+ const d=Math.hypot(f.x-e.x,f.y-e.y);
+ if(d<110){e.prey=null;startDuel(e,f);return false}
+ e.ang=Math.atan2(f.y-e.y,f.x-e.x);e.wanderAng=e.ang;moveEnemy(e,Math.cos(e.ang)*e.s*.8*dt,Math.sin(e.ang)*e.s*.8*dt);return true;
+}
+function animalFeed(k,v){
+ k.hunger=Math.min(100,(k.hunger||0)+60);if(k.maxQi!=null)k.qi=Math.min(k.maxQi,k.qi+(v.maxQi||0)*.3);
+ k.hp=Math.min(k.maxHp,k.hp+k.maxHp*.3);k.growT=(k.growT||0)+MOB_GROW_SEC*.8;
+ floatText(k.x,k.y-36,'сыт','#ffb07a',12);
+}
