@@ -20,7 +20,7 @@ function setTxt(el,txt){if(el.__t!==txt){el.textContent=txt;el.__t=txt}}
 function setSkB(b,dim,frac,col){if(b.__d!==dim){b.classList.toggle('dim',dim);b.__d=dim}const ov=b.querySelector('.cdov'),v=frac>.001?'conic-gradient('+col+' '+(Math.min(1,frac)*100).toFixed(1)+'%,transparent 0)':'none';if(ov.__v!==v){ov.style.background=v;ov.__v=v}}
 function updateArenaUI(){
  const s=arenaState,qi=save.qi;
- const so=!!(s.soulOut&&typeof soulMaxQi==='function'&&hasSoul());const hpc=$('hpBar').closest('.card');if(hpc.classList.contains('soulmode')!==so)hpc.classList.toggle('soulmode',so);$('hpBar').style.width=Math.max(0,s.hp/s.maxHp)*100+'%';const qv=so?soulQiNow():qi,qm=so?soulMaxQi():save.maxQi;const qp=qm?Math.max(0,Math.min(100,qv/qm*100)):0;$('qiBar').style.width=qp+'%';setTxt($('qiBarText'),Math.floor(qv)+' / '+Math.floor(qm));$('arenaRewards').textContent=Math.floor(save.rewards);$('arenaRewards2').textContent=Math.floor(save.rewards2);$('enemyCount').textContent=s.enemies.filter(e=>e.hp>0).length;
+ const so=!!(s.soulOut&&typeof soulMaxQi==='function'&&hasSoul());const hpc=$('hpBar').closest('.card');if(hpc.classList.contains('soulmode')!==so)hpc.classList.toggle('soulmode',so);$('hpBar').style.width=Math.max(0,s.hp/s.maxHp)*100+'%';const qv=so?soulQiNow():qi,qm=so?soulMaxQi():save.maxQi;const qp=qm?Math.max(0,Math.min(100,qv/qm*100)):0;$('qiBar').style.width=qp+'%';setTxt($('qiBarText'),Math.floor(qv)+' / '+Math.floor(qm));$('arenaRewards').textContent=Math.floor(save.rewards);$('arenaRewards2').textContent=Math.floor(save.rewards2);shardChipsUpdate();$('enemyCount').textContent=s.enemies.filter(e=>e.hp>0).length;
  rebuildTechButtons();npcTick();
  for(const b of $('techCol').querySelectorAll('.tbtn')){
   const t=arenaTechs()[+b.dataset.i];if(!t)continue;const lab=b.querySelector('small'),cost=techCost(t);
@@ -46,7 +46,7 @@ function show(id){cultOnline=false;if(typeof radarMove==='function')radarMove(fa
 function goHome(){if(arenaState)saveArenaCheckpoint();stopArena();closeTechnique();closePillar();closeScrolls();closeColumns();closeModal();show('home');updateUI()}
 function openCult(){show('cult');resizeCult();updateUI()}
 function updateUI(){
- $('verText').textContent=BUILD_VERSION;$('homeQi').textContent=Math.floor(save.qi);$('homeStage').textContent=hasCore()?'Ядро':save.pillars+'/'+MAX_PILLARS;$('cultQi').textContent=Math.floor(save.qi);$('cultMax').textContent=Math.floor(save.maxQi);$('qiMax2').textContent=Math.floor(save.maxQi);$('starCount').textContent=save.stars;$('meridianCount').textContent=save.meridians;$('pillarCount').textContent=save.pillars;$('dantianStore').textContent=Math.floor(save.dantian);$('strVal').textContent=save.str.toFixed(1);$('spdVal').textContent=save.spd.toFixed(1);$('hpVal').textContent=Math.floor(save.health);$('qiVal').textContent=Math.floor(save.qi);$('cultRewards').textContent=Math.floor(save.rewards);$('cultRewards2').textContent=Math.floor(save.rewards2);$('zoomText').textContent=Math.round(save.zoom*100)+'%';$('castBonus').textContent=(.1*save.meridians).toFixed(1);$('regenVal').textContent=starRegen().toFixed(2);$('scrollCnt').textContent=save.scrolls.length||'';
+ $('verText').textContent=BUILD_VERSION;$('homeQi').textContent=Math.floor(save.qi);$('homeStage').textContent=hasCore()?'Ядро':save.pillars+'/'+MAX_PILLARS;$('cultQi').textContent=Math.floor(save.qi);$('cultMax').textContent=Math.floor(save.maxQi);$('qiMax2').textContent=Math.floor(save.maxQi);$('starCount').textContent=save.stars;$('meridianCount').textContent=save.meridians;$('pillarCount').textContent=save.pillars;$('dantianStore').textContent=Math.floor(save.dantian);$('strVal').textContent=save.str.toFixed(1);$('spdVal').textContent=save.spd.toFixed(1);$('hpVal').textContent=Math.floor(save.health);$('qiVal').textContent=Math.floor(save.qi);$('cultRewards').textContent=Math.floor(save.rewards);$('cultRewards2').textContent=Math.floor(save.rewards2);shardChipsUpdate();$('zoomText').textContent=Math.round(save.zoom*100)+'%';$('castBonus').textContent=(.1*save.meridians).toFixed(1);$('regenVal').textContent=starRegen().toFixed(2);$('scrollCnt').textContent=save.scrolls.length||'';
   $('nextCost').textContent=starsLocked()?(hasCore()?'Новые звёзды закрыты (есть ядро)':'Новые звёзды закрыты (есть колонна)'):('Следующая звезда: '+starBaseCost()+' Ци');
  $('starBtn').style.display=starsLocked()?'none':'flex';$('starBtn').disabled=false;$('starBtnCost').textContent=starBaseCost();
  $('meridianBtn').disabled=save.stars<2;$('merBtnCost').textContent=meridianCost();
@@ -58,3 +58,9 @@ function openEvent(title,text){$('modalTitle').textContent=title;$('modalText').
 function closeModal(){$('modal').classList.remove('show')}
 function showBanner(text){const b=$('banner');b.textContent=text;b.classList.remove('show');void b.offsetWidth;b.classList.add('show')}
 function cornerToast(text){const b=$('cornerToast');if(!b)return;b.textContent=text;b.classList.remove('show');void b.offsetWidth;b.classList.add('show')}
+
+/* осколки 3 и 4 этапа: показываются, как только появились (арена и экран культивации) */
+function shardChipsUpdate(){
+ for(const t of [3,4]){const v=Math.floor(save[SH_KEY[t]]||0);
+  for(const [id,box] of [['arenaRewards'+t,'arenaChip'+t],['cultRewards'+t,'cultPill'+t]]){const n=$(id),b=$(box);if(!n||!b)continue;if(n.__v!==v){n.__v=v;n.textContent=fmt(v)}const sh=v>0?'':'none';if(b.style.display!==sh)b.style.display=sh}}
+}

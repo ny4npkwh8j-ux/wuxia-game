@@ -76,7 +76,7 @@ function renderCore(){
  $('coreDens').style.display='none';
  $('coreForm').style.display='block';
  const sc=save.pillars*(save.pillarCoef||1),q=coreQualityFor(save.pillars,save.pillarCoef||1),chance=coreChance(),bal=shBalance(3),left=coreShardsLeft(),canQ=coreUnlocked();
- $('coreInfo').innerHTML=canQ?('Колонны <b>'+save.pillars+'</b> · ядро <b>'+q.name+'</b> ×'+q.coef+' · шанс <b>'+chance+'%</b>'+(hasHint('core')?'<br><span class="mhint">'+hintText('core')+'</span>':'')):('Ядро — с '+CORE_MIN_PILLARS+'-й колонны');
+ $('coreInfo').innerHTML=canQ?('Колонны <b>'+save.pillars+'</b> · ядро <b>'+q.name+'</b> ×'+q.coef+' · шанс <b>'+chance+'%</b>'+(hasHint('core')?'<br><span class="mhint">'+hintText('core')+'</span>':'')+'<br><span class="mhint">Осколки ядра (3 этапа и старше): <b>'+fmt(bal)+'</b></span>'):('Ядро — с '+CORE_MIN_PILLARS+'-й колонны');
  $('coreBarFill').style.width=(coreQiFraction()*100)+'%';
  $('coreProgress').textContent='Ци '+fmt(save.coreDeposit||0)+' / '+fmt(CORE_QI_COST);
  $('coreDepositBtn').disabled=!canQ||(save.coreDeposit||0)>=CORE_QI_COST;$('coreDepositBtn').textContent='Влить Ци · '+coreHoldRate().toFixed(1)+'/с';
@@ -213,7 +213,7 @@ function renderDens(){
  box.style.display=done?'none':'block';if(done)return;
  const left=densShardsLeft(),bal=shBalance(3);
  $('densBarFill').style.width=(densQiFraction()*100)+'%';
- $('densProgress').textContent='Стадия '+(d+1)+'/'+coreDensMax()+' · Ци '+fmt(save.coreDeposit||0)+' / '+fmt(densQiCost());
+ $('densProgress').textContent='Стадия '+(d+1)+'/'+coreDensMax()+' · Ци '+fmt(save.coreDeposit||0)+' / '+fmt(densQiCost())+' · осколки ядра: '+fmt(bal);
  $('densDepositBtn').disabled=(save.coreDeposit||0)>=densQiCost();$('densDepositBtn').textContent='Влить Ци · '+densHoldRate().toFixed(1)+'/с';
  $('densQiBtn').disabled=(save.coreDeposit||0)<densQiCost();$('densQiBtn').textContent='Уплотнить';
  $('densShBtn').disabled=left<=0||bal<left;$('densShBtn').textContent='Осколки · '+fmt(left);

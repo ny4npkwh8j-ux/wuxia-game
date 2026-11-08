@@ -57,13 +57,13 @@ function invitePlayer(e){
  else foundSect(e,[],true);
  toast('☯ Он принял предложение и вступил в твою секту!');renderTrade();
 }
-function giveShards(e,k,n){const key=k===1?'rewards':'rewards2',ek=k===1?'sh1':'sh2';if(save[key]<n)return;save[key]-=n;e[ek]=(e[ek]||0)+n;persist();renderTrade()}
-function takeShards(e,k,n){const key=k===1?'rewards':'rewards2',ek=k===1?'sh1':'sh2';n=Math.min(n,Math.floor(e[ek]||0));if(n<=0)return;e[ek]-=n;save[key]+=n;persist();renderTrade()}
+function giveShards(e,k,n){const key=SH_KEY[k],ek=ESH[k];if(save[key]<n)return;save[key]-=n;e[ek]=(e[ek]||0)+n;persist();renderTrade()}
+function takeShards(e,k,n){const key=SH_KEY[k],ek=ESH[k];n=Math.min(n,Math.floor(e[ek]||0));if(n<=0)return;e[ek]-=n;save[key]+=n;persist();renderTrade()}
 function renderTrade(){
  const e=tradeEnt();if(!e)return closeTrade();
  const sc=e.sect?sectById(e.sect):null,mate=isMate(e),mult=tradeMult(e);
  $('tradeTitle').textContent=e.isBoss?'Босс '+e.index:'Культиватор ★'+(e.stars||0);
- $('tradeInfo').textContent='У тебя '+fmt(save.rewards)+' / '+fmt(save.rewards2)+' · у него '+fmt(e.sh1||0)+' / '+fmt(e.sh2||0)+' (душа / 2 этапа)';
+ $('tradeInfo').textContent='У тебя '+[1,2,3,4].map(t=>fmt(Math.floor(save[SH_KEY[t]]||0))).join(' / ')+' · у него '+[1,2,3,4].map(t=>fmt(Math.floor(e[ESH[t]]||0))).join(' / ')+' (душа / 2 / 3 / 4 этапа)';
  const box=$('tradeList');box.innerHTML='';let any=false;
  if(sc){any=true;const m=SM.get(sc.id),n=sectMembers(sc).length,ps=playerSect();
   const btns=[];
@@ -78,8 +78,8 @@ function renderTrade(){
  /* свои: дать или взять */
  if(mate){any=true;const lead=playerLeads();
   if(lead)shopCard(box,'🚪 Исключить из секты','ты глава','',[['Исключить',true,()=>kickMember(e)]]);
-  shopCard(box,'🎁 Дать осколки','свои','',[[ '100 души',canPay(1,100),()=>giveShards(e,1,100)],['1000 души',canPay(1,1000),()=>giveShards(e,1,1000)],['1 (2 этапа)',canPay(2,1),()=>giveShards(e,2,1)],['10 (2 этапа)',canPay(2,10),()=>giveShards(e,2,10)]]);
-  if(lead)shopCard(box,'🤲 Взять осколки','ты глава','Забрать у ученика накопленное.',[['100 души',(e.sh1||0)>=100,()=>takeShards(e,1,100)],['Всё душа ('+fmt(e.sh1||0)+')',(e.sh1||0)>=1,()=>takeShards(e,1,1e12)],['1 (2 этапа)',(e.sh2||0)>=1,()=>takeShards(e,2,1)],['Всё 2 этапа ('+fmt(e.sh2||0)+')',(e.sh2||0)>=1,()=>takeShards(e,2,1e12)]]);
+  shopCard(box,'🎁 Дать осколки','свои','',[[ '100 души',canPay(1,100),()=>giveShards(e,1,100)],['1000 души',canPay(1,1000),()=>giveShards(e,1,1000)],['1 (2 этапа)',canPay(2,1),()=>giveShards(e,2,1)],['10 (2 этапа)',canPay(2,10),()=>giveShards(e,2,10)],['1 (3 этапа)',(save.rewards3||0)>=1,()=>giveShards(e,3,1)],['1 (4 этапа)',(save.rewards4||0)>=1,()=>giveShards(e,4,1)]]);
+  if(lead)shopCard(box,'🤲 Взять осколки','ты глава','Забрать у ученика накопленное.',[['100 души',(e.sh1||0)>=100,()=>takeShards(e,1,100)],['Всё душа ('+fmt(e.sh1||0)+')',(e.sh1||0)>=1,()=>takeShards(e,1,1e12)],['1 (2 этапа)',(e.sh2||0)>=1,()=>takeShards(e,2,1)],['Всё 2 этапа ('+fmt(e.sh2||0)+')',(e.sh2||0)>=1,()=>takeShards(e,2,1e12)],['Всё 3 этапа ('+fmt(e.sh3||0)+')',(e.sh3||0)>=1,()=>takeShards(e,3,1e12)],['Всё 4 этапа ('+fmt(e.sh4||0)+')',(e.sh4||0)>=1,()=>takeShards(e,4,1e12)]]);
   else{const p=document.createElement('p');p.className='sc-empty';p.textContent='Забирать у своих может только глава секты.';box.appendChild(p)}
   for(const slot of ['weapon','armor']){const id=e.gear&&e.gear[slot];if(!id||!GEAR[id]||!lead)continue;const it=GEAR[id];
    shopCard(box,it.icon+' '+it.name,'у него','',[['Забрать себе',true,()=>{if(!e.gear||e.gear[slot]!==id)return renderTrade();e.gear[slot]=null;gearGive(id,true);toast('Забрано: '+it.name);persist();renderTrade()}]])}

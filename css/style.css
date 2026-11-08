@@ -107,3 +107,9 @@
 /* душа вне тела: нет отдельной полосы здоровья и щита — только Ци души */
 .card.hp.soulmode .bar:not(.qibar),.card.hp.soulmode .shieldbar{display:none}
 .card.hp.soulmode .qibar{box-shadow:0 0 8px #ffd23a88}.card.hp.soulmode #qiBar{background:linear-gradient(90deg,#c9971a,#ffd23a)}
+
+.chip.c4,.cbar .pill.c4{color:#7fe0ff}.chip.c5,.cbar .pill.c5{color:#ff9a6a}
+.cbar .stats{flex-wrap:wrap;justify-content:flex-end}
+/* до 5 видов осколков в шапке арены: компактнее, чтобы влезало на телефоне */
+.arena-info{gap:4px;padding:5px 6px;min-width:0;flex:0 1 auto}.arena-info .chip{gap:3px;padding:2px 5px;font-size:12px}.arena-info .chip .ico{width:15px;height:15px}
+.arena-top{align-items:flex-start}.arena-info{flex-wrap:wrap;justify-content:center;max-width:calc(100% - 190px)}

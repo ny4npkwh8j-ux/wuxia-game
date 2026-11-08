@@ -33,6 +33,7 @@ function renderSoul(){
  const st=soulStage(),cap=soulCap(),done=st>=SOUL_MAX,capped=!done&&st>=cap,can=soulCanGrow();
  let info=st?('<b>'+SOUL_NAMES[st]+'</b> · ×'+soulMult().toFixed(1)+' · этап <b>'+st+'/'+SOUL_MAX+'</b>'):'Душа ещё не зародилась';
  if(capped)info+='<br><span class="mhint">Потолок души задан ядром: '+(soulCols()<=3?'ядро из 3 колонн — выше начальной душа не вырастет.':'качество ядра не позволяет подняться выше этой ступени.')+'</span>';
+ info+='<br><span class="mhint">Осколки души (4 этапа): <b>'+fmt(Math.floor(save.rewards4||0))+'</b></span>';
  $('soulInfo').innerHTML=info;
  const box=$('soulForm');box.style.display=(done||capped)?'none':'block';if(done||capped)return;
  const need=soulQiCost(),left=soulShardsLeft();
