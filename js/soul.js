@@ -50,6 +50,9 @@ function soulDeathRollback(){
  save.maxQi=Math.max(1,Math.round(save.maxQi*r));save.health=Math.max(1,Math.round(save.health*r));
  return ' Смертное тело погибло, душа откатилась: '+(n-1?SOUL_NAMES[n-1]:'душа не зародилась')+', полоска возвышения заполнена наполовину.';
 }
+/* вне тела единственный показатель — Ци души: она же здоровье и она же тратится на Удар Ци; обнулилась — душа гибнет */
+function qiHave(){const s=arenaState;return s&&s.soulOut&&hasSoul()?Math.max(0,soulQiNow()-1):save.qi}
+function qiSpend(c){const s=arenaState;if(s&&s.soulOut&&hasSoul())save.soulQi=Math.max(1,soulQiNow()-c);else save.qi-=c}
 function soulCoolLeft(){return Math.max(0,Math.ceil(((save.soulCool||0)-Date.now())/1000))}
 async function soulFromQi(){
  if(!soulCanGrow()||(save.soulDeposit||0)<soulQiCost())return;

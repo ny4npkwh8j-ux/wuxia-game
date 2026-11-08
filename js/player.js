@@ -6,8 +6,8 @@ function entStopPower(e){return Math.max(1,((e.hp||0)+(e.shield>0?e.shield:0)+(e
 function activateQiStrike(t,held){
  interruptArenaMeditation();const s=arenaState;if(!s||!t||(t.type!=='qiSingle'&&t.type!=='qiArea'))return;if(stunBlock())return;
  if(t.type==='qiArea'&&s.cdArea>0)return toast('Удар по площади перезаряжается: '+s.cdArea.toFixed(1)+' с');
- const f=chargeFactor(held),cost=Math.max(1,Math.round(techCost(t)*f));if(save.qi<cost)return toast('Недостаточно Ци. Нужно '+cost);
- save.qi-=cost;if(t.type==='qiArea')s.cdArea=AREA_CD.qiArea;s.qiCast=QD;s.attackAnim=.36;s.punchDur=.36;s.punchSide=Math.random()<.5?1:0;s.aimT=t.type==='qiSingle'?.6:0;
+ const f=chargeFactor(held),cost=Math.max(1,Math.round(techCost(t)*f));if(qiHave()<cost)return toast('Недостаточно Ци. Нужно '+cost);
+ qiSpend(cost);if(t.type==='qiArea')s.cdArea=AREA_CD.qiArea;s.qiCast=QD;s.attackAnim=.36;s.punchDur=.36;s.punchSide=Math.random()<.5?1:0;s.aimT=t.type==='qiSingle'?.6:0;
  const total=techDamage(t)*f,targets=[],bl=aliveBosses(s);
  if(t.type==='qiSingle'){
   const range=300,cone=Math.PI/7;
