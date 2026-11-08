@@ -56,11 +56,11 @@ function sectTick(){
   }
   /* дань: ученики отдают главе четверть добытых осколков; если секту возглавляет игрок — пятая часть копится для него и выплачивается раз в минуту */
   if(sc.pl){
-   for(const q of mem)for(const k of ['sh1','sh2']){const g=Math.floor((q[k]||0)*.2);if(g>0){q[k]-=g;sc[k==='sh1'?'t1':'t2']=(sc[k==='sh1'?'t1':'t2']||0)+g}}
+   for(const q of mem)for(const k of ['sh1','sh2','sh3','sh4']){const g=Math.floor((q[k]||0)*.2);if(g>0){q[k]-=g;const tk='t'+k[2];sc[tk]=(sc[tk]||0)+g}}
    sc.payT=(sc.payT||0)+8;
-   if(sc.payT>=60){sc.payT=0;const a=sc.t1||0,b=sc.t2||0;if(a>0||b>0){save.rewards+=a;save.rewards2+=b;sc.t1=sc.t2=0;persist();chron('Секта «'+sc.name+'» принесла дань: '+fmt(a)+' души, '+fmt(b)+' 2 этапа');toast('☯ Секта «'+sc.name+'» принесла дань: +'+fmt(a)+' души'+(b?', +'+fmt(b)+' 2 этапа':''))}}
+   if(sc.payT>=60){sc.payT=0;const a=sc.t1||0,b=sc.t2||0,c3=sc.t3||0,c4=sc.t4||0;if(a>0||b>0||c3>0||c4>0){save.rewards+=a;save.rewards2+=b;save.rewards3=(save.rewards3||0)+c3;save.rewards4=(save.rewards4||0)+c4;sc.t1=sc.t2=sc.t3=sc.t4=0;persist();chron('Секта «'+sc.name+'» принесла дань: '+fmt(a)+' души, '+fmt(b)+' 2 этапа');toast('☯ Секта «'+sc.name+'» принесла дань: +'+fmt(a)+' души'+(b?', +'+fmt(b)+' 2 этапа':'')+(c3?', +'+fmt(c3)+' 3 этапа':'')+(c4?', +'+fmt(c4)+' 4 этапа':''))}}
   }else for(const q of mem){if(q===m)continue;
-   for(const k of ['sh1','sh2']){const g=Math.floor((q[k]||0)*.25);if(g>0){q[k]-=g;m[k]=(m[k]||0)+g}}}
+   for(const k of ['sh1','sh2','sh3','sh4']){const g=Math.floor((q[k]||0)*.25);if(g>0){q[k]-=g;m[k]=(m[k]||0)+g}}}
   sectMentor(sc,m,mem);
   /* зона: ищем свободную зону Ци без хозяина (или со слабым) */
   sc.zT=Math.max(0,(sc.zT||0)-8);

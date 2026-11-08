@@ -52,7 +52,12 @@ function gearScore(id){const it=GEAR[id];return it?(it.dmg||0)+(it.cut||0)*1000:
 function entWeaponDmg(e){const w=e&&e.gear&&e.gear.weapon&&GEAR[e.gear.weapon];return w?w.dmg:0}
 function entArmorCut(e){const a=e&&e.gear&&e.gear.armor&&GEAR[e.gear.armor];return a?a.cut:0}
 function gearUseful(e,id){const it=GEAR[id];if(!it)return false;const cur=e.gear&&e.gear[it.slot];return !cur||gearScore(id)>gearScore(cur)}
-function entEquip(e,id){const it=GEAR[id];if(!it)return;e.gear=e.gear||{weapon:null,armor:null};const old=e.gear[it.slot];e.gear[it.slot]=id;if(old&&arenaState)dropGear(e.x,e.y,old)}
+function entEquip(e,id){const it=GEAR[id];if(!it)return;e.gear=e.gear||{weapon:null,armor:null};const old=e.gear[it.slot];e.gear[it.slot]=id;if(old&&arenaState&&!entGearHandoff(e,old))dropGear(e.x,e.y,old)}
+/* в секте сменённая вещь не валяется на земле, а переходит ближайшему соученику, которому она полезнее его нынешней (цепочка: у того тоже освобождается вещь, но она слабее) */
+function entGearHandoff(e,id){
+ const s=arenaState;if(!s||e.sect==null)return false;let best=null,bd=1300;
+ for(const q of s.enemies){if(q===e||q.sect!==e.sect||q.hp<=0||q.removed||q.animal||q.vessel||!gearUseful(q,id))continue;const d=Math.hypot(q.x-e.x,q.y-e.y);if(d<bd){bd=d;best=q}}
+ if(!best)return false;entEquip(best,id);floatText(best.x,best.y-40,'🎁 от соученика','#ffd85b',12);return true}
 function dropGear(x,y,id){const s=arenaState;if(!s||!GEAR[id])return;s.loot=s.loot||[];if(s.loot.length>=300)s.loot.shift();s.loot.push({x:x+rnd(-18,18),y:y+rnd(-18,18),k:3,item:id,v:1})}
 /* при смерти существа с шансом 10% выпадает одна из его вещей */
 function gearDeathDrop(v){
