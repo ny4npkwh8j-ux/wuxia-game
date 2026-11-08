@@ -47,15 +47,15 @@ function activateQiStrike(t,held){
 }
 function activateShield(t){
  interruptArenaMeditation();const s=arenaState;if(!s||!t)return;if(stunBlock())return;
- if(s.shield>0)return toast('Щит уже активен.');const cost=techCost(t);if(save.qi<cost)return toast('Недостаточно Ци. Нужно '+cost);
- save.qi-=cost;s.shieldMax=techShieldMax(t);s.shield=s.shieldMax;s.shieldFlash=1;s.qiEffects.push({type:'ring',x:s.px,y:s.py,life:0,duration:.5,radius:70,col:'#63e9ff'});burst(s.px,s.py,14,'#63e9ff',190,.5,2.6);
+ if(s.shield>0)return toast('Щит уже активен.');const cost=techCost(t);if(qiHave()<cost)return toast('Недостаточно Ци. Нужно '+cost);
+ qiSpend(cost);s.shieldMax=techShieldMax(t);s.shield=s.shieldMax;s.shieldFlash=1;s.qiEffects.push({type:'ring',x:s.px,y:s.py,life:0,duration:.5,radius:70,col:'#63e9ff'});burst(s.px,s.py,14,'#63e9ff',190,.5,2.6);
  toast('Защитный покров: '+fmt(s.shieldMax)+' прочности');
 }
 function startDash(t){
  const s=arenaState;if(!s||!t||s.dashCd>0||s.dashTime>0)return;if(stunBlock())return;interruptArenaMeditation();const cost=techCost(t);
- if(save.qi<cost)return toast('Недостаточно Ци. Нужно '+cost);
+ if(qiHave()<cost)return toast('Недостаточно Ци. Нужно '+cost);
  const m=Math.hypot(s.dx,s.dy);let dx,dy;if(m>.08){dx=s.dx/m;dy=s.dy/m}else{dx=Math.cos(s.facing);dy=Math.sin(s.facing)}
- const n=t.nodes.length,dist=dashDist(n),cd=dashCdOf(n);s.dashDuration=.18;s.dashSpeed=dist/.18;s.lastMoveX=dx;s.lastMoveY=dy;s.facing=Math.atan2(dy,dx);save.qi-=cost;s.dashTime=s.dashDuration;s.invuln=.4;s.dashCd=cd;s.dashCdMax=cd;s.ghostAcc=1;shake(2);persist();
+ const n=t.nodes.length,dist=dashDist(n),cd=dashCdOf(n);s.dashDuration=.18;s.dashSpeed=dist/.18;s.lastMoveX=dx;s.lastMoveY=dy;s.facing=Math.atan2(dy,dx);qiSpend(cost);s.dashTime=s.dashDuration;s.invuln=.4;s.dashCd=cd;s.dashCdMax=cd;s.ghostAcc=1;shake(2);persist();
 }
 function beginQiCharge(type){const s=arenaState;if(!s)return;if(type==='qiArea'&&s.cdArea>0)return toast('Удар по площади перезаряжается: '+s.cdArea.toFixed(1)+' с');s.qiCharge={type,start:performance.now()}}
 function endQiCharge(type,t){const s=arenaState;if(!s)return;let held=0;if(s.qiCharge&&s.qiCharge.type===type)held=(performance.now()-s.qiCharge.start)/1000;s.qiCharge=null;activateQiStrike(t,held)}
@@ -69,7 +69,7 @@ function toggleQiShield(){
 function beginHeal(t){const s=arenaState;if(!s||s.heal||s.channel)return;if(stunBlock())return;interruptArenaMeditation();s.heal={tech:t,frac:0}}
 function endHeal(){const s=arenaState;if(!s)return;s.heal=null}
 function updateHeal(dt){
- const s=arenaState;if(!s||!s.heal)return;
+ const s=arenaState;if(!s||!s.heal)return;if(s.soulOut)return;
  if(s.hp>=s.maxHp)return;
  const rate=healRate(s.heal.tech);
  const gapQi=(s.maxHp-s.hp)*3-(s.heal.frac||0);
@@ -94,7 +94,7 @@ function applyStun(t){
 }
 function beginChannel(t){
  const s=arenaState;if(!s||!t||s.channel)return;if(arenaMeditation.active)return;if(stunBlock())return;if(s.cdStun>0)return toast('Оцепенение перезаряжается: '+s.cdStun.toFixed(1)+' с');interruptArenaMeditation();
- const cost=techCost(t);if(save.qi<cost)return toast('Недостаточно Ци. Нужно '+cost);
+ const cost=techCost(t);if(qiHave()<cost)return toast('Недостаточно Ци. Нужно '+cost);
  s.channel={t:0,dur:castTime(t.cast||5),tech:t};
 }
 function endChannel(){const s=arenaState;if(!s||!s.channel)return;s.channel=null;toast('Оцепенение прервано');burst(s.px,s.py,8,'#c58cff',130,.4,2.4)}

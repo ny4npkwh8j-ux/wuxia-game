@@ -179,7 +179,7 @@ function arenaLoop(t){
   e.hit=Math.max(0,e.hit-dt);
  }
  bossLoop(dt);warTick(dt);lootPickups(dt);collect();updateHeal(dt);pillTick(dt);mapTick(dt);cultOnlineTick(dt);
- if(s.channel){const ch=s.channel;ch.t+=dt;if(ch.t>=ch.dur){s.channel=null;const st=ch.tech,cost=techCost(st);if(save.qi>=cost){save.qi-=cost;s.cdStun=AREA_CD.stun;applyStun(st)}else toast('Недостаточно Ци. Нужно '+cost)}}
+ if(s.channel){const ch=s.channel;ch.t+=dt;if(ch.t>=ch.dur){s.channel=null;const st=ch.tech,cost=techCost(st);if(qiHave()>=cost){qiSpend(cost);s.cdStun=AREA_CD.stun;applyStun(st)}else toast('Недостаточно Ци. Нужно '+cost)}}
  save.qi=Math.max(0,Math.min(save.maxQi,save.qi));
  soulTick(dt);mobSoulTick(dt);
  updateFx(dt);emitFx(dt,m<=.08);

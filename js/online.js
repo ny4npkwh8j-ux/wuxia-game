@@ -12,6 +12,7 @@ const HOLD={
  pchance:{modal:'pillarModal',ok:()=>save.pillars<MAX_PILLARS&&(save.pillars>0||save.stars>=FIRST_PILLAR_STARS)&&pillarChance(save.pillarChanceExtra)<90,rate:pillarHoldRate,room:()=>pillarChanceQiCost()-(save.pillarChanceQi||0),
   add:n=>{const c=pillarChanceQiCost();save.pillarChanceQi=(save.pillarChanceQi||0)+n;if(save.pillarChanceQi>=c-1e-6){save.pillarChanceQi=0;save.pillarChanceExtra+=10000;toast('Шанс колонны +10% (сейчас '+pillarChance(save.pillarChanceExtra)+'%)')}},ui:()=>renderPillar()},
  core:{modal:'coreModal',ok:()=>!hasCore()&&coreUnlocked(),rate:coreHoldRate,room:()=>CORE_QI_COST-(save.coreDeposit||0),add:n=>{save.coreDeposit=(save.coreDeposit||0)+n},ui:()=>renderCore()},
+ trans:{modal:'soulModal',ok:()=>transUnlocked(),rate:()=>soulHoldRate(),room:()=>TRANS_QI-(save.transDeposit||0),add:n=>{save.transDeposit=(save.transDeposit||0)+n},ui:()=>renderSoul()},
  soul:{modal:'soulModal',ok:()=>soulCanGrow(),rate:()=>soulHoldRate(),room:()=>soulQiCost()-(save.soulDeposit||0),add:n=>{save.soulDeposit=(save.soulDeposit||0)+n},ui:()=>renderSoul()},
  dens:{modal:'coreModal',ok:()=>hasCore()&&(save.coreDens||0)<coreDensMax(),rate:densHoldRate,room:()=>densQiCost()-(save.coreDeposit||0),add:n=>{save.coreDeposit=(save.coreDeposit||0)+n},ui:()=>renderCore()}
 };

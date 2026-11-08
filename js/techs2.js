@@ -12,8 +12,8 @@ const CD_KEY={blade:'cdBlade',pull:'cdPull',repel:'cdRepel',mirage:'cdMirage',po
 function tech2Ready(t){
  const s=arenaState;if(!s||!t)return false;if(stunBlock())return false;interruptArenaMeditation();
  const k=CD_KEY[t.type];if(s[k]>0){toast(techniqueName(t.type)+' перезаряжается: '+s[k].toFixed(1)+' с');return false}
- const cost=techCost(t);if(save.qi<cost){toast('Недостаточно Ци. Нужно '+cost);return false}
- save.qi-=cost;s[k]=TECH2[t.type].cd;return true;
+ const cost=techCost(t);if(qiHave()<cost){toast('Недостаточно Ци. Нужно '+cost);return false}
+ qiSpend(cost);s[k]=TECH2[t.type].cd;return true;
 }
 function activateTech2(t){
  if(!t||!TECH2[t.type])return;

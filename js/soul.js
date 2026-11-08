@@ -35,6 +35,7 @@ function renderSoul(){
  if(capped)info+='<br><span class="mhint">Потолок души задан ядром: '+(soulCols()<=3?'ядро из 3 колонн — выше начальной душа не вырастет.':'качество ядра не позволяет подняться выше этой ступени.')+'</span>';
  info+='<br><span class="mhint">Осколки души (4 этапа): <b>'+fmt(Math.floor(save.rewards4||0))+'</b></span>';
  $('soulInfo').innerHTML=info;
+ if(typeof renderTrans==='function')renderTrans(done);
  const box=$('soulForm');box.style.display=(done||capped)?'none':'block';if(done||capped)return;
  const need=soulQiCost(),left=soulShardsLeft();
  $('soulBarFill').style.width=(soulQiFraction()*100)+'%';
@@ -46,6 +47,7 @@ function renderSoul(){
 /* смерть игрока с душой: тело смертно и гибнет, душа откатывается на пол-стадии (3/3 → 2/3, полоска наполовину), новое тело развивается заново и быстро */
 function soulDeathRollback(){
  const n=soulStage();if(n<1)return '';
+ if(save.soulTrans)return ' Душа пережила гибель тела: ступень сохранена.';
  const r=SOUL_MULT[n-1]/SOUL_MULT[n];
  save.soulStage=n-1;save.soulMV=2;save.soulDeposit=Math.floor(SOUL_QI[n]/2);save.soulQi=null;
  save.maxQi=Math.max(1,Math.round(save.maxQi*r));save.health=Math.max(1,Math.round(save.health*r));
@@ -90,11 +92,11 @@ function soulAdvance(payFn,refundFn){
 const SOUL_QMAX=[.5,1,2,3],SOUL_DMGRATE=[3,1,.1,.05],SOUL_OUTK=[.3,.55,.8,.9],SOUL_RET=[300,900,3000,6000],SOUL_LEASH=[900,2000,4500,7000],SOUL_CH=2,SOUL_RANGE=170;
 function soulMaxQi(){const st=soulStage();return st?Math.round(save.maxQi*SOUL_QMAX[st-1]):0}
 function soulQiNow(){const m=soulMaxQi();if(typeof save.soulQi!=='number'||!Number.isFinite(save.soulQi))save.soulQi=m;save.soulQi=Math.max(0,Math.min(save.soulQi,m));return save.soulQi}
-function soulDmgK(){const s=arenaState;if(!s||!hasSoul())return 1;if(s.poss)return s.poss.k;if(s.soulOut)return SOUL_OUTK[soulStage()-1];return 1}
+function soulDmgK(){const s=arenaState;if(!s||!hasSoul())return 1;if(s.poss)return s.poss.k;if(s.soulOut)return save.soulTrans?1:SOUL_OUTK[soulStage()-1];return 1}
 function soulHpFrac(s){return s.soulOut&&hasSoul()?soulQiNow()/Math.max(1,soulMaxQi()):s.hp/s.maxHp}
 /* душа вне тела владеет только Ударом Ци; остальные техники проявляются лишь в теле (своём или захваченном) */
 const SOUL_SPD=[2.5,3,3.5,4];
-function arenaTechs(){const s=arenaState;return s&&s.poss?s.poss.techs:s&&s.soulOut?save.techniques.filter(t=>t.type==='qiSingle'):save.techniques}
+function arenaTechs(){const s=arenaState;return s&&s.poss?s.poss.techs:s&&s.soulOut?(save.soulTrans?save.techniques:save.techniques.filter(t=>t.type==='qiSingle')):save.techniques}
 function soulHit(amount){
  const s=arenaState,st=soulStage();if(s.invuln>0)return;
  const loss=amount*SOUL_DMGRATE[st-1];save.soulQi=soulQiNow()-loss;s.possCh=null;
