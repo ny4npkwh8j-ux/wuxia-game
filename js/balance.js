@@ -19,7 +19,7 @@ const SHARD_RATE=10,SHARD_PRICE_K=15;
 const SH_KEY=['','rewards','rewards2','rewards3','rewards4'],ESH=['','sh1','sh2','sh3','sh4'],SH_NAME=['','души','2 этапа','3 этапа (ядро)','4 этапа (душа)'],SH_COL=['','#ffd85b','#c9a8ff','#7fe0ff','#ff9a6a'];
 const COL_SH=100*SHARD_PRICE_K;/* колонна 2+ в осколках 2 этапа (прежде 100) */
 const CORE_MIN_PILLARS=3,CORE_QI_COST=50000,CORE_SHARD_COST=COL_SH,CORE_CHANCE_UNIT=COL_SH;/* ядро и +10% шанса — осколки 3 этапа */
-function shTierOf(v){return v.core>0?3:(v.columns||0)>0?2:1}
+function shTierOf(v){return (v.soulStage||0)>0?4:v.core>0?3:(v.columns||0)>0?2:1}
 function shLootK(t){return t===3?5:t===4?6:t}/* вид награды на земле: k=3 занят вещами */
 function shLootTier(k){return k===5?3:k===6?4:k}
 function shBalance(t){let s=0;for(let j=t;j<=4;j++)s+=Math.floor(save[SH_KEY[j]]||0)*Math.pow(SHARD_RATE,j-t);return s}

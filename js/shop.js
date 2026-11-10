@@ -61,18 +61,18 @@ const DIVINE_MS=3*3600*1000,DIVINE_AMT=1000000;
 function divineLeft(){return Math.max(0,(save.divineAt||0)+DIVINE_MS-Date.now())}
 function divineTick(){
  if(save.divineAt&&Date.now()>=save.divineAt+DIVINE_MS&&save.divineGrant){
-  save.rewards=Math.max(0,(save.rewards||0)-save.divineGrant[0]);save.rewards2=Math.max(0,(save.rewards2||0)-save.divineGrant[1]);save.rewards3=Math.max(0,(save.rewards3||0)-save.divineGrant[2]);
+  save.rewards=Math.max(0,(save.rewards||0)-save.divineGrant[0]);save.rewards2=Math.max(0,(save.rewards2||0)-save.divineGrant[1]);save.rewards3=Math.max(0,(save.rewards3||0)-save.divineGrant[2]);if(save.divineGrant[3])save.rewards4=Math.max(0,(save.rewards4||0)-save.divineGrant[3]);
   save.divineGrant=null;persist();toast('Божественные осколки рассеялись.');if($('npcModal')&&$('npcModal').classList.contains('show'))renderNpc()}
 }
 setInterval(divineTick,5000);setTimeout(divineTick,500);
 function divineUse(){
  if(divineLeft()>0)return toast('Пилюля будет доступна через '+Math.ceil(divineLeft()/60000)+' мин.');
  if(save.rewards<1)return toast('Нужен 1 осколок души.');
- divineTick();save.rewards-=1;save.rewards+=DIVINE_AMT;save.rewards2+=DIVINE_AMT;save.rewards3=(save.rewards3||0)+DIVINE_AMT;
- save.divineAt=Date.now();save.divineGrant=[DIVINE_AMT,DIVINE_AMT,DIVINE_AMT];persist();toast('Пилюля божественности принята: по '+fmt(DIVINE_AMT)+' осколков на 3 часа.');renderNpc();
+ divineTick();save.rewards-=1;save.rewards+=DIVINE_AMT;save.rewards2+=DIVINE_AMT;save.rewards3=(save.rewards3||0)+DIVINE_AMT;save.rewards4=(save.rewards4||0)+DIVINE_AMT;
+ save.divineAt=Date.now();save.divineGrant=[DIVINE_AMT,DIVINE_AMT,DIVINE_AMT,DIVINE_AMT];persist();toast('Пилюля божественности принята: по '+fmt(DIVINE_AMT)+' осколков на 3 часа.');renderNpc();
 }
 function renderShopPills(box){
- {const l=divineLeft();shopCard(box,'🌟 Пилюля божественности',l>0?'через '+Math.ceil(l/60000)+' мин':'готова','Даёт 1 000 000 осколков души, 2 и 3 этапа. Исчезают через 3 часа. Раз в 3 часа.',[['Принять · 1 осколок души',l<=0&&save.rewards>=1,divineUse]])}
+ {const l=divineLeft();shopCard(box,'🌟 Пилюля божественности',l>0?'через '+Math.ceil(l/60000)+' мин':'готова','Даёт 1 000 000 осколков души, 2, 3 и 4 этапа. Исчезают через 3 часа. Раз в 3 часа.',[['Принять · 1 осколок души',l<=0&&save.rewards>=1,divineUse]])}
  for(const id in PILLS){const p=PILLS[id];
   shopCard(box,p.icon+' '+p.name,'есть: '+pillCount(id),p.desc,[['Купить · '+costText(p.k,p.n),canPay(p.k,p.n),()=>{if(!shopPay(p.k,p.n))return;gearSave().pills[id]=pillCount(id)+1;persist();renderNpc()}]])}
 }
