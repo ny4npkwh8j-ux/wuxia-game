@@ -137,3 +137,8 @@ function castTime(base){return Math.max(.3,base-.1*(save.meridians||0))}
 function starRegen(){return .5*Math.max(0,save.stars)/100}/* восстановление Ци от звёзд растёт и после 100 */
 function spendStarCost(cost){const useQi=Math.min(Math.floor(save.qi),cost);save.qi-=useQi;const rest=cost-useQi;if(rest>0)save.rewards-=rest;return rest}
 function canAfford(cost){return Math.floor(save.qi)+Math.floor(save.rewards)>=cost}
+
+/* скидка за качество фундамента (документ «Путь Небесного Дракона», §10): ранг 1–5 → 0/10/20/35/50%. Не суммируется по этапам: берётся один множитель от качества фундамента.
+   Ядро — по прогнозируемому рангу (звёзды+колонны), уплотнение/душа/трансформация — по рангу готового ядра. */
+const FOUND_DISC=[0,0,.10,.20,.35,.50];
+function foundK(rank){return 1-(FOUND_DISC[Math.max(0,Math.min(5,rank|0))]||0)}

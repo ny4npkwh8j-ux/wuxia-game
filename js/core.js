@@ -3,8 +3,11 @@
 function hasCore(){return (save.coreCoef||0)>0}
 function starsLocked(){return save.pillars>=1||hasCore()}
 function coreUnlocked(){return !hasCore()&&save.pillars>=CORE_MIN_PILLARS}
-function coreQiFraction(){return Math.min(1,(save.coreDeposit||0)/CORE_QI_COST)}
-function coreShardsLeft(){return Math.max(0,Math.ceil(CORE_SHARD_COST*(1-coreQiFraction())-1e-9))}
+function coreFoundRank(){return coreRankFor(coreScore(save.pillars,save.pillarCoef||1,save.stars,0))}
+function coreQiCost(){return Math.round(CORE_QI_COST*foundK(coreFoundRank()))}
+function coreShardCost(){return Math.round(CORE_SHARD_COST*foundK(coreFoundRank()))}
+function coreQiFraction(){return Math.min(1,(save.coreDeposit||0)/coreQiCost())}
+function coreShardsLeft(){return Math.max(0,Math.ceil(coreShardCost()*(1-coreQiFraction())-1e-9))}
 function coreChanceBase(){return coreChanceFor(save.pillars,save.coreChanceExtra||0,save.pillarCoef||1)}
 /* «счётчик жалости»: каждая неудача подряд даёт +10% к шансу следующей попытки (до 100%) */
 function coreChance(){return Math.min(100,coreChanceBase()+10*(save.pityC||0))}
@@ -78,21 +81,21 @@ function renderCore(){
  const sc=save.pillars*(save.pillarCoef||1),q=coreQualityFor(save.pillars,save.pillarCoef||1),chance=coreChance(),bal=shBalance(3),left=coreShardsLeft(),canQ=coreUnlocked();
  $('coreInfo').innerHTML=canQ?('Колонны <b>'+save.pillars+'</b> · ядро <b>'+q.name+'</b> ×'+q.coef+' · шанс <b>'+chance+'%</b>'+(hasHint('core')?'<br><span class="mhint">'+hintText('core')+'</span>':'')+'<br><span class="mhint">Осколки ядра (3 этапа и старше): <b>'+fmt(bal)+'</b></span>'):('Ядро — с '+CORE_MIN_PILLARS+'-й колонны');
  $('coreBarFill').style.width=(coreQiFraction()*100)+'%';
- $('coreProgress').textContent='Ци '+fmt(save.coreDeposit||0)+' / '+fmt(CORE_QI_COST);
- $('coreDepositBtn').disabled=!canQ||(save.coreDeposit||0)>=CORE_QI_COST;$('coreDepositBtn').textContent='Влить Ци · '+coreHoldRate().toFixed(1)+'/с';
- $('coreFormBtn').disabled=!canQ||(save.coreDeposit||0)<CORE_QI_COST;$('coreFormBtn').textContent='Сформировать';
+ $('coreProgress').textContent='Ци '+fmt(save.coreDeposit||0)+' / '+fmt(coreQiCost());
+ $('coreDepositBtn').disabled=!canQ||(save.coreDeposit||0)>=coreQiCost();$('coreDepositBtn').textContent='Влить Ци · '+coreHoldRate().toFixed(1)+'/с';
+ $('coreFormBtn').disabled=!canQ||(save.coreDeposit||0)<coreQiCost();$('coreFormBtn').textContent='Сформировать';
  $('coreRewardsBtn').disabled=!canQ||left<=0||bal<left;$('coreRewardsBtn').textContent='Осколки · '+fmt(left);
  $('coreChanceBtn').disabled=!canQ||chance>=90||bal<CORE_CHANCE_UNIT;$('coreChanceBtn').textContent='Шанс +10% · '+fmt(CORE_CHANCE_UNIT);
 }
 function contributeCoreQi(){
- if(!coreUnlocked())return;const need=CORE_QI_COST-(save.coreDeposit||0);if(need<=0)return;
+ if(!coreUnlocked())return;const need=coreQiCost()-(save.coreDeposit||0);if(need<=0)return;
  const n=Math.min(Math.floor(save.qi),need,CORE_DEPOSIT_STEP);if(n<100)return toast('Нужно хотя бы 100 Ци.');
  save.qi-=n;save.coreDeposit=(save.coreDeposit||0)+n;persist();renderCore();
 }
 async function formCoreFromQi(){
- if(!coreUnlocked()||(save.coreDeposit||0)<CORE_QI_COST)return;
+ if(!coreUnlocked()||(save.coreDeposit||0)<coreQiCost())return;
  if(!await confirmDialog('Создать ядро? Шанс успеха: '+coreChance()+'%. Колонны сольются в ядро; при неудаче рассыплется одна колонна.','Создать'))return;
- attemptCore(()=>{save.coreDeposit-=CORE_QI_COST});
+ attemptCore(()=>{save.coreDeposit-=coreQiCost()});
 }
 async function payCoreRewards(){
  const left=coreShardsLeft();if(!coreUnlocked()||left<=0)return;
@@ -204,8 +207,8 @@ const CORE_DENS_MAX=5;
 function coreRank(e){if(e)return e.coreRank||coreRankLegacy(e.core);return save.coreRank||(hasCore()?coreRankLegacy(save.coreCoef):0)}
 function coreDensMaxFor(cols,rank){return Math.max(1,Math.min(cols==null?CORE_DENS_MAX:cols,CORE_DENS_MAX,CORE_RANK_DENS[rank||5]))}
 function coreDensMax(e){return coreDensMaxFor(e?e.coreCols:save.coreCols,coreRank(e)||5)}
-function densQiCost(){return 25000*((save.coreDens||0)+1)}
-function densShardCost(){return COL_SH/2*((save.coreDens||0)+1)}
+function densQiCost(){return Math.round(25000*((save.coreDens||0)+1)*foundK(coreRank()))}
+function densShardCost(){return Math.round(COL_SH/2*((save.coreDens||0)+1)*foundK(coreRank()))}
 function densQiFraction(){return Math.min(1,(save.coreDeposit||0)/densQiCost())}
 function densShardsLeft(){return Math.max(0,Math.ceil(densShardCost()*(1-densQiFraction())-1e-9))}
 function renderDens(){

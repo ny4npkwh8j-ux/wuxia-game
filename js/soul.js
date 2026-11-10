@@ -21,8 +21,8 @@ function soulCols(){return save.coreCols==null?5:save.coreCols}
 function soulCap(){const byCols=soulCols()<=3?1:SOUL_MAX;return Math.min(byCols,soulRankCap())}
 function soulNextK(){return soulCols()>=5?1:soulCols()===4?10:1e6}
 function soulMult(){return SOUL_MULT[soulStage()]||1}
-function soulQiCost(){return SOUL_QI[soulStage()+1]||0}
-function soulShardCost(){return SOUL_SHARDS[soulStage()+1]||0}
+function soulQiCost(){return Math.round((SOUL_QI[soulStage()+1]||0)*foundK(coreRank()))}
+function soulShardCost(){return Math.round((SOUL_SHARDS[soulStage()+1]||0)*foundK(coreRank()))}
 function soulQiFraction(){const c=soulQiCost();return c?Math.min(1,(save.soulDeposit||0)/c):0}
 function soulShardsLeft(){return Math.max(0,Math.ceil(soulShardCost()*(1-soulQiFraction())-1e-9))}
 function soulCanGrow(){return soulUnlocked()&&soulStage()<soulCap()}

@@ -5,11 +5,13 @@
    Сложность мини-игр задаёт шанс по качеству ядра (TRANS_CHANCE): чем он ниже, тем уже зона, быстрее тени и меньше прочность ядра.
    Неудача: возвращается половина вложенного, 2 мин отдыха. Успех: save.soulTrans=1 — вне тела душа использует все техники, бьёт в полную силу и переживает гибель тела. */
 const TRANS_QI=7700000,TRANS_SH=COL_SH*26,TRANS_CHANCE=[0,0,0,25,55,80];
+function transQi(){return Math.round(TRANS_QI*foundK(coreRank()))}
+function transSh(){return Math.round(TRANS_SH*foundK(coreRank()))}
 function transChance(){return TRANS_CHANCE[Math.max(1,Math.min(5,coreRank()||1))]||0}
 function transDiff(){return 1-transChance()/100}/* 0 — легко, 1 — предельно */
 function transUnlocked(){return hasSoul()&&soulStage()>=SOUL_MAX&&!save.soulTrans&&transChance()>0}
-function transQiFraction(){return Math.min(1,(save.transDeposit||0)/TRANS_QI)}
-function transShardsLeft(){return Math.max(0,Math.ceil(TRANS_SH*(1-transQiFraction())-1e-9))}
+function transQiFraction(){return Math.min(1,(save.transDeposit||0)/transQi())}
+function transShardsLeft(){return Math.max(0,Math.ceil(transSh()*(1-transQiFraction())-1e-9))}
 function renderTrans(done){
  const box=$('transForm');if(!box)return;
  if(!hasSoul()||soulStage()<SOUL_MAX){box.style.display='none';return}
@@ -17,19 +19,19 @@ function renderTrans(done){
  if(save.soulTrans){box.innerHTML='<p class="mline"><b>ТРАНСФОРМАЦИЯ ✦</b> — душа самостоятельна: вне тела она владеет всеми техниками, бьёт в полную силу и переживает гибель тела.</p>';return}
  if(transChance()<=0){box.innerHTML='<p class="mline sm">Трансформация недоступна: качество ядра слишком низкое.</p>';return}
  const left=transShardsLeft(),can=transUnlocked(),cool=soulCoolLeft();
- box.innerHTML='<p class="mline"><b>Трансформация души</b> · сложность испытаний: <b>'+Math.round(transDiff()*100)+'%</b> (шанс по ядру '+transChance()+'%)</p><div class="pbar"><i id="transBarFill" style="width:'+(transQiFraction()*100)+'%"></i></div><p class="mline sm">Ци '+fmt(save.transDeposit||0)+' / '+fmt(TRANS_QI)+' · осколки 4 этапа: '+fmt(Math.floor(save.rewards4||0))+'</p><div class="row"><button class="bigbtn" id="transDepositBtn">Влить Ци · '+soulHoldRate().toFixed(1)+'/с</button></div><div class="row"><button class="bigbtn" id="transQiBtn" onclick="transStart(\'qi\')">Начать испытание</button><button class="bigbtn secondary" id="transShBtn" onclick="transStart(\'sh\')">Осколки · '+fmt(left)+'</button></div>';
- $('transDepositBtn').disabled=!can||(save.transDeposit||0)>=TRANS_QI;$('transQiBtn').disabled=!can||(save.transDeposit||0)<TRANS_QI||cool>0;$('transShBtn').disabled=!can||left<=0||shBalance(4)<left||cool>0;
+ box.innerHTML='<p class="mline"><b>Трансформация души</b> · сложность испытаний: <b>'+Math.round(transDiff()*100)+'%</b> (шанс по ядру '+transChance()+'%)</p><div class="pbar"><i id="transBarFill" style="width:'+(transQiFraction()*100)+'%"></i></div><p class="mline sm">Ци '+fmt(save.transDeposit||0)+' / '+fmt(transQi())+' · осколки 4 этапа: '+fmt(Math.floor(save.rewards4||0))+'</p><div class="row"><button class="bigbtn" id="transDepositBtn">Влить Ци · '+soulHoldRate().toFixed(1)+'/с</button></div><div class="row"><button class="bigbtn" id="transQiBtn" onclick="transStart(\'qi\')">Начать испытание</button><button class="bigbtn secondary" id="transShBtn" onclick="transStart(\'sh\')">Осколки · '+fmt(left)+'</button></div>';
+ $('transDepositBtn').disabled=!can||(save.transDeposit||0)>=transQi();$('transQiBtn').disabled=!can||(save.transDeposit||0)<transQi()||cool>0;$('transShBtn').disabled=!can||left<=0||shBalance(4)<left||cool>0;
  if(typeof bindHold==='function')bindHold('transDepositBtn','trans');
 }
 async function transStart(mode){
  if(!transUnlocked())return;
  if(soulCoolLeft()>0)return toast('Душа восстанавливается: ещё '+soulCoolLeft()+' с.');
  const left=transShardsLeft();
- if(mode==='qi'&&(save.transDeposit||0)<TRANS_QI)return;
+ if(mode==='qi'&&(save.transDeposit||0)<transQi())return;
  if(mode==='sh'&&(left<=0||shBalance(4)<left))return toast('Нужно '+fmt(left)+' осколков 4 этапа.');
  if(!await confirmDialog('Начать трансформацию? Цена уплачивается сразу, при неудаче вернётся половина. Два испытания: удержание формы и защита ядра.','Начать'))return;
  let refund;
- if(mode==='qi'){save.transDeposit-=TRANS_QI;refund=()=>{save.transDeposit=(save.transDeposit||0)+Math.floor(TRANS_QI/2)}}
+ if(mode==='qi'){save.transDeposit-=transQi();refund=()=>{save.transDeposit=(save.transDeposit||0)+Math.floor(transQi()/2)}}
  else{shPay(4,left);const dep=save.transDeposit||0;save.transDeposit=0;refund=()=>{save.rewards4=(save.rewards4||0)+Math.floor(left/2)}}
  persist();closeSoul();
  transRun(transDiff(),ok=>{
