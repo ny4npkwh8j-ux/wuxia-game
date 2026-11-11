@@ -7,7 +7,7 @@
 const TRANS_QI=7700000,TRANS_SH=COL_SH*26,TRANS_CHANCE=[0,0,0,25,55,80];
 function transQi(){return Math.round(TRANS_QI*foundK(coreRank()))}
 function transSh(){return Math.round(TRANS_SH*foundK(coreRank()))}
-function transChance(){return TRANS_CHANCE[Math.max(1,Math.min(5,coreRank()||1))]||0}
+function transChance(){const r=Math.max(1,Math.min(5,coreRank()||1)),b=TRANS_CHANCE[r]||0;return b?Math.max(5,Math.min(95,b+pathChanceBonus(r))):0}
 function transDiff(){return 1-transChance()/100}/* 0 — легко, 1 — предельно */
 function transUnlocked(){return hasSoul()&&soulStage()>=SOUL_MAX&&!save.soulTrans&&transChance()>0}
 function transQiFraction(){return Math.min(1,(save.transDeposit||0)/transQi())}

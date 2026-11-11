@@ -14,7 +14,7 @@ function soulUnlocked(){return hasCore()&&(save.coreDens||0)>=coreDensMax()}
    Для прорыва дальше последней (трансформация души, позже) ядро из 4 колонн потребует в 10 раз больше, чем из 5: soulNextK(). */
 /* шансы прорыва души: [ранг ядра][ступень]; 0 — ступень недоступна по качеству ядра */
 const SOUL_CHANCE=[null,[70,15,0,0],[80,40,10,0],[90,65,35,10],[95,80,60,35],[98,90,80,65]];
-function soulChanceBase(){const r=Math.max(1,coreRank()||1);return (SOUL_CHANCE[r]||SOUL_CHANCE[3])[soulStage()]||0}
+function soulChanceBase(){const r=Math.max(1,coreRank()||1),b=(SOUL_CHANCE[r]||SOUL_CHANCE[3])[soulStage()]||0;return b?Math.max(5,Math.min(100,b+pathChanceBonus(r))):0}
 function soulChance(){const b=soulChanceBase();return b?Math.min(100,b+10*(save.pityS||0)):0}
 function soulRankCap(){const t=SOUL_CHANCE[Math.max(1,coreRank()||1)]||SOUL_CHANCE[3];let c=0;for(let i=0;i<SOUL_MAX;i++)if(t[i]>0)c=i+1;return c}
 function soulCols(){return save.coreCols==null?5:save.coreCols}
@@ -33,6 +33,7 @@ function renderSoul(){
  const st=soulStage(),cap=soulCap(),done=st>=SOUL_MAX,capped=!done&&st>=cap,can=soulCanGrow();
  let info=st?('<b>'+SOUL_NAMES[st]+'</b> · ×'+soulMult().toFixed(1)+' · этап <b>'+st+'/'+SOUL_MAX+'</b>'):'Душа ещё не зародилась';
  if(capped)info+='<br><span class="mhint">Потолок души задан ядром: '+(soulCols()<=3?'ядро из 3 колонн — выше начальной душа не вырастет.':'качество ядра не позволяет подняться выше этой ступени.')+'</span>';
+ if(hasCore())info+='<br><span class="mhint">'+PATH_NAME[pathOf(coreRank())]+'</span>';
  info+='<br><span class="mhint">Осколки души (4 этапа): <b>'+fmt(Math.floor(save.rewards4||0))+'</b></span>';
  $('soulInfo').innerHTML=info;
  if(typeof renderTrans==='function')renderTrans(done);

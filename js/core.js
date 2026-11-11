@@ -74,7 +74,7 @@ function renderCore(){
  if(hasCore()){
   $('coreForm').style.display='none';
   const d=save.coreDens||0;
-  $('coreInfo').innerHTML='<b>'+CORE_RANKS[coreRank()]+'</b> (ранг '+coreRank()+'/5) ×'+myCore().toFixed(2)+' · плотность <b>'+d*20+'%</b> из возможных <b>'+coreDensMax()*20+'%</b>';
+  $('coreInfo').innerHTML='<b>'+CORE_RANKS[coreRank()]+'</b> (ранг '+coreRank()+'/5) ×'+myCore().toFixed(2)+' · плотность <b>'+d*20+'%</b> из возможных <b>'+coreDensMax()*20+'%</b><br><span class="mhint">'+PATH_NAME[pathOf(coreRank())]+'</span>';
   renderDens();return}
  $('coreDens').style.display='none';
  $('coreForm').style.display='block';
