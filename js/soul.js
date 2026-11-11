@@ -55,8 +55,8 @@ function soulDeathRollback(){
  return ' Смертное тело погибло, душа откатилась: '+(n-1?SOUL_NAMES[n-1]:'душа не зародилась')+', полоска возвышения заполнена наполовину.';
 }
 /* вне тела единственный показатель — Ци души: она же здоровье и она же тратится на Удар Ци; обнулилась — душа гибнет */
-function qiHave(){const s=arenaState;return s&&s.soulOut&&hasSoul()?Math.max(0,soulQiNow()-1):save.qi}
-function qiSpend(c){const s=arenaState;if(s&&s.soulOut&&hasSoul())save.soulQi=Math.max(1,soulQiNow()-c);else save.qi-=c}
+function qiHave(){const s=arenaState;return s&&(s.soulOut||s.poss)&&hasSoul()?Math.max(0,soulQiNow()-1):save.qi}
+function qiSpend(c){const s=arenaState;if(s&&(s.soulOut||s.poss)&&hasSoul())save.soulQi=Math.max(1,soulQiNow()-c);else save.qi-=c}
 function soulCoolLeft(){return Math.max(0,Math.ceil(((save.soulCool||0)-Date.now())/1000))}
 async function soulFromQi(){
  if(!soulCanGrow()||(save.soulDeposit||0)<soulQiCost())return;
@@ -93,6 +93,9 @@ function soulAdvance(payFn,refundFn){
 const SOUL_QMAX=[.5,1,2,3],SOUL_DMGRATE=[3,1,.1,.05],SOUL_OUTK=[.3,.55,.8,.9],SOUL_RET=[300,900,3000,6000],SOUL_LEASH=[900,2000,4500,7000],SOUL_CH=2,SOUL_RANGE=170;
 function soulMaxQi(){const st=soulStage();return st?Math.round(save.maxQi*SOUL_QMAX[st-1]):0}
 function soulQiNow(){const m=soulMaxQi();if(typeof save.soulQi!=='number'||!Number.isFinite(save.soulQi))save.soulQi=m;save.soulQi=Math.max(0,Math.min(save.soulQi,m));return save.soulQi}
+/* потеря Ци души вне тела: слабеет с ростом ступени (I—100%, IV—10%), после трансформации прекращается */
+const SOUL_DRAIN_K=[1,.6,.3,.1];
+function soulDrainK(){return save.soulTrans?0:SOUL_DRAIN_K[Math.max(0,Math.min(3,soulStage()-1))]}
 function soulDmgK(){const s=arenaState;if(!s||!hasSoul())return 1;if(s.poss)return s.poss.k;if(s.soulOut)return save.soulTrans?1:SOUL_OUTK[soulStage()-1];return 1}
 function soulHpFrac(s){return s.soulOut&&hasSoul()?soulQiNow()/Math.max(1,soulMaxQi()):s.hp/s.maxHp}
 /* душа вне тела владеет только Ударом Ци; остальные техники проявляются лишь в теле (своём или захваченном) */
@@ -142,7 +145,9 @@ function soulPossess(){
 /* способности захваченного тела как техники игрока: длина маршрута — по звёздам тела */
 function possTechs(e){
  const n=Math.max(3,Math.floor(e.stars||3)),out=[];
- for(const type of (e.techs||[])){if(!TECH_ZONES[type])continue;out.push({type,name:techniqueName(type),nodes:new Array(n).fill(0)})}
+ /* сначала способности самой души (Удар Ци; после трансформации — все), затем те, что есть у тела; Ци для всех — запас души */
+ for(const t of (save.soulTrans?save.techniques:save.techniques.filter(t=>t.type==='qiSingle')))out.push(t);
+ for(const type of (e.techs||[])){if(!TECH_ZONES[type]||out.some(t=>t.type===type))continue;out.push({type,name:techniqueName(type),nodes:new Array(n).fill(0)})}
  return out;
 }
 function soulPossRoll(e){
@@ -173,7 +178,7 @@ function soulTick(dt){
  if(!s.soulOut&&!s.poss)save.soulQi=Math.min(mx,soulQiNow()+mx*.05*dt);
  if(s.body){s.body.hit=Math.max(0,(s.body.hit||0)-dt)}
  if(s.soulOut){
-  const B=s.body,d=B?Math.hypot(s.px-B.x,s.py-B.y):1e9;save.soulQi=soulQiNow()-mx*.004*(d>SOUL_LEASH[st-1]?5:1)*dt;
+  const B=s.body,d=B?Math.hypot(s.px-B.x,s.py-B.y):1e9;save.soulQi=soulQiNow()-mx*.004*soulDrainK()*(arenaMeditation.active&&arenaMeditation.soul?.25:1)*(d>SOUL_LEASH[st-1]?5:1)*dt;
   if(save.soulQi<=0){save.soulQi=0;s.hp=0;toast('Душа угасла вдали от тела.')}
   if(s.possCh){const e=s.enemies.concat(aliveBosses(s)).find(q=>q.id===s.possCh.id&&q.hp>0);
    if(!e||Math.hypot(e.x-s.px,e.y-s.py)>SOUL_RANGE*1.5)s.possCh=null;
@@ -183,6 +188,7 @@ function soulTick(dt){
  soulBtnTick();
 }
 function soulBtnTick(){
+ {const vb=$('vesselBtn');if(vb){const sv=!!(arenaState&&arenaState.poss);if(vb.__v!==sv){vb.style.display=sv?'flex':'none';vb.__v=sv}}}
  const s=arenaState,a=$('soulActBtn'),b=$('soulPossBtn');if(!a||!b)return;
  const show=!!s&&hasSoul();if(a.__v!==show){a.style.display=show?'flex':'none';a.__v=show}
  let at='Выйти',bs=false,bt='Захватить';
@@ -257,4 +263,48 @@ function drawMobSouls(time){
  for(const z of s.mobSouls){const p=worldToScreen(z.x,z.y),bob=Math.sin(time*4+z.x)*3;
   ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y+bob,30,'#ffd23a',.5);glow(ax,p.x,p.y+bob,14,'#fff2a0',.85);ax.globalCompositeOperation='source-over';
   ax.fillStyle='#ffd23a';ax.beginPath();ax.arc(p.x,p.y+bob,7,0,TAU);ax.fill()}
+}
+
+/* ===== культивация захваченного тела: можно посмотреть и подтолкнуть (открыть технику, продвинуть этап за осколки игрока) ===== */
+function vesselNext(e){
+ /* следующий шаг тела — те же правила, что и у мобов (evolveTick); возвращает {tier,cost,label} или null */
+ if(!e||e.isBoss)return null;const S=e.stars||0,C=e.columns||0;
+ if(e.animal)return S<ANIMAL_CAP?{tier:1,cost:10+5*S,label:'звезда ★'+(S+1)}:null;
+ if(e.core>0){const d=e.dens||0;return d<coreDensMax(e)?{tier:3,cost:densShardCost0(d),label:'уплотнение ядра '+(d+1)+'/'+CORE_DENS_MAX}:null}
+ if(S<100)return{tier:1,cost:10+5*S,label:'звезда ★'+(S+1)};
+ if(C>=coreAt(e)&&C>=CORE_MIN_PILLARS)return{tier:3,cost:CORE_SHARD_COST,label:'формирование ядра'};
+ if(C>=entMaxCols(e))return null;
+ return C===0?{tier:1,cost:10000,label:'колонна 1'}:{tier:2,cost:COL_SH,label:'колонна '+(C+1)};
+}
+function vesselRecalc(){
+ const s=arenaState,P=s&&s.poss;if(!P)return;const e=P.e,base=toughness(save.pillars,save.pillarCoef,myCore());
+ const oldMax=s.maxHp;P.k=Math.max(.2,Math.min(8,entPow(e)/playerPow()));P.tr=Math.max(.2,Math.min(20,entToughness(e)/Math.max(1,base)));
+ s.maxHp=e.maxHp;s.hp=Math.min(e.maxHp,s.hp+Math.max(0,e.maxHp-oldMax));
+}
+function vesselOpen(){const s=arenaState;if(!s||!s.poss)return;renderVessel();$('vesselModal').classList.add('show')}
+function vesselClose(){$('vesselModal').classList.remove('show')}
+function renderVessel(){
+ const s=arenaState,P=s&&s.poss;if(!P){vesselClose();return}const e=P.e,box=$('vesselBody');
+ const cult=e.isBoss?'Зверь-босс':e.animal?('зверь ★'+(e.stars||0)):('★'+(e.stars||0)+(e.core>0?' · ядро, плотность '+(e.dens||0)+'/'+CORE_DENS_MAX:(e.columns?' · колонн: '+e.columns:'')));
+ const techs=(e.techs||[]).map(t=>techniqueName(t)).join(', ')||'нет';
+ const nx=vesselNext(e),can=!e.isBoss;
+ let h='<p class="mline"><b>'+P.name+'</b></p><p class="mline sm">Культивация: <b>'+cult+'</b><br>Техники тела: '+techs+'<br>Ци души: <b>'+fmt(soulQiNow())+' / '+fmt(soulMaxQi())+'</b></p>';
+ h+='<div class="row"><button class="bigbtn secondary" '+((!can||!nx||shBalance(nx.tier)<nx.cost)?'disabled':'')+' onclick="vesselAdvance()">'+(nx?'Продвинуть: '+nx.label+' · '+fmt(nx.cost)+' ('+SH_NAME[nx.tier]+')':'Дальше продвинуть нельзя')+'</button></div>';
+ const known=save.techniques.filter(t=>TECH_ZONES[t.type]&&!(e.techs||[]).includes(t.type)),cost=Math.round(soulMaxQi()*.1);
+ if(can&&!e.animal)for(const t of known)h+='<div class="row"><button class="bigbtn secondary" '+(soulQiNow()-1<cost?'disabled':'')+' onclick="vesselTeach(\''+t.type+'\')">Открыть технику: '+techniqueName(t.type)+' · '+fmt(cost)+' Ци души</button></div>';
+ box.innerHTML=h;
+}
+function vesselAdvance(){
+ const s=arenaState,P=s&&s.poss;if(!P||P.e.isBoss)return;const e=P.e,nx=vesselNext(e);if(!nx||shBalance(nx.tier)<nx.cost)return;
+ shPay(nx.tier,nx.cost);e[ESH[nx.tier]]=(e[ESH[nx.tier]]||0)+nx.cost;e.growT=1e9;
+ const st0=e.stars||0,c0=e.columns||0,k0=e.core||0,d0=e.dens||0;
+ evolveTick(e,0);e.growT=0;
+ if((e.stars||0)===st0&&(e.columns||0)===c0&&(e.core||0)===k0&&(e.dens||0)===d0)toast('Прорыв не удался: осколки потрачены.');else toast('Тело продвинуто: '+nx.label+'.');
+ P.techs=possTechs(e);vesselRecalc();if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);persist();renderVessel();
+}
+function vesselTeach(type){
+ const s=arenaState,P=s&&s.poss;if(!P||P.e.isBoss||P.e.animal)return;const e=P.e,cost=Math.round(soulMaxQi()*.1);
+ if(soulQiNow()-1<cost||(e.techs||[]).includes(type))return;
+ qiSpend(cost);e.techs=(e.techs||[]).concat([type]);P.techs=possTechs(e);
+ if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);toast('Тело освоило технику: '+techniqueName(type)+'.');renderVessel();
 }
