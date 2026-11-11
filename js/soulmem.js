@@ -58,9 +58,9 @@ function renderSoulMem(){
 }
 /* основное тело погибло, а душа есть: она выходит и играет дальше (штрафа отката нет — потеряно тело). Вернуть true, если обработано */
 function soulBodyDeath(s){
- if(!hasSoul()||s.soulOut||s.poss||save.bodyLost||soulQiNow()<=1)return false;
+ if(!hasSoul()||s.soulOut||s.poss||save.bodyLost)return false;
  soulMemUpdate();
- s.body={x:s.px,y:s.py,hp:0,maxHp:s.maxHp,dead:true,hit:0,ang:s.facing||0};s.soulOut=true;save.bodyLost=true;s.possCh=null;
+ s.body={x:s.px,y:s.py,hp:0,maxHp:s.maxHp,dead:true,hit:0,ang:s.facing||0};s.soulOut=true;save.bodyLost=true;s.possCh=null;{const tk=soulTakeQi();save.soulQi=tk;save.qi=Math.max(0,save.qi-tk)}
  try{playerKilledByBoss(s)}catch(e){}
  s.hp=s.maxHp;s.shield=0;s.invuln=1.5;
  burst(s.px,s.py,30,'#ff5a5a',300,.9,3);toast('Основное тело погибло! Душа продолжает путь. Захвати новое тело — оно станет основным.');chron('Игрок потерял тело, душа продолжает');
@@ -72,7 +72,7 @@ function possMakeMain(e){
  const n=Math.max(0,Math.floor(e.stars||0));
  soulBodyAdopt(n,e);
  e.vessel=false;e.removed=true;e.hp=0;e.foeId=null;if(typeof sectLeave==='function'&&e.sect!=null)try{sectLeave(e)}catch(x){}
- s.poss=null;s.body=null;s.soulOut=false;save.bodyLost=false;
+ s.poss=null;s.body=null;s.soulOut=false;save.bodyLost=false;save.qi=Math.min(save.maxQi,soulQiNow());save.soulQi=null;
  s.maxHp=save.health;s.hp=s.maxHp;s.shield=0;s.invuln=1.5;s.px=e.x;s.py=e.y;
  persist();if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);
  burst(s.px,s.py,36,'#ffd23a',320,1,3.4);toast('Тело стало основным: '+save.stars+' ★. Память души поможет достроить образ.');chron('Игрок обрёл новое основное тело ('+save.stars+' ★)');

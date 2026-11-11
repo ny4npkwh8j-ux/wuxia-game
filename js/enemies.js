@@ -114,7 +114,8 @@ function mobAI(e,dt,d){
   e.qi-=cost('shield');e.shieldMax=entShieldMax(e);e.shield=e.shieldMax;cd.sh=boss?4:6;burst(e.x,e.y,8,'#63e9ff',150,.4,2.4);
   if(boss)toast('Босс активировал Защитный покров');
  }
- if(cd.atk<=0){
+ if(cd.atk<=0&&(tc.includes('qiSingle')||tc.includes('qiArea'))&&entRisky(e,{vessel:true},R.area)){cd.atk=.9+Math.random()*.6}
+ else if(cd.atk<=0){
   const opts=[];
   if(tc.includes('qiSingle')&&d<R.single*.95&&e.qi>=cost('qiSingle'))opts.push('single');
   if(tc.includes('qiArea')&&cd.area<=0&&d<R.area*.95&&e.qi>=cost('qiArea'))opts.push('area');
@@ -151,7 +152,8 @@ function entFire(e,w){
   s.qiEffects.push({type:'single',x:e.x,y:e.y,ang:w.ang,life:0,duration:.38,range:w.range,cone,hostile:true});
   if(boss)for(let i=0;i<16;i++){const aa=w.ang+rnd(-cone,cone)*.9,sp=rnd(300,600);addPart({k:'spark',x:e.x+Math.cos(aa)*40,y:e.y+Math.sin(aa)*40,vx:Math.cos(aa)*sp,vy:Math.sin(aa)*sp,t:0,max:rnd(.25,.5),size:rnd(2,3.6),col:'#ff7a5a',drag:2.6})}
   const dd=Math.hypot(s.px-e.x,s.py-e.y),ad=Math.atan2(s.py-e.y,s.px-e.x);if(dd<=w.range&&Math.abs(angDiff(ad,w.ang))<=cone)takeDamage(dmg);
- }else{s.qiEffects.push({type:'area',hostile:true,x:e.x,y:e.y,life:0,duration:.5,radius:w.range});if(Math.hypot(s.px-e.x,s.py-e.y)<=w.range)takeDamage(dmg)}
+  entSplash(e,'single',w.range,w.ang,dmg,null,false);
+ }else{s.qiEffects.push({type:'area',hostile:true,x:e.x,y:e.y,life:0,duration:.5,radius:w.range});if(Math.hypot(s.px-e.x,s.py-e.y)<=w.range)takeDamage(dmg);entSplash(e,'area',w.range,0,dmg,null,false)}
  shake(boss?9:5);
 }
 /* оцепенение игрока (от босса): нельзя двигаться и применять техники; после — 3 с иммунитета, чтобы не было вечного стана */
@@ -371,6 +373,28 @@ function startDuel(a,b){
  for(const x of [a,b]){const other=x===a?b:a;if(x.isBoss){for(const m of arenaState.enemies)if(m.hp>0&&m.team===x.index&&!m.foeId&&m!==other&&Math.hypot(m.x-x.x,m.y-x.y)<1500)m.foeId=other.id}
   else if(x.sect&&SM.get(x.sect)===x)for(const m of arenaState.enemies)if(m.hp>0&&m.sect===x.sect&&!m.foeId&&m!==other&&m!==x&&!sectRetreat(m)&&Math.hypot(m.x-x.x,m.y-x.y)<1100)m.foeId=other.id}
 }
+/* Удары чужих (не союзников) задевают ВСЕХ в зоне поражения, а не только цель; мобы заранее прикидывают ответ посторонних */
+function entAllyOf(e,x){return x===e||sameSect(e,x)||(e.team&&x.team===e.team)||(e.lord&&x.lord===e.lord)||(e.isBoss&&x.team===e.index)||(x.isBoss&&e.team===x.index)}
+function entInShape(e,kind,range,ang,x,y){const d=Math.hypot(x-e.x,y-e.y);if(d>range)return false;return kind==='area'||Math.abs(angDiff(Math.atan2(y-e.y,x-e.x),ang))<=Math.PI/7}
+function entSplash(e,kind,range,ang,dmg,skip,playerToo){
+ const s=arenaState;if(!s)return;
+ for(const x of s.enemies.concat(aliveBosses(s))){
+  if(x===skip||x.hp<=0||x.removed||x.vessel||entAllyOf(e,x)||!entInShape(e,kind,range,ang,x.x,x.y))continue;
+  const keep=e.foeId;
+  if(damageEnemy(x,dmg,'ent')){entKill(e,x);e.foeId=keep}
+  else if(!x.animal&&x.foeId==null&&x.foeId!==e.id&&!isMate(e)){x.foeId=e.id}/* задетый отвечает обидчику */
+ }
+ if(playerToo&&!isMate(e)&&!(arenaState.invuln>0)&&entInShape(e,kind,range,ang,s.px,s.py))takeDamage(dmg);
+}
+function entRisky(e,f,range){
+ const s=arenaState;if(!s)return false;const my=entPow(e);let th=0;
+ const fa=x=>f&&(x===f||entAllyOf(f,x));
+ for(const x of s.enemies.concat(aliveBosses(s))){
+  if(x.hp<=0||x.removed||x.vessel||x.animal||entAllyOf(e,x)||fa(x))continue;
+  if(Math.hypot(x.x-e.x,x.y-e.y)<=range)th+=entPow(x)/my}
+ if(!isMate(e)&&!(f&&f.vessel)&&Math.hypot(s.px-e.x,s.py-e.y)<=range)th+=playerPow()/my;
+ return th>1.2;
+}
 function duelStep(e,dt){
  const f=e.foeId!=null?findEnt(e.foeId):null;
  if(!f){e.foeId=null;e.challenge=false;return false}
@@ -382,14 +406,17 @@ function duelStep(e,dt){
  e.ang=Math.atan2(dy,dx);e.wind=null;
  if(tc.includes('shield')&&e.shield<=0&&cd.sh<=0&&d<500&&e.qi>=cost('shield')){e.qi-=cost('shield');e.shieldMax=entShieldMax(e);e.shield=e.shieldMax;cd.sh=boss?4:6;burst(e.x,e.y,8,'#63e9ff',150,.4,2.4)}
  const M=entMult(e)*techVer(e);let fired=false;
- if(cd.atk<=0){
+ if(cd.atk<=0&&(tc.includes('qiArea')||tc.includes('qiSingle'))&&entRisky(e,f,R.area)){cd.atk=.9+Math.random()*.6;/* слишком много посторонних вокруг — не бьём по площади */}
+ else if(cd.atk<=0){
   if(tc.includes('qiArea')&&cd.area<=0&&d<R.area*.9&&e.qi>=cost('qiArea')){
    e.qi-=cost('qiArea');cd.area=AREA_CD.qiArea;cd.atk=1.6+Math.random()*1.4;fired=true;
    s.qiEffects.push({type:'area',hostile:true,x:e.x,y:e.y,life:0,duration:.5,radius:R.area});
+   entSplash(e,'area',R.area,0,TECH_BASE.qiArea*M,f,true);
    if(damageEnemy(f,TECH_BASE.qiArea*M,'ent')){entKill(e,f);return true}
   }else if(tc.includes('qiSingle')&&d<R.single*.9&&e.qi>=cost('qiSingle')){
    e.qi-=cost('qiSingle');cd.atk=1.4+Math.random()*1.4;fired=true;
    s.qiEffects.push({type:'single',x:e.x,y:e.y,ang:e.ang,life:0,duration:.38,range:R.single,cone:Math.PI/7,hostile:true});
+   entSplash(e,'single',R.single,e.ang,TECH_BASE.qiSingle*M,f,true);
    if(damageEnemy(f,TECH_BASE.qiSingle*M,'ent')){entKill(e,f);return true}
   }
  }

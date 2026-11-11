@@ -101,6 +101,9 @@ function soulAdvance(payFn,refundFn){
    Без ограничения по времени: душа выходит кнопкой (или когда тело убито) и остаётся на месте, где вышла; захваченное тело остаётся в мире. */
 const SOUL_QMAX=[.5,1,2,3],SOUL_DMGRATE=[3,1,.1,.05],SOUL_OUTK=[.3,.55,.8,.9],SOUL_RET=[300,900,3000,6000],SOUL_LEASH=[900,2000,4500,7000],SOUL_CH=2,SOUL_RANGE=170;
 function soulMaxQi(){const st=soulStage();return st?Math.round(save.maxQi*SOUL_QMAX[st-1]):0}
+/* общий запас Ци: при выходе душа забирает часть резерва тела (SOUL_TAKE), при возвращении отдаёт остаток */
+const SOUL_TAKE=.6;
+function soulTakeQi(){const mx=soulMaxQi();return Math.min(mx,Math.max(save.qi*SOUL_TAKE,mx*.05))}
 function soulQiNow(){const m=soulMaxQi();if(typeof save.soulQi!=='number'||!Number.isFinite(save.soulQi))save.soulQi=m;save.soulQi=Math.max(0,Math.min(save.soulQi,m));return save.soulQi}
 /* потеря Ци души вне тела: слабеет с ростом ступени (I—100%, IV—10%), после трансформации прекращается */
 const SOUL_DRAIN_K=[1,.6,.3,.1];
@@ -138,13 +141,13 @@ function soulAct(){
  const s=arenaState;if(!s||!hasSoul())return;const st=soulStage();
  if(s.poss)return possEnd('leave');
  if(!s.soulOut){
-  if(soulQiNow()<soulMaxQi()*.2)return toast('Ци души слишком мало для выхода.');
-  s.body={x:s.px,y:s.py,hp:s.hp,maxHp:s.maxHp,dead:false,hit:0,ang:s.facing||0};s.soulOut=true;s.possCh=null;burst(s.px,s.py,24,'#ffd23a',260,.8,3);toast('Душа покинула тело. Тело осталось стоять на месте.');if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);return}
+  if(save.qi<save.maxQi*.2)return toast('Ци тела слишком мало: душа не может забрать резерв и выйти.');
+  s.body={x:s.px,y:s.py,hp:s.hp,maxHp:s.maxHp,dead:false,hit:0,ang:s.facing||0};s.soulOut=true;s.possCh=null;{const tk=soulTakeQi();save.soulQi=tk;save.qi=Math.max(0,save.qi-tk)}burst(s.px,s.py,24,'#ffd23a',260,.8,3);toast('Душа покинула тело и забрала часть резерва Ци. Тело осталось стоять на месте.');if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);return}
  s.possCh=null;const B=s.body;
  if(!B||B.dead)return toast('Тело уничтожено — вернуться некуда.');
  const d=Math.hypot(s.px-B.x,s.py-B.y);
  if(d>SOUL_RET[st-1])return toast('Тело слишком далеко для возвращения (нужно ближе '+SOUL_RET[st-1]+').');
- s.px=B.x;s.py=B.y;s.hp=B.hp;s.maxHp=B.maxHp;s.body=null;s.soulOut=false;burst(s.px,s.py,24,'#ffd23a',260,.8,3);toast('Душа вернулась в тело.');if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);
+ s.px=B.x;s.py=B.y;s.hp=B.hp;s.maxHp=B.maxHp;s.body=null;s.soulOut=false;save.qi=Math.min(save.maxQi,save.qi+soulQiNow());save.soulQi=null;burst(s.px,s.py,24,'#ffd23a',260,.8,3);toast('Душа вернулась в тело и вернула остаток Ци.');if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);
 }
 function soulPossess(){
  const s=arenaState;if(!s||!s.soulOut||s.poss||s.possCh)return;const e=soulTarget();if(!e)return toast('Рядом нет цели для захвата.');
@@ -186,7 +189,7 @@ function soulTick(dt){
  const s=arenaState;if(!s||!hasSoul()){soulBtnTick();return}
  const st=soulStage(),mx=soulMaxQi();
  if(save.bodyLost&&!s.soulOut&&!s.poss){s.body={x:s.px,y:s.py,hp:0,maxHp:s.maxHp,dead:true,hit:0,ang:s.facing||0};s.soulOut=true;s.hp=Math.max(1,s.maxHp)}
- if(!s.soulOut&&!s.poss)save.soulQi=Math.min(mx,soulQiNow()+mx*.05*dt);
+ /* в теле запас Ци общий (save.qi) */
  if(s.body){s.body.hit=Math.max(0,(s.body.hit||0)-dt)}
  if(s.soulOut){
   const B=s.body,d=B?Math.hypot(s.px-B.x,s.py-B.y):1e9;save.soulQi=soulQiNow()-mx*.004*soulDrainK()*(arenaMeditation.active&&arenaMeditation.soul?.25:1)*(d>SOUL_LEASH[st-1]?5:1)*dt;
@@ -301,16 +304,20 @@ function renderVessel(){
  const s=arenaState,P=s&&s.poss;if(!P){vesselClose();return}const e=P.e,box=$('vesselBody');
  const cult=e.isBoss?'Зверь-босс':e.animal?('зверь ★'+(e.stars||0)):('★'+(e.stars||0)+(e.core>0?' · ядро, плотность '+(e.dens||0)+'/'+CORE_DENS_MAX:(e.columns?' · колонн: '+e.columns:'')));
  const techs=(e.techs||[]).map(t=>techniqueName(t)).join(', ')||'нет';
- const nx=vesselNext(e),can=!e.isBoss;
+ const nx=vesselNext(e),can=!e.isBoss,nq=nx?vesselQiCost(nx):0;
  let h='<p class="mline"><b>'+P.name+'</b></p><p class="mline sm">Культивация: <b>'+cult+'</b><br>Техники тела: '+techs+'<br>Ци души: <b>'+fmt(soulQiNow())+' / '+fmt(soulMaxQi())+'</b><br>Ёмкость тела по Ци: '+fmt(e.maxQi||0)+' · отдача за способность: <b>'+Math.round(possBacklashFrac(e)*100)+'%</b> здоровья тела<br>Скидка опыта души на развитие: '+Math.round((1-soulDiscK())*100)+'%</p>';
  h+='<div class="row"><button class="bigbtn secondary" '+((!can||!nx||shBalance(nx.tier)<nx.cost)?'disabled':'')+' onclick="vesselAdvance()">'+(nx?'Продвинуть: '+nx.label+' · '+fmt(nx.cost)+' ('+SH_NAME[nx.tier]+')':'Дальше продвинуть нельзя')+'</button></div>';
+ if(nx)h+='<div class="row"><button class="bigbtn secondary" '+((!can||qiHave()<nq)?'disabled':'')+' onclick="vesselAdvance(true)">Продвинуть за Ци: '+nx.label+' · '+fmt(nq)+' Ци</button></div>';
  const known=save.techniques.filter(t=>TECH_ZONES[t.type]&&!(e.techs||[]).includes(t.type)),cost=Math.round(soulMaxQi()*.1);
  if(can&&!e.animal)for(const t of known)h+='<div class="row"><button class="bigbtn secondary" '+(soulQiNow()-1<cost?'disabled':'')+' onclick="vesselTeach(\''+t.type+'\')">Открыть технику: '+techniqueName(t.type)+' · '+fmt(cost)+' Ци души</button></div>';
  box.innerHTML=h;
 }
-function vesselAdvance(){
- const s=arenaState,P=s&&s.poss;if(!P||P.e.isBoss)return;const e=P.e,nx=vesselNext(e);if(!nx||shBalance(nx.tier)<nx.cost)return;
- shPay(nx.tier,nx.cost);e[ESH[nx.tier]]=(e[ESH[nx.tier]]||0)+nx.cost;e.growT=1e9;
+function vesselQiCost(nx){return Math.ceil(nx.cost*Math.pow(SHARD_RATE,nx.tier-1))}/* 1 осколок 1 этапа = 1 Ци, дальше ×SHARD_RATE */
+function vesselAdvance(byQi){
+ const s=arenaState,P=s&&s.poss;if(!P||P.e.isBoss)return;const e=P.e,nx=vesselNext(e);if(!nx)return;
+ if(byQi){const q=vesselQiCost(nx);if(qiHave()<q)return;save.soulQi=Math.max(1,soulQiNow()-q)}
+ else{if(shBalance(nx.tier)<nx.cost)return;shPay(nx.tier,nx.cost)}
+ e[ESH[nx.tier]]=(e[ESH[nx.tier]]||0)+nx.cost;e.growT=1e9;
  const st0=e.stars||0,c0=e.columns||0,k0=e.core||0,d0=e.dens||0;
  evolveTick(e,0);e.growT=0;
  if((e.stars||0)===st0&&(e.columns||0)===c0&&(e.core||0)===k0&&(e.dens||0)===d0)toast('Прорыв не удался: осколки потрачены.');else toast('Тело продвинуто: '+nx.label+'.');
