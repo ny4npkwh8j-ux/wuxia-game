@@ -325,7 +325,7 @@ function evolveTick(e,dt){
  if(e.animal){if((e.stars||0)<ANIMAL_CAP&&e.growT>=MOB_GROW_SEC*1.6){e.growT=0;growMob(e)}return}/* животные: только звёзды, медленно */
  if(e.core>0){
   const d=e.dens||0;if(d>=coreDensMax(e))return;
-  const cost=densShardCost0(d);
+  const cost=Math.ceil(densShardCost0(d)*Math.max(.5,1-.12*(e.soulStage||0)));
   if(entShBal(e,3)>=cost||e.growT>=EVO_DENS_SEC){
    if(entShBal(e,3)>=cost)entShPay(e,3,cost);e.growT=0;
    const r=(1+.1*(d+1))/(1+.1*d);e.dens=d+1;e.core*=r;e.qiPlus=(e.qiPlus??4500)+1000;entRebuild(e,100,0,'уплотнил ядро ('+e.dens+'/'+CORE_DENS_MAX+')');
@@ -335,7 +335,7 @@ function evolveTick(e,dt){
  const S=e.stars||0,C=e.columns||0;
  if(S<100){
   const cap=100;if(S>=cap)return;
-  const cost=10+5*S;
+  const cost=Math.ceil((10+5*S)*Math.max(.5,1-.12*(e.soulStage||0)));
   if((e.sh1||0)>=cost){e.sh1-=cost;e.growT=0;growMob(e);return}
   if(e.growT>=MOB_GROW_SEC*formK(e)){e.growT=0;growMob(e)}
   return;

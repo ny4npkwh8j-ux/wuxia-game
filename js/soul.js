@@ -56,7 +56,15 @@ function soulDeathRollback(){
 }
 /* вне тела единственный показатель — Ци души: она же здоровье и она же тратится на Удар Ци; обнулилась — душа гибнет */
 function qiHave(){const s=arenaState;return s&&(s.soulOut||s.poss)&&hasSoul()?Math.max(0,soulQiNow()-1):save.qi}
-function qiSpend(c){const s=arenaState;if(s&&(s.soulOut||s.poss)&&hasSoul())save.soulQi=Math.max(1,soulQiNow()-c);else save.qi-=c}
+function qiSpend(c){const s=arenaState;if(s&&(s.soulOut||s.poss)&&hasSoul()){save.soulQi=Math.max(1,soulQiNow()-c);if(s.poss)possBacklash()}else save.qi-=c}
+/* слабое тело «не тянет» запас души: каждое применение способности бьёт по телу тем сильнее, чем больше разрыв между Ци души и ёмкостью тела.
+   Разрыв ≤1.5× — без отдачи; растёт на 6% здоровья за каждое удвоение, потолок 40% (тело с нулём звёзд переживает 2 применения и погибает на 3-м) */
+const BACKLASH_FREE=1.5,BACKLASH_STEP=.06,BACKLASH_MAX=.4;
+function possBacklashFrac(e){const gap=soulMaxQi()/Math.max(1,e.maxQi||1);return gap<=BACKLASH_FREE?0:Math.min(BACKLASH_MAX,BACKLASH_STEP*Math.log2(gap/BACKLASH_FREE))}
+function possBacklash(){
+ const s=arenaState,P=s&&s.poss;if(!P)return;const f=possBacklashFrac(P.e);if(f<=0)return;
+ const d=s.maxHp*f;s.hp-=d;s.hurt=1;floatText(s.px,s.py-40,'отдача -'+fmt(Math.max(1,d)),'#ff9a6a',13);burst(s.px,s.py,6,'#ff9a6a',160,.4,2.2);
+}
 function soulCoolLeft(){return Math.max(0,Math.ceil(((save.soulCool||0)-Date.now())/1000))}
 async function soulFromQi(){
  if(!soulCanGrow()||(save.soulDeposit||0)<soulQiCost())return;
@@ -234,24 +242,26 @@ function mobSoulTry(e){
 function mobSoulEscape(e){
  const s=arenaState;if(!s||e.isBoss||e.animal||e.vessel||!((e.soulStage||0)>0))return;
  if(Math.random()>=.5+.1*e.soulStage)return;
- (s.mobSouls=s.mobSouls||[]).push({x:e.x,y:e.y,stage:e.soulStage,stars:e.stars||0,tal:e.tal,t:0,hold:0,tgt:null,sect:e.sect});
+ (s.mobSouls=s.mobSouls||[]).push({x:e.x,y:e.y,stage:e.soulStage,stars:e.stars||0,tal:e.tal,t:0,hold:0,tgt:null,sect:e.sect,techs:(e.techs||[]).slice(),wantBody:Math.random()<.4});
  burst(e.x,e.y,18,'#ffd23a',200,.8,2.8);floatText(e.x,e.y-40,'душа ушла','#ffd23a',13);
 }
 function mobSoulHost(z){const s=arenaState;let best=null,bd=1e9;
  for(const e of s.enemies){if(e.hp<=0||e.removed||e.isBoss||e.animal||e.vessel||(e.soulStage||0)>0||(e.core>0&&e.core>=1.5&&0))continue;
-  if((e.stars||0)>z.stars*1.1+20)continue;const d=Math.hypot(e.x-z.x,e.y-z.y);if(d<bd&&d<900){bd=d;best=e}}
+  if((e.stars||0)>z.stars*1.1+20)continue;const old=Math.min(1,(e.age||0)/Math.max(1,lifeSpan(e))),d=Math.hypot(e.x-z.x,e.y-z.y)*(1+.6*old);if(d<bd&&d<900){bd=d;best=e}}/* молодое тело предпочтительнее старого: возраст — свойство носителя */
  return best}
 function mobSoulTick(dt){
  const s=arenaState;if(!s||!s.mobSouls||!s.mobSouls.length)return;
  for(let i=s.mobSouls.length-1;i>=0;i--){const z=s.mobSouls[i];z.t+=dt;
   if(z.t>25){s.mobSouls.splice(i,1);chron('Душа угасла, не найдя тела');continue}
-  let h=z.tgt!=null?s.enemies.find(q=>q.id===z.tgt&&q.hp>0&&!q.removed&&!(q.soulStage>0)):null;
+  const B=s.body&&!s.body.dead&&(s.soulOut||s.poss)&&z.wantBody&&Math.hypot(s.body.x-z.x,s.body.y-z.y)<800?s.body:null;
+  let h=B?B:z.tgt!=null?s.enemies.find(q=>q.id===z.tgt&&q.hp>0&&!q.removed&&!(q.soulStage>0)):null;
   if(!h){z.tgt=null;h=mobSoulHost(z);if(h)z.tgt=h.id}
   if(!h){z.x+=Math.cos(z.t)*30*dt;z.y+=Math.sin(z.t*1.3)*30*dt;continue}
   const dx=h.x-z.x,dy=h.y-z.y,d=Math.hypot(dx,dy)||1,sp=SOUL_SPD[Math.min(3,z.stage-1)]*60;
   if(d>26){z.x+=dx/d*sp*dt;z.y+=dy/d*sp*dt;z.hold=0}
   else{z.hold+=dt;if(z.hold>=3){
-   const ns=Math.max(1,z.stage-1),r=SOUL_MULT[ns]/SOUL_MULT[0];
+   if(h===s.body){h.dead=true;s.possCh=null;toast('Чужая душа захватила твоё оставленное тело! Вернуться в него нельзя.');burst(h.x,h.y,30,'#ff5a5a',300,.9,3);chron('Душа захватила тело, оставленное игроком');s.mobSouls.splice(i,1);continue}
+   const ns=Math.max(1,z.stage-1),r=SOUL_MULT[ns]/SOUL_MULT[0];h.techs=Array.from(new Set((h.techs||[]).concat(z.techs||[])));
    h.soulStage=ns;h.maxHp*=r;h.hp=Math.min(h.maxHp,h.hp*r+h.maxHp*.3);h.str*=r;if(h.maxQi!=null){h.maxQi*=r;h.qi=h.maxQi*.5}
    if(z.sect!=null)h.sect=z.sect;h.reborn=(h.reborn||0)+1;
    floatText(h.x,h.y-52,'✦ новое тело','#ffd23a',15);burst(h.x,h.y,26,'#ffd23a',240,.9,3);chron('Душа захватила новое тело ('+SOUL_NAMES[ns]+')');
@@ -266,15 +276,16 @@ function drawMobSouls(time){
 }
 
 /* ===== культивация захваченного тела: можно посмотреть и подтолкнуть (открыть технику, продвинуть этап за осколки игрока) ===== */
+function soulDiscK(){return Math.max(.5,1-.12*(soulStage()||0))}
 function vesselNext(e){
  /* следующий шаг тела — те же правила, что и у мобов (evolveTick); возвращает {tier,cost,label} или null */
  if(!e||e.isBoss)return null;const S=e.stars||0,C=e.columns||0;
- if(e.animal)return S<ANIMAL_CAP?{tier:1,cost:10+5*S,label:'звезда ★'+(S+1)}:null;
- if(e.core>0){const d=e.dens||0;return d<coreDensMax(e)?{tier:3,cost:densShardCost0(d),label:'уплотнение ядра '+(d+1)+'/'+CORE_DENS_MAX}:null}
- if(S<100)return{tier:1,cost:10+5*S,label:'звезда ★'+(S+1)};
- if(C>=coreAt(e)&&C>=CORE_MIN_PILLARS)return{tier:3,cost:CORE_SHARD_COST,label:'формирование ядра'};
+ if(e.animal)return S<ANIMAL_CAP?{tier:1,cost:Math.ceil((10+5*S)*soulDiscK()),label:'звезда ★'+(S+1)}:null;
+ if(e.core>0){const d=e.dens||0;return d<coreDensMax(e)?{tier:3,cost:Math.ceil(densShardCost0(d)*soulDiscK()),label:'уплотнение ядра '+(d+1)+'/'+CORE_DENS_MAX}:null}
+ if(S<100)return{tier:1,cost:Math.ceil((10+5*S)*soulDiscK()),label:'звезда ★'+(S+1)};
+ if(C>=coreAt(e)&&C>=CORE_MIN_PILLARS)return{tier:3,cost:Math.ceil(CORE_SHARD_COST*soulDiscK()),label:'формирование ядра'};
  if(C>=entMaxCols(e))return null;
- return C===0?{tier:1,cost:10000,label:'колонна 1'}:{tier:2,cost:COL_SH,label:'колонна '+(C+1)};
+ return C===0?{tier:1,cost:Math.ceil(10000*soulDiscK()),label:'колонна 1'}:{tier:2,cost:Math.ceil(COL_SH*soulDiscK()),label:'колонна '+(C+1)};
 }
 function vesselRecalc(){
  const s=arenaState,P=s&&s.poss;if(!P)return;const e=P.e,base=toughness(save.pillars,save.pillarCoef,myCore());
@@ -288,7 +299,7 @@ function renderVessel(){
  const cult=e.isBoss?'Зверь-босс':e.animal?('зверь ★'+(e.stars||0)):('★'+(e.stars||0)+(e.core>0?' · ядро, плотность '+(e.dens||0)+'/'+CORE_DENS_MAX:(e.columns?' · колонн: '+e.columns:'')));
  const techs=(e.techs||[]).map(t=>techniqueName(t)).join(', ')||'нет';
  const nx=vesselNext(e),can=!e.isBoss;
- let h='<p class="mline"><b>'+P.name+'</b></p><p class="mline sm">Культивация: <b>'+cult+'</b><br>Техники тела: '+techs+'<br>Ци души: <b>'+fmt(soulQiNow())+' / '+fmt(soulMaxQi())+'</b></p>';
+ let h='<p class="mline"><b>'+P.name+'</b></p><p class="mline sm">Культивация: <b>'+cult+'</b><br>Техники тела: '+techs+'<br>Ци души: <b>'+fmt(soulQiNow())+' / '+fmt(soulMaxQi())+'</b><br>Ёмкость тела по Ци: '+fmt(e.maxQi||0)+' · отдача за способность: <b>'+Math.round(possBacklashFrac(e)*100)+'%</b> здоровья тела<br>Скидка опыта души на развитие: '+Math.round((1-soulDiscK())*100)+'%</p>';
  h+='<div class="row"><button class="bigbtn secondary" '+((!can||!nx||shBalance(nx.tier)<nx.cost)?'disabled':'')+' onclick="vesselAdvance()">'+(nx?'Продвинуть: '+nx.label+' · '+fmt(nx.cost)+' ('+SH_NAME[nx.tier]+')':'Дальше продвинуть нельзя')+'</button></div>';
  const known=save.techniques.filter(t=>TECH_ZONES[t.type]&&!(e.techs||[]).includes(t.type)),cost=Math.round(soulMaxQi()*.1);
  if(can&&!e.animal)for(const t of known)h+='<div class="row"><button class="bigbtn secondary" '+(soulQiNow()-1<cost?'disabled':'')+' onclick="vesselTeach(\''+t.type+'\')">Открыть технику: '+techniqueName(t.type)+' · '+fmt(cost)+' Ци души</button></div>';
