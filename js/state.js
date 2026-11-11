@@ -1,5 +1,5 @@
 'use strict';
-const BUILD_VERSION='0.8.73';
+const BUILD_VERSION='0.8.74';
 const SAVE_KEY='wuxiaSave';
 const SAVE_SCHEMA='cultivation_arena_v2';
 const $=id=>document.getElementById(id);
@@ -18,7 +18,7 @@ try{
  save.rewards2??=0;save.pillarChanceQi??=0;save.pillarChanceExtra??=0;save.pillarQuality??=null;save.pillarCoef??=0;save.pillarQiBonus??=0;save.pillarStars??=0;
  if(save.pillarMult&&!save.pillarCoef){save.pillarCoef=save.pillarMult;delete save.pillarMult}
  if(save.pillars>0&&!save.pillarCoef){const q=pillarQualityFor(save.stars);save.pillarCoef=q.coef;save.pillarQiBonus=q.qi;save.pillarQuality=q.name;save.pillarStars=save.stars}
- save.rewards3??=0;save.rewards4??=0;save.divineAt??=0;save.divineGrant??=null;save.soulStage??=0;save.soulTrans??=0;save.transDeposit??=0;save.soulDeposit??=0;save.soulQi??=null;
+ save.rewards3??=0;save.rewards4??=0;save.divineAt??=0;save.divineGrant??=null;save.soulStage??=0;save.soulMem??=null;save.bodyLost??=false;save.soulTrans??=0;save.transDeposit??=0;save.soulDeposit??=0;save.soulQi??=null;
  /* ремонт: этап души не выше III; если запас Ци или здоровье испорчены (NaN при записи становится null), они восстанавливаются по формулам стадий */
  {const ok=v=>typeof v==='number'&&Number.isFinite(v);save.soulStage=Math.max(0,Math.min(4,Math.floor(Number(save.soulStage))||0));
   if(!ok(save.maxQi)||!ok(save.health)){const cc=ok(save.coreCoef)&&save.coreCoef>0?save.coreCoef*(1+.1*(save.coreDens||0)):1,sm=[1,1.3,1.6,2,2][save.soulStage],st=ok(save.stars)?save.stars:0;
@@ -51,7 +51,7 @@ function storeSave(){
  try{save.arenaCheckpoint=null;localStorage.setItem(SAVE_KEY,JSON.stringify(save));if(!storeWarned){storeWarned=true;try{toast('Память браузера заполнена: прогресс сохранён, а положение арены — нет.')}catch(_){}}return true}
  catch(e){return false}finally{save.arenaCheckpoint=cp}
 }
-function persist(){storeSave();try{localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);localStorage.setItem('wuxiaSaveSchema',SAVE_SCHEMA)}catch(e){}updateUI()}
+function persist(){try{if(typeof soulMemUpdate==='function')soulMemUpdate()}catch(e){}storeSave();try{localStorage.setItem('wuxiaBuildVersion',BUILD_VERSION);localStorage.setItem('wuxiaSaveSchema',SAVE_SCHEMA)}catch(e){}updateUI()}
 async function resetProgress(){if(!await confirmDialog('Обнулить весь прогресс? Это удалит культивацию, техники, осколки души и сохранённую арену.','Обнулить'))return;for(let i=localStorage.length-1;i>=0;i--){const k=localStorage.key(i);if(k&&(k===SAVE_KEY||k.startsWith('wuxiaSave_')))localStorage.removeItem(k)}save=freshSave();persist();show('home');toast('Прогресс полностью обнулён.');}
 /* ===== multiplayer-ready helpers (no network yet) ===== */
 let ENT_SEQ=1,cultOnline=false;

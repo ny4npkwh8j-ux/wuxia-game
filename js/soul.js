@@ -37,6 +37,7 @@ function renderSoul(){
  info+='<br><span class="mhint">Осколки души (4 этапа): <b>'+fmt(Math.floor(save.rewards4||0))+'</b></span>';
  $('soulInfo').innerHTML=info;
  if(typeof renderTrans==='function')renderTrans(done);
+ if(typeof renderSoulMem==='function')renderSoulMem();
  const box=$('soulForm');box.style.display=(done||capped)?'none':'block';if(done||capped)return;
  const need=soulQiCost(),left=soulShardsLeft();
  $('soulBarFill').style.width=(soulQiFraction()*100)+'%';
@@ -108,7 +109,7 @@ function soulDmgK(){const s=arenaState;if(!s||!hasSoul())return 1;if(s.poss)retu
 function soulHpFrac(s){return s.soulOut&&hasSoul()?soulQiNow()/Math.max(1,soulMaxQi()):s.hp/s.maxHp}
 /* душа вне тела владеет только Ударом Ци; остальные техники проявляются лишь в теле (своём или захваченном) */
 const SOUL_SPD=[2.5,3,3.5,4];
-function arenaTechs(){const s=arenaState;return s&&s.poss?s.poss.techs:s&&s.soulOut?(save.soulTrans?save.techniques:save.techniques.filter(t=>t.type==='qiSingle')):save.techniques}
+function arenaTechs(){const s=arenaState;return s&&s.poss?s.poss.techs:s&&s.soulOut?(save.soulTrans?save.techniques:save.techniques.filter(t=>t.type==='qiSingle')):save.bodyLost||save.starPts.length<1?save.techniques:save.techniques.filter(t=>typeof techOk!=='function'||techOk(t))}
 function soulHit(amount){
  const s=arenaState,st=soulStage();if(s.invuln>0)return;
  const loss=amount*SOUL_DMGRATE[st-1];save.soulQi=soulQiNow()-loss;s.possCh=null;
@@ -166,6 +167,7 @@ function soulPossRoll(e){
  s.poss={e,name:e.isBoss?beastOf(e).name:'культиватор ★'+(e.stars||0),k,tr,techs:possTechs(e)};
  e.vessel=true;e.foeId=-999;e.hostile=false;s.maxHp=e.maxHp;s.hp=e.hp;s.px=e.x;s.py=e.y;s.soulOut=false;s.invuln=.5;
  if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);
+ if(save.bodyLost&&typeof possMakeMain==='function'){possMakeMain(e);return}
  burst(s.px,s.py,30,'#ffd23a',300,.9,3.2);toast('Тело захвачено: '+s.poss.name+'. Используются его способности.');
 }
 function possEnd(reason){
@@ -183,6 +185,7 @@ function possEnd(reason){
 function soulTick(dt){
  const s=arenaState;if(!s||!hasSoul()){soulBtnTick();return}
  const st=soulStage(),mx=soulMaxQi();
+ if(save.bodyLost&&!s.soulOut&&!s.poss){s.body={x:s.px,y:s.py,hp:0,maxHp:s.maxHp,dead:true,hit:0,ang:s.facing||0};s.soulOut=true;s.hp=Math.max(1,s.maxHp)}
  if(!s.soulOut&&!s.poss)save.soulQi=Math.min(mx,soulQiNow()+mx*.05*dt);
  if(s.body){s.body.hit=Math.max(0,(s.body.hit||0)-dt)}
  if(s.soulOut){
