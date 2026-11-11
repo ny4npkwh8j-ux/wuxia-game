@@ -18,7 +18,7 @@ function soulBodyAdopt(n,e){
  for(let i=0;i<n&&i<mem.pts.length;i++)pts.push({x:mem.pts[i][0],y:mem.pts[i][1]});
  if(pts.length<n&&typeof formPts==='function'){const extra=formPts((e&&e.pseed)||7,n);for(let i=pts.length;i<n&&i<extra.length;i++)pts.push({x:extra[i][0],y:extra[i][1]})}
  const k=pts.length;soulStarStats(k-(save.stars||0));
- save.starPts=pts;save.meridianEdges=[];save.stars=k;save.meridians=0;save.qi=Math.min(save.qi,save.maxQi);
+ save.starPts=pts;const me=((e&&e.mer)||0)>0?mem.edges.filter(a=>a[0]<k&&a[1]<k).slice(0,e.mer).map(a=>[a[0],a[1]]):[];save.meridianEdges=me;save.stars=k;save.meridians=me.length;save.qi=Math.min(save.qi,save.maxQi);
 }
 /* достройка по памяти. dry=true — только расчёт (всё возвращается как было) */
 function soulMemRun(dry){
@@ -72,11 +72,14 @@ function possMakeMain(e){
  const n=Math.max(0,Math.floor(e.stars||0));
  const fr=soulFrac();soulBodyAdopt(n,e);
  e.vessel=false;e.removed=true;e.hp=0;e.foeId=null;if(typeof sectLeave==='function'&&e.sect!=null)try{sectLeave(e)}catch(x){}
- s.poss=null;s.body=null;s.soulOut=false;save.bodyLost=false;save.qi=Math.min(qiCap(),Math.round(qiCap()*fr));save.soulLent=0;save.soulQi=null;
+ s.poss=null;s.body=null;s.soulOut=false;save.bodyLost=false;soulRebuildOpen();save.qi=Math.min(qiCap(),Math.round(qiCap()*fr));save.soulLent=0;save.soulQi=null;
  s.maxHp=save.health;s.hp=s.maxHp;s.shield=0;s.invuln=1.5;s.px=e.x;s.py=e.y;
  persist();if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);
  burst(s.px,s.py,36,'#ffd23a',320,1,3.4);toast('Тело стало основным: '+save.stars+' ★. Память души поможет достроить образ.');chron('Игрок обрёл новое основное тело ('+save.stars+' ★)');
 }
 /* возрождение после гибели души без тела: пустое тело (0 звёзд) в тихом месте */
-function soulRespawnEmpty(){if(!save.bodyLost)return;soulBodyAdopt(0,null);save.bodyLost=false}
+function soulRespawnEmpty(){if(!save.bodyLost)return;soulBodyAdopt(0,null);save.bodyLost=false;soulRebuildOpen()}
+/* новое тело достраивается: ручная постановка звёзд открыта, пока не сформирована следующая колонна/ядро */
+function soulRebuildSig(){return (save.pillars||0)+'|'+(hasCore()?1:0)}
+function soulRebuildOpen(){save.rebuildSig=soulRebuildSig()}
 function techOk(t){return (t.nodes||[]).every(i=>i<save.starPts.length)}

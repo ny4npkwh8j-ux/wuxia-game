@@ -122,7 +122,7 @@ function mobAI(e,dt,d){
   if(tc.includes('stun')&&cd.stun<=0&&d<R.stun*.9&&!(s.stun>0)&&!(s.stunImm>0)&&e.qi>=cost('stun'))opts.push('stun');
   if(opts.length){
    const k=opts[Math.floor(Math.random()*opts.length)];
-   const dur=k==='single'?(boss&&e.tier!==2?.85:.65):k==='area'?(boss?.95:1.1):1.1;
+   const dur=Math.max(.3,(k==='single'?(boss&&e.tier!==2?.85:.65):k==='area'?(boss?.95:1.1):1.1)-.1*(e.mer||0));
    e.wind={type:k,t:0,dur,ang:e.ang,range:R[k]};
    e.qi-=cost(k==='single'?'qiSingle':k==='area'?'qiArea':'stun');
    cd.atk=boss?1.2+Math.random()*.9:2.2+Math.random()*1.6;
@@ -321,10 +321,19 @@ function entRebuild(e,stars,cols,note){
  if(note&&e.isBoss&&arenaState)toast('Босс '+e.index+' '+note);
  if(arenaState)burst(e.x,e.y,e.isBoss?30:14,'#ffd85b',260,.9,3);
 }
+/* меридианы мобов — часть прокачки: стоят 1/5 цены звезды, число не больше числа звёзд−1; как и у игрока, сокращают время замаха */
+function mobMerCap(e){return Math.max(0,Math.min(99,(e.stars||0)-1))}
+function mobMerTick(e,dt){
+ const cap=mobMerCap(e),m=e.mer||0;if(m>cap){e.mer=cap;return}if(m>=cap)return;/* потеря звёзд при неудаче колонны уносит и лишние меридианы */
+ e.merT=(e.merT||0)+dt;const S=e.stars||0,cost=Math.max(1,Math.ceil((10+5*S)/5*Math.max(.5,1-.12*(e.soulStage||0))));
+ if(entShBal(e,1)>=cost){entShPay(e,1,cost);e.merT=0;e.mer=m+1;return}
+ if(e.merT>=MOB_GROW_SEC*formK(e)*1.5){e.merT=0;e.mer=m+1}
+}
 function evolveTick(e,dt){
  if(!arenaState)return;
  e.growT=(e.growT||0)+dt;
  if(e.animal){if((e.stars||0)<ANIMAL_CAP&&e.growT>=MOB_GROW_SEC*1.6){e.growT=0;growMob(e)}return}/* животные: только звёзды, медленно */
+ if(!e.vessel)mobMerTick(e,dt);
  if(e.core>0){
   const d=e.dens||0;if(d>=coreDensMax(e))return;
   const cost=Math.ceil(densShardCost0(d)*Math.max(.5,1-.12*(e.soulStage||0)));

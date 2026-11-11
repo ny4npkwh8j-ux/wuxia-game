@@ -1,7 +1,7 @@
 'use strict';
 /* ===== ядро (3-й этап): создаётся из колонн, колонны при этом рассыпаются ===== */
 function hasCore(){return (save.coreCoef||0)>0}
-function starsLocked(){return save.pillars>=1||hasCore()}
+function starsLocked(){return (save.pillars>=1||hasCore())&&!(save.rebuildSig&&save.rebuildSig===(save.pillars||0)+'|'+(hasCore()?1:0))}
 function coreUnlocked(){return !hasCore()&&save.pillars>=CORE_MIN_PILLARS}
 function coreFoundRank(){return coreRankFor(coreScore(save.pillars,save.pillarCoef||1,save.stars,0))}
 function coreQiCost(){return Math.round(CORE_QI_COST*foundK(coreFoundRank()))}

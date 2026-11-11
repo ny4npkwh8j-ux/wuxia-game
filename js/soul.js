@@ -307,7 +307,7 @@ function vesselOpen(){const s=arenaState;if(!s||!s.poss)return;renderVessel();$(
 function vesselClose(){$('vesselModal').classList.remove('show')}
 function renderVessel(){
  const s=arenaState,P=s&&s.poss;if(!P){vesselClose();return}const e=P.e,box=$('vesselBody');
- const cult=e.isBoss?'Зверь-босс':e.animal?('зверь ★'+(e.stars||0)):('★'+(e.stars||0)+(e.core>0?' · ядро, плотность '+(e.dens||0)+'/'+CORE_DENS_MAX:(e.columns?' · колонн: '+e.columns:'')));
+ const cult=e.isBoss?'Зверь-босс':e.animal?('зверь ★'+(e.stars||0)):('★'+(e.stars||0)+(e.core>0?' · ядро, плотность '+(e.dens||0)+'/'+CORE_DENS_MAX:(e.columns?' · колонн: '+e.columns:''))+((e.mer||0)>0?' · меридианов: '+e.mer:''));
  const techs=(e.techs||[]).map(t=>techniqueName(t)).join(', ')||'нет';
  const nx=vesselNext(e),can=!e.isBoss,nq=nx?vesselQiCost(nx):0;
  let h='<p class="mline"><b>'+P.name+'</b></p><p class="mline sm">Культивация: <b>'+cult+'</b><br>Техники тела: '+techs+'<br>Ци души: <b>'+fmt(soulQiNow())+' / '+fmt(soulMaxQi())+'</b><br>Ёмкость тела по Ци: '+fmt(e.maxQi||0)+' · отдача за способность: <b>'+Math.round(possBacklashFrac(e)*100)+'%</b> здоровья тела<br>Скидка опыта души на развитие: '+Math.round((1-soulDiscK())*100)+'%</p>';
