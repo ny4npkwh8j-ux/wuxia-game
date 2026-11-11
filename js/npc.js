@@ -1,5 +1,5 @@
 'use strict';
-/* ===== NPC: мирные торговцы. Не атакуют и не получают урона; сейчас — обмен осколков 1 ↔ 2 этапа (100 : 1, комиссия 20%).
+/* ===== NPC: мирные торговцы. Не атакуют и не получают урона; обмен любых осколков (1–4 этапа), курс ×SHARD_RATE за этап, комиссия EXCH_FEE.
    Позже здесь же появятся артефакты и алхимия (поле goods). ===== */
 const NPCS=[{id:'trader',name:'Меняла',x:5000,y:5320,r:26,pal:'e3',goods:['exchange']}];
 const EXCH_RATE=SHARD_RATE,EXCH_FEE=.5,EXCH_STEPS=[1,10,100];
@@ -17,7 +17,26 @@ function drawNpcs(time){
 }
 function openNpc(){const n=npcNear();if(!n){openTrade();return}arenaMeditation.active&&interruptArenaMeditation();renderNpc();$('npcModal').classList.add('show')}
 function closeNpc(){$('npcModal').classList.remove('show')}
+/* обмен любых осколков (1–4 этапа): курс по лесенке ×SHARD_RATE за этап, комиссия EXCH_FEE — обмен всегда невыгоден.
+   n — количество СТАРШИХ осколков в сделке: вверх платишь ceil(n·R^d/(1−fee)) младших, вниз получаешь floor(n·R^d·(1−fee)). */
+const EXCH={from:1,to:2};
+function exchPrice(from,to,n){const d=Math.abs(to-from),u=Math.pow(EXCH_RATE,d);return to>from?Math.ceil(n*u/(1-EXCH_FEE)):Math.floor(n*u*(1-EXCH_FEE))}
+function exchDo(from,to,n){
+ const k=SH_KEY[from],have=Math.floor(save[k]||0);
+ if(to>from){const c=exchPrice(from,to,n);if(have<c)return;save[k]=have-c;save[SH_KEY[to]]=(save[SH_KEY[to]]||0)+n}
+ else{if(have<n)return;save[k]=have-n;save[SH_KEY[to]]=(save[SH_KEY[to]]||0)+exchPrice(from,to,n)}
+ persist();renderNpc();updateUI&&updateUI();
+}
 function renderExchange(el){
- for(const n of EXCH_STEPS){const c=exchCostShards1(n),b=document.createElement('button');b.className='bigbtn secondary';b.disabled=save.rewards<c;b.textContent='Отдать '+fmt(c)+' души → получить '+n+' 2 этапа';b.onclick=()=>{if(save.rewards<c)return;save.rewards-=c;save.rewards2+=n;persist();renderNpc()};el.appendChild(document.createElement('div')).className='row';el.lastChild.appendChild(b)}
- for(const n of EXCH_STEPS){const g=exchBackShards1(n),b=document.createElement('button');b.className='bigbtn secondary';b.disabled=save.rewards2<n;b.textContent='Отдать '+n+' 2 этапа → получить '+fmt(g)+' души';b.onclick=()=>{if(save.rewards2<n)return;save.rewards2-=n;save.rewards+=g;persist();renderNpc()};el.appendChild(document.createElement('div')).className='row';el.lastChild.appendChild(b)}
+ const rt=$('npcRate');if(rt)rt.textContent='Курс '+EXCH_RATE+' : 1 за этап · комиссия '+Math.round(EXCH_FEE*100)+'%';
+ const row=()=>{const r=document.createElement('div');r.className='row';r.style.flexWrap='wrap';el.appendChild(r);return r};
+ const pick=(label,key)=>{const r=row();const l=document.createElement('span');l.className='mhint';l.textContent=label+': ';r.appendChild(l);
+  for(let t=1;t<=4;t++){const b=document.createElement('button');b.className='bigbtn'+(EXCH[key]===t?'':' secondary');b.style.minWidth='0';b.style.flex='1';b.textContent=(t===1?'душа':t+' эт.')+' · '+fmt(Math.floor(save[SH_KEY[t]]||0));
+   b.onclick=()=>{EXCH[key]=t;if(EXCH.from===EXCH.to){const o=key==='from'?'to':'from';EXCH[o]=t%4+1}renderNpc()};r.appendChild(b)}};
+ pick('Отдать','from');pick('Получить','to');
+ const f=EXCH.from,t=EXCH.to;
+ for(const n of EXCH_STEPS){
+  const up=t>f,c=up?exchPrice(f,t,n):n,g=up?n:exchPrice(f,t,n),b=document.createElement('button');b.className='bigbtn secondary';
+  b.disabled=Math.floor(save[SH_KEY[f]]||0)<c||g<1;b.textContent='Отдать '+fmt(c)+' ('+(f===1?'душа':f+' эт.')+') → получить '+fmt(g)+' ('+(t===1?'душа':t+' эт.')+')';
+  b.onclick=()=>exchDo(f,t,n);row().appendChild(b)}
 }
