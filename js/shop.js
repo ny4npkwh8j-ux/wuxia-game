@@ -94,7 +94,7 @@ function pillPower(){const s=arenaState;return s&&s.buffPow>0?1.3:1}
 function pillTick(dt){
  const s=arenaState;if(!s)return;
  if(s.regenHp&&s.regenHp.t>0){const d=Math.min(dt,s.regenHp.t);s.hp=Math.min(s.maxHp,s.hp+s.regenHp.rate*d);s.regenHp.t-=dt;if(s.regenHp.t<=0)s.regenHp=null}
- if(s.regenQi&&s.regenQi.t>0){const d=Math.min(dt,s.regenQi.t);save.qi=Math.min(save.maxQi,save.qi+s.regenQi.rate*d);s.regenQi.t-=dt;if(s.regenQi.t<=0)s.regenQi=null}
+ if(s.regenQi&&s.regenQi.t>0){const d=Math.min(dt,s.regenQi.t);save.qi=Math.min(qiCap(),save.qi+s.regenQi.rate*d);s.regenQi.t-=dt;if(s.regenQi.t<=0)s.regenQi=null}
  if(s.buffPow>0)s.buffPow-=dt;if(s.buffGuard>0)s.buffGuard-=dt;
  const total=Object.values(gearSave().pills).reduce((a,b)=>a+b,0),btn=$('pillBtn');
  if(btn){const show=total>0;if(btn.__s!==show){btn.style.display=show?'flex':'none';btn.__s=show;if(!show)$('pillPop').style.display='none'}const t=String(total)+((s.buffPow>0||s.buffGuard>0||s.regenHp||s.regenQi)?'✦':'');if(btn.__t!==t){btn.__t=t;$('pillBtnTxt').textContent=t}}

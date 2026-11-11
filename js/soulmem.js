@@ -72,7 +72,7 @@ function possMakeMain(e){
  const n=Math.max(0,Math.floor(e.stars||0));
  const fr=soulFrac();soulBodyAdopt(n,e);
  e.vessel=false;e.removed=true;e.hp=0;e.foeId=null;if(typeof sectLeave==='function'&&e.sect!=null)try{sectLeave(e)}catch(x){}
- s.poss=null;s.body=null;s.soulOut=false;save.bodyLost=false;save.qi=Math.min(save.maxQi,Math.round(save.maxQi*fr));save.soulLent=0;save.soulQi=null;
+ s.poss=null;s.body=null;s.soulOut=false;save.bodyLost=false;save.qi=Math.min(qiCap(),Math.round(qiCap()*fr));save.soulLent=0;save.soulQi=null;
  s.maxHp=save.health;s.hp=s.maxHp;s.shield=0;s.invuln=1.5;s.px=e.x;s.py=e.y;
  persist();if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);
  burst(s.px,s.py,36,'#ffd23a',320,1,3.4);toast('Тело стало основным: '+save.stars+' ★. Память души поможет достроить образ.');chron('Игрок обрёл новое основное тело ('+save.stars+' ★)');

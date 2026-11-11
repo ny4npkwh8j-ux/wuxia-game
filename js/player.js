@@ -131,7 +131,7 @@ function drawGhost(g){
 }
 function drawPlayer(time){
  const s=arenaState,p=worldToScreen(s.px,s.py),o=SPR.player,dashing=s.dashTime>0,still=Math.hypot(s.dx,s.dy)<=.08,med=arenaMeditation.active&&still&&!dashing,ch=s.channel;
- const ang=s.aimT>0?s.shootAng:s.facing,col=PL.COL[sectOf(ang)],cq=s.qiCast>0?1-s.qiCast/QD:-1,qr=save.maxQi?save.qi/save.maxQi:0;
+ const ang=s.aimT>0?s.shootAng:s.facing,col=PL.COL[sectOf(ang)],cq=s.qiCast>0?1-s.qiCast/QD:-1,qr=qiCap()?save.qi/qiCap():0;
  const healing=!!s.heal,aura=healing?'#8dffb8':med?'#63e9ff':dashing?'#9fd8ff':qr>.7?'#55ddff':null;
  if(aura){ax.globalCompositeOperation='lighter';glow(ax,p.x,p.y+4,(healing?50:med?60:44)*(1+.08*Math.sin(time*5)),aura,healing?.7:med?.75:dashing?.6:.22);ax.globalCompositeOperation='source-over'}
  ax.fillStyle='rgba(0,0,0,.3)';ax.beginPath();ax.ellipse(p.x+1,p.y+PL.DY+5,19,7,0,0,TAU);ax.fill();

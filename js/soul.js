@@ -105,8 +105,10 @@ function soulMaxQi(){const st=soulStage();return st?Math.round(save.maxQi*SOUL_Q
 const SOUL_TAKE_ST=[.3,.5,.8,.9];/* доля общего резерва, которую душа уносит при выходе: ЗД I—30%, II—50%, III—80%, IV—90%, после трансформации — 100% */
 function soulTakeK(){return save.soulTrans?1:SOUL_TAKE_ST[Math.max(0,Math.min(3,soulStage()-1))]}
 /* общий резерв «душа+тело»: душа выходит с долей soulTakeK от своего объёма (в той же степени заполнения, что и тело), тело отдаёт ту же долю своей Ци */
-function soulTakeQi(){const mx=soulMaxQi(),p=Math.max(.02,Math.min(1,save.qi/Math.max(1,save.maxQi))),k=soulTakeK();return{soul:Math.max(1,Math.round(mx*p*k)),lent:save.qi*k}}
+function soulTakeQi(){const mx=soulMaxQi(),p=Math.max(.02,Math.min(1,save.qi/Math.max(1,qiCap()))),k=soulTakeK();return{soul:Math.max(1,Math.round(mx*p*k)),lent:save.qi*k}}
 function soulFrac(){return Math.max(0,Math.min(1,soulQiNow()/Math.max(1,soulMaxQi())))}
+/* потолок Ци тела: резерв души (если он выше), иначе прежний — «душа+тело» один общий объём */
+function qiCap(){const b=save.maxQi;if(hasSoul()){const m=soulMaxQi();return m>b?m:b}return b}
 function soulQiNow(){const m=soulMaxQi();if(typeof save.soulQi!=='number'||!Number.isFinite(save.soulQi))save.soulQi=m;save.soulQi=Math.max(0,Math.min(save.soulQi,m));return save.soulQi}
 /* потеря Ци души вне тела: слабеет с ростом ступени (I—100%, IV—10%), после трансформации прекращается */
 const SOUL_DRAIN_K=[1,.6,.3,.1];
@@ -144,13 +146,13 @@ function soulAct(){
  const s=arenaState;if(!s||!hasSoul())return;const st=soulStage();
  if(s.poss)return possEnd('leave');
  if(!s.soulOut){
-  if(save.qi<save.maxQi*.2)return toast('Ци тела слишком мало: душа не может забрать резерв и выйти.');
+  if(save.qi<qiCap()*.2)return toast('Ци тела слишком мало: душа не может забрать резерв и выйти.');
   s.body={x:s.px,y:s.py,hp:s.hp,maxHp:s.maxHp,dead:false,hit:0,ang:s.facing||0};s.soulOut=true;s.possCh=null;{const tk=soulTakeQi();save.soulQi=tk.soul;save.soulTook=tk.soul;save.soulLent=tk.lent;save.qi=Math.max(0,save.qi-tk.lent)}burst(s.px,s.py,24,'#ffd23a',260,.8,3);toast('Душа покинула тело и забрала часть резерва Ци. Тело осталось стоять на месте.');if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);return}
  s.possCh=null;const B=s.body;
  if(!B||B.dead)return toast('Тело уничтожено — вернуться некуда.');
  const d=Math.hypot(s.px-B.x,s.py-B.y);
  if(d>SOUL_RET[st-1])return toast('Тело слишком далеко для возвращения (нужно ближе '+SOUL_RET[st-1]+').');
- s.px=B.x;s.py=B.y;s.hp=B.hp;s.maxHp=B.maxHp;s.body=null;s.soulOut=false;save.qi=Math.min(save.maxQi,save.qi+(save.soulLent||0)*Math.min(1,soulQiNow()/Math.max(1,save.soulTook||1)));save.soulLent=0;save.soulTook=0;save.soulQi=null;burst(s.px,s.py,24,'#ffd23a',260,.8,3);toast('Душа вернулась в тело и вернула остаток Ци.');if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);
+ s.px=B.x;s.py=B.y;s.hp=B.hp;s.maxHp=B.maxHp;s.body=null;s.soulOut=false;save.qi=Math.min(qiCap(),save.qi+(save.soulLent||0)*Math.min(1,soulQiNow()/Math.max(1,save.soulTook||1)));save.soulLent=0;save.soulTook=0;save.soulQi=null;burst(s.px,s.py,24,'#ffd23a',260,.8,3);toast('Душа вернулась в тело и вернула остаток Ци.');if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);
 }
 function soulPossess(){
  const s=arenaState;if(!s||!s.soulOut||s.poss||s.possCh)return;const e=soulTarget();if(!e)return toast('Рядом нет цели для захвата.');
