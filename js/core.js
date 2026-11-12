@@ -108,11 +108,13 @@ function investCoreChance(){
  if(shBalance(3)<CORE_CHANCE_UNIT)return toast('Нужно '+CORE_CHANCE_UNIT+' осколков 3 этапа (ядра) или старших.');
  shPay(3,CORE_CHANCE_UNIT);save.coreChanceExtra=(save.coreChanceExtra||0)+CORE_CHANCE_UNIT;persist();renderCore();
 }
-function attemptCore(payFn){
- payFn();const chance=coreChance(),n=save.pillars,rk=coreRankFor(coreScore(n,save.pillarCoef||1,save.stars,Math.random()*.2-.1)),q=coreQualityFor(n,save.pillarCoef||1,rk);
+async function attemptCore(payFn){
+ payFn();const chance=coreChance(),n=save.pillars;
  save.coreDeposit=0;save.coreChanceExtra=0;
- closeCore();
- if(Math.random()*100<chance){
+ closeCore();persist();
+ const pz=typeof puzzleCore==='function'?await puzzleCore(n,chance,(save.pillarCoef||.3)-.3):{acc:Math.random()*100<chance?.8:0};
+ const luck=(pz.acc-.5)*.3,rk=coreRankFor(coreScore(n,save.pillarCoef||1,save.stars,luck)),q=coreQualityFor(n,save.pillarCoef||1,rk);/* качество зависит от пойманных осколков */
+ if(pz.acc>=.5){
   /* бонус Ци колонн сохраняется и умножается на ×1…×1.5 по качеству; ядро запас Ци не умножает, здоровье — умножает */
   {const sumB=(save.pillarBs&&save.pillarBs.length?save.pillarBs.reduce((a,b)=>a+b,0):n*(save.pillarQiBonus||0));save.maxQi=Math.round(Math.max(100,save.maxQi+sumB*(colQiMult(save.pillarCoef)-1)));save.coreQiV=2}
   save.pityC=0;save.coreCols=n;save.health*=q.coef;

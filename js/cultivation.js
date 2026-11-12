@@ -66,8 +66,11 @@ async function attemptPillar(cost,payFn,poured,lowQi){
  payFn();pillarsEnsure();
  const chance=Math.min(100,(lowQi?Math.min(90,10*Math.floor(Math.max(0,save.pillarChanceExtra||0)/10000)):pillarChance(save.pillarChanceExtra))+10*(save.pity||0)),wasFirst=save.pillars===0;
  const bq=colQualityFromQi(poured==null?pillarCost(1):poured,pillarQualityFor(save.stars));
- save.pillarChanceExtra=0;save.pillarQi=0;save.pillarChanceQi=0;
- if(Math.random()*100<chance){
+ save.pillarChanceExtra=0;save.pillarQi=0;save.pillarChanceQi=0;persist();
+ const prevN=wasFirst?pillarQualityFor(save.stars).coef-.3:(save.pillarCoef||.3)-.3;
+ const pz=typeof puzzleColumn==='function'?await puzzleColumn(chance,prevN):{acc:Math.random()*100<chance?.8:0};
+ if(pz.acc>=.4){
+  const fq=.6+.4*pz.acc;bq.coef=Math.max(.3,bq.coef*fq);bq.qi=Math.round(bq.qi*fq);/* качество зависит от дефектов сборки */
   save.pity=0;
   if(wasFirst){
    save.pillarQs=[bq.coef];save.pillarBs=[bq.qi];pillarsRecalc();save.pillarStars=save.stars;placingStar=false;$('cultHint').classList.remove('show');
