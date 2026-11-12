@@ -135,8 +135,9 @@ function dodgeCost(maxQi){return Math.ceil(Math.min(.05*maxQi,Math.max(400,.03*m
 function techCost(t){if(t.type==='dodge')return dodgeCost(save.maxQi);if(t.type==='qiShield')return 0;return Math.ceil((TECH_COST[t.type]+.3*save.stars)*myQiVol())}
 function castTime(base){return Math.max(.3,base-.1*(save.meridians||0))}
 function starRegen(){return .5*Math.max(0,save.stars)/100}/* восстановление Ци от звёзд растёт и после 100 */
-function spendStarCost(cost){const useQi=Math.min(Math.floor(save.qi),cost);save.qi-=useQi;const rest=cost-useQi;if(rest>0)save.rewards-=rest;return rest}
-function canAfford(cost){return Math.floor(save.qi)+Math.floor(save.rewards)>=cost}
+/* звёзды и меридианы: сперва Ци, остаток — осколками; старшие осколки платят за младшие (shPay берёт и 2/3/4 этапа с «сдачей») */
+function spendStarCost(cost){const useQi=Math.min(Math.floor(save.qi),cost);save.qi-=useQi;const rest=cost-useQi;if(rest>0)shPay(1,rest);return rest}
+function canAfford(cost){return Math.floor(save.qi)+shBalance(1)>=cost}
 
 /* скидка за качество фундамента (документ «Путь Небесного Дракона», §10): ранг 1–5 → 0/10/20/35/50%. Не суммируется по этапам: берётся один множитель от качества фундамента.
    Ядро — по прогнозируемому рангу (звёзды+колонны), уплотнение/душа/трансформация — по рангу готового ядра. */

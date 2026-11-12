@@ -23,7 +23,7 @@ function soulBodyAdopt(n,e){
 /* достройка по памяти. dry=true — только расчёт (всё возвращается как было) */
 function soulMemRun(dry,src,disc,tol){
  const m=src||save.soulMem;if(!m)return{stars:0,meridians:0,missStars:0,missEdges:0};
- const bk=dry?JSON.parse(JSON.stringify({starPts:save.starPts,meridianEdges:save.meridianEdges,stars:save.stars,meridians:save.meridians,qi:save.qi,rewards:save.rewards,maxQi:save.maxQi,dantian:save.dantian,str:save.str,spd:save.spd,health:save.health})):null;
+ const bk=dry?JSON.parse(JSON.stringify({starPts:save.starPts,meridianEdges:save.meridianEdges,stars:save.stars,meridians:save.meridians,qi:save.qi,rewards:save.rewards,rewards2:save.rewards2,rewards3:save.rewards3,rewards4:save.rewards4,maxQi:save.maxQi,dantian:save.dantian,str:save.str,spd:save.spd,health:save.health})):null;
  const near=(p,q)=>Math.hypot((p.x-q[0])*210,(p.y-q[1])*520)<(tol||2),dk=1-(disc||0);
  let addS=0,addE=0,stop=false;
  const idx=new Array(m.pts.length).fill(-1);

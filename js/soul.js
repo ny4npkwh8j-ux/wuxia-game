@@ -100,7 +100,8 @@ function soulAdvance(payFn,refundFn){
    Захват: удержание рядом с целью 2 с, шанс по Ци души против Ци цели. Захваченное тело выглядит как оно само, используются только его способности, запас Ци общий.
    Без ограничения по времени: душа выходит кнопкой (или когда тело убито) и остаётся на месте, где вышла; захваченное тело остаётся в мире. */
 const SOUL_QMAX=[.5,1,2,3],SOUL_DMGRATE=[3,1,.1,.05],SOUL_OUTK=[.3,.55,.8,.9],SOUL_RET=[300,900,3000,6000],SOUL_LEASH=[900,2000,4500,7000],SOUL_CH=2,SOUL_RANGE=170;
-function soulMaxQi(){const st=soulStage();return st?Math.round(save.maxQi*SOUL_QMAX[st-1]):0}
+/* трансформация души удваивает объём Ци души (а вместе с ним и общий резерв) */
+function soulMaxQi(){const st=soulStage();return st?Math.round(save.maxQi*SOUL_QMAX[st-1]*(save.soulTrans?2:1)):0}
 /* общий запас Ци: при выходе душа забирает часть резерва тела (SOUL_TAKE), при возвращении отдаёт остаток */
 const SOUL_TAKE_ST=[.3,.5,.8,.9];/* доля общего резерва, которую душа уносит при выходе: ЗД I—30%, II—50%, III—80%, IV—90%, после трансформации — 100% */
 function soulTakeK(){return save.soulTrans?1:SOUL_TAKE_ST[Math.max(0,Math.min(3,soulStage()-1))]}
@@ -314,6 +315,7 @@ function renderVessel(){
  h+='<div class="row"><button class="bigbtn secondary" '+((!can||!nx||shBalance(nx.tier)<nx.cost)?'disabled':'')+' onclick="vesselAdvance()">'+(nx?'Продвинуть: '+nx.label+' · '+fmt(nx.cost)+' ('+SH_NAME[nx.tier]+')':'Дальше продвинуть нельзя')+'</button></div>';
  if(nx)h+='<div class="row"><button class="bigbtn secondary" '+((!can||qiHave()<nq)?'disabled':'')+' onclick="vesselAdvance(true)">Продвинуть за Ци: '+nx.label+' · '+fmt(nq)+' Ци</button></div>';
  const known=save.techniques.filter(t=>TECH_ZONES[t.type]&&!(e.techs||[]).includes(t.type)),cost=Math.round(soulMaxQi()*.1);
+ {const cps=(e.techs||[]).filter(t=>TECH_ZONES[t]&&!save.techniques.some(x=>x.type===t)),ccost=Math.round(soulMaxQi()*.03);for(const t of cps)h+='<div class="row"><button class="bigbtn secondary" '+(soulQiNow()-1<ccost?'disabled':'')+' onclick="vesselCopy(\''+t+'\')">Скопировать технику: '+techniqueName(t)+' · '+fmt(ccost)+' Ци души</button></div>'}
  if(can&&!e.animal)for(const t of known)h+='<div class="row"><button class="bigbtn secondary" '+(soulQiNow()-1<cost?'disabled':'')+' onclick="vesselTeach(\''+t.type+'\')">Открыть технику: '+techniqueName(t.type)+' · '+fmt(cost)+' Ци души</button></div>';
  {const ci=vesselChanceInfo(e,nx);if(ci){const q=Math.ceil(ci.cost*Math.pow(SHARD_RATE,ci.tier-1));h+='<p class="mline sm">Шанс прорыва: <b>'+ci.cur+'%</b></p><div class="row"><button class="bigbtn secondary" '+((ci.cur>=ci.max||shBalance(ci.tier)<ci.cost)?'disabled':'')+' onclick="vesselChance(false)">Шанс +10% · '+fmt(ci.cost)+' ('+SH_NAME[ci.tier]+')</button></div><div class="row"><button class="bigbtn secondary" '+((ci.cur>=ci.max||qiHave()<q)?'disabled':'')+' onclick="vesselChance(true)">Шанс +10% · '+fmt(q)+' Ци</button></div>'}}
  box.innerHTML=h;
@@ -341,6 +343,17 @@ function vesselAdvance(byQi){
  evolveTick(e,0);e.growT=0;
  if((e.stars||0)===st0&&(e.columns||0)===c0&&(e.core||0)===k0&&(e.dens||0)===d0)toast('Прорыв не удался: осколки потрачены.');else toast('Тело продвинуто: '+nx.label+'.');
  P.techs=possTechs(e);vesselRecalc();if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);persist();renderVessel();
+}
+/* копирование техники захваченного тела: душа читает «информацию» и записывает её себе — открывается описание, и если из звёзд тела можно собрать маршрут, техника создаётся сразу */
+function vesselCopy(type){
+ const s=arenaState,P=s&&s.poss;if(!P)return;const e=P.e,cost=Math.round(soulMaxQi()*.03);
+ if(!(e.techs||[]).includes(type)||save.techniques.some(x=>x.type===type)||soulQiNow()-1<cost)return;
+ save.soulQi=Math.max(1,soulQiNow()-cost);
+ const sid=Object.keys(SCROLLS).find(k=>SCROLLS[k].type===type);if(sid)grantScroll(sid);
+ let msg='Описание техники «'+techniqueName(type)+'» скопировано.';
+ if(findBestChain(type)){const r=autoFormTechnique(type);msg='Техника «'+techniqueName(type)+'» скопирована и создана ('+r.n+' звёзд).'}
+ else msg+=' Из звёзд твоего тела маршрут пока не собрать — добавь звёзды или меридианы.';
+ if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);persist();toast(msg);renderVessel();
 }
 function vesselTeach(type){
  const s=arenaState,P=s&&s.poss;if(!P||P.e.isBoss||P.e.animal)return;const e=P.e,cost=Math.round(soulMaxQi()*.1);

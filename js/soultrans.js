@@ -35,7 +35,7 @@ async function transStart(mode){
  else{shPay(4,left);const dep=save.transDeposit||0;save.transDeposit=0;refund=()=>{save.rewards4=(save.rewards4||0)+Math.floor(left/2)}}
  persist();closeSoul();
  transRun(transDiff(),ok=>{
-  if(ok){save.soulTrans=1;persist();updateUI();playStageAnimation({kind:'dens',d0:5,success:true,title:'ТРАНСФОРМАЦИЯ ДУШИ',text:'Душа обрела самостоятельность: вне тела она владеет всеми техниками, бьёт в полную силу и переживает гибель тела.'})}
+  if(ok){save.soulTrans=1;persist();updateUI();playStageAnimation({kind:'dens',d0:5,success:true,title:'ТРАНСФОРМАЦИЯ ДУШИ',text:'Душа обрела самостоятельность, объём её Ци удвоен: вне тела она владеет всеми техниками, бьёт в полную силу и переживает гибель тела.'})}
   else{refund();save.soulCool=Date.now()+120000;persist();updateUI();playStageAnimation({kind:'core',success:false,title:'Испытание не пройдено',text:'Половина вложенного потеряна. Душа восстанавливается 2 минуты.',onClose:()=>{}})}
  });
 }
