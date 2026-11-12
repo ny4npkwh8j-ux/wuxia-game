@@ -20,9 +20,12 @@ function scrLattice(){
  /* «скелет»: сначала звёзды вдоль позвоночника, ног и рук — так даже малое Писание охватывает всё тело */
  const seg=[[0,-.46,0,.1],[-.08,.1,-.09,.48],[.08,.1,.09,.48],[-.18,-.26,-.42,.13],[.18,-.26,.42,.13]];
  const dist=p=>Math.min(...seg.map(s=>{const ax=s[0]*210,ay=s[1]*520,bx=s[2]*210,by=s[3]*520,px=p[0]*210,py=p[1]*520,vx=bx-ax,vy=by-ay,t=Math.max(0,Math.min(1,((px-ax)*vx+(py-ay)*vy)/(vx*vx+vy*vy)));return Math.hypot(px-ax-vx*t,py-ay-vy*t)}));
- pts.forEach(p=>p.push(dist(p)));
- pts.sort((a,b)=>a[2]-b[2]||Math.abs(a[1]-DANTIAN_Y)-Math.abs(b[1]-DANTIAN_Y)||a[0]-b[0]);
- _scrLat=pts.map(p=>[p[0],p[1]]);return _scrLat;
+ /* поперечные «перекладины» (плечи, грудь вместе с предплечьями, таз) — для горизонтальных линий: стен, волн, широких форм; идут после основного скелета */
+ const bars=[[-.2,-.27,.2,-.27],[-.42,-.12,.42,-.12],[-.18,.07,.18,.07]];
+ const dist2=p=>Math.min(...bars.map(s=>{const ax=s[0]*210,ay=s[1]*520,bx=s[2]*210,by=s[3]*520,px=p[0]*210,py=p[1]*520,vx=bx-ax,vy=by-ay,t=Math.max(0,Math.min(1,((px-ax)*vx+(py-ay)*vy)/(vx*vx+vy*vy)));return Math.hypot(px-ax-vx*t,py-ay-vy*t)}));
+ pts.forEach(p=>{const d1=dist(p),d2=dist2(p);p.push(d1<=4.5?0:d2<=4.5?1:2,d1)});
+ pts.sort((a,b)=>a[2]-b[2]||a[3]-b[3]||Math.abs(a[1]-DANTIAN_Y)-Math.abs(b[1]-DANTIAN_Y)||a[0]-b[0]);
+ window._scrG=[pts.filter(p=>p[2]===0).length,pts.filter(p=>p[2]===1).length];_scrLat=pts.map(p=>[p[0],p[1]]);return _scrLat;
 }
 const _scrPat={};
 function scrHash(i,j){return (((i*73856093)^(j*19349663))>>>0)%1000/1000}
