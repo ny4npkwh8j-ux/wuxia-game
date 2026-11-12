@@ -19,10 +19,10 @@ function renderNpc(){
  $('npcBal').textContent='Осколки души: '+fmt(save.rewards)+' · Осколки 2 этапа: '+fmt(save.rewards2)+(save.rewards3>0?' · 3 этапа: '+fmt(save.rewards3):'')+(save.rewards4>0?' · 4 этапа: '+fmt(save.rewards4):'');
  const el=$('npcList');el.innerHTML='';
  const tabs=document.createElement('div');tabs.className='row';tabs.style.cssText='display:flex;gap:6px;flex-wrap:wrap';
- for(const [id,t] of [['exch','Обмен'],['tech','Техники'],['gear','Снаряжение'],['pill','Пилюли']]){const b=document.createElement('button');b.className='bigbtn'+(npcTab===id?'':' secondary');b.style.cssText='flex:1;min-width:80px;padding:9px 6px';b.textContent=t;b.onclick=()=>{npcTab=id;renderNpc()};tabs.appendChild(b)}
+ for(const [id,t] of [['exch','Обмен'],['tech','Техники'],['gear','Снаряжение'],['pill','Пилюли'],['scr','Писания']]){const b=document.createElement('button');b.className='bigbtn'+(npcTab===id?'':' secondary');b.style.cssText='flex:1;min-width:80px;padding:9px 6px';b.textContent=t;b.onclick=()=>{npcTab=id;renderNpc()};tabs.appendChild(b)}
  el.appendChild(tabs);
  const box=document.createElement('div');el.appendChild(box);
- if(npcTab==='exch')renderExchange(box);else if(npcTab==='tech')renderShopTech(box);else if(npcTab==='gear')renderShopGear(box);else renderShopPills(box);
+ if(npcTab==='exch')renderExchange(box);else if(npcTab==='tech')renderShopTech(box);else if(npcTab==='gear')renderShopGear(box);else if(npcTab==='scr')renderShopScr(box);else renderShopPills(box);
 }
 function shopCard(box,title,tag,desc,btns){
  const d=document.createElement('div');d.className='scrollcard';d.innerHTML='<div class="sc-head"><b>'+title+'</b><span class="sc-tag">'+tag+'</span></div>'+(desc?'<p>'+desc+'</p>':'');

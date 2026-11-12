@@ -43,6 +43,7 @@ function renderInv(){
  sect('Оружие (одно за раз)','weapon');sect('Броня','armor');
  const h=document.createElement('h4');h.textContent='Артефакты';el.appendChild(h);
  const p=document.createElement('p');p.className='sc-empty';p.textContent='Артефактов с Ци пока нет — их придумаем позже.';el.appendChild(p);
+ if(typeof renderInvScr==='function')renderInvScr(el);
  if(typeof renderInvPills==='function')renderInvPills(el);
 }
 (function(){const m=document.createElement('div');m.id='invModal';m.className='modal';m.innerHTML='<div class="sheet"><h3>🎒 Инвентарь</h3><div id="invBody"></div><div class="row"><button class="bigbtn" onclick="closeInv()">Закрыть</button></div></div>';document.body.appendChild(m)})();

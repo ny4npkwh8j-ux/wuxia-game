@@ -325,9 +325,9 @@ function entRebuild(e,stars,cols,note){
 function mobMerCap(e){return Math.max(0,Math.min(99,(e.stars||0)-1))}
 function mobMerTick(e,dt){
  const cap=mobMerCap(e),m=e.mer||0;if(m>cap){e.mer=cap;return}if(m>=cap)return;/* потеря звёзд при неудаче колонны уносит и лишние меридианы */
- e.merT=(e.merT||0)+dt;const S=e.stars||0,cost=Math.max(1,Math.ceil((10+5*S)/5*Math.max(.5,1-.12*(e.soulStage||0))));
+ e.merT=(e.merT||0)+dt;const S=e.stars||0,sd=1-(typeof scrMobDisc==='function'?scrMobDisc(e):0),cost=Math.max(1,Math.ceil((10+5*S)/5*Math.max(.5,1-.12*(e.soulStage||0))*sd));
  if(entShBal(e,1)>=cost){entShPay(e,1,cost);e.merT=0;e.mer=m+1;return}
- if(e.merT>=MOB_GROW_SEC*formK(e)*1.5){e.merT=0;e.mer=m+1}
+ if(e.merT>=MOB_GROW_SEC*formK(e)*1.5*sd){e.merT=0;e.mer=m+1}
 }
 function evolveTick(e,dt){
  if(!arenaState)return;
@@ -346,9 +346,9 @@ function evolveTick(e,dt){
  const S=e.stars||0,C=e.columns||0;
  if(S<100){
   const cap=100;if(S>=cap)return;
-  const cost=Math.ceil((10+5*S)*Math.max(.5,1-.12*(e.soulStage||0)));
+  const sd=1-(typeof scrMobDisc==='function'?scrMobDisc(e):0),cost=Math.ceil((10+5*S)*Math.max(.5,1-.12*(e.soulStage||0))*sd);/* Писание удешевляет звёзды */
   if((e.sh1||0)>=cost){e.sh1-=cost;e.growT=0;growMob(e);return}
-  if(e.growT>=MOB_GROW_SEC*formK(e)){e.growT=0;growMob(e)}
+  if(e.growT>=MOB_GROW_SEC*formK(e)*sd){e.growT=0;growMob(e)}
   return;
  }
  const max=entMaxCols(e);

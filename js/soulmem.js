@@ -21,15 +21,15 @@ function soulBodyAdopt(n,e){
  save.starPts=pts;const me=((e&&e.mer)||0)>0?mem.edges.filter(a=>a[0]<k&&a[1]<k).slice(0,e.mer).map(a=>[a[0],a[1]]):[];save.meridianEdges=me;save.stars=k;save.meridians=me.length;save.qi=Math.min(save.qi,save.maxQi);
 }
 /* достройка по памяти. dry=true — только расчёт (всё возвращается как было) */
-function soulMemRun(dry){
- const m=save.soulMem;if(!m)return{stars:0,meridians:0,missStars:0,missEdges:0};
+function soulMemRun(dry,src,disc,tol){
+ const m=src||save.soulMem;if(!m)return{stars:0,meridians:0,missStars:0,missEdges:0};
  const bk=dry?JSON.parse(JSON.stringify({starPts:save.starPts,meridianEdges:save.meridianEdges,stars:save.stars,meridians:save.meridians,qi:save.qi,rewards:save.rewards,maxQi:save.maxQi,dantian:save.dantian,str:save.str,spd:save.spd,health:save.health})):null;
- const near=(p,q)=>Math.hypot((p.x-q[0])*210,(p.y-q[1])*520)<2;
+ const near=(p,q)=>Math.hypot((p.x-q[0])*210,(p.y-q[1])*520)<(tol||2),dk=1-(disc||0);
  let addS=0,addE=0,stop=false;
  const idx=new Array(m.pts.length).fill(-1);
  m.pts.forEach((q,i)=>{const j=save.starPts.findIndex(p=>near(p,q));if(j>=0)idx[i]=j});
  for(let i=0;i<m.pts.length&&!stop;i++){
-  if(idx[i]>=0)continue;const p={x:m.pts[i][0],y:m.pts[i][1]},cost=starCostAt(p);
+  if(idx[i]>=0)continue;const p={x:m.pts[i][0],y:m.pts[i][1]},cost=Math.max(1,Math.ceil(starCostAt(p)*dk));
   if(!canAfford(cost)){stop=true;break}
   spendStarCost(cost);save.stars++;soulStarStats(1);save.starPts.push(p);idx[i]=save.starPts.length-1;addS++;
  }
@@ -37,7 +37,7 @@ function soulMemRun(dry){
   const x=idx[a],y=idx[b];if(x==null||y==null||x<0||y<0)continue;
   if(save.meridianEdges.some(e=>(e[0]===x&&e[1]===y)||(e[0]===y&&e[1]===x)))continue;
   const p=save.starPts[x],q=save.starPts[y];if(typeof segmentInsideBody==='function'&&!segmentInsideBody(p,q))continue;
-  const cost=meridianCost();if(!canAfford(cost))break;
+  const cost=Math.max(1,Math.ceil(meridianCost()*dk));if(!canAfford(cost))break;
   spendStarCost(cost);save.meridianEdges.push([x,y]);save.meridians++;addE++;
  }
  const missS=idx.filter(v=>v<0).length,missE=m.edges.filter(([a,b])=>idx[a]<0||idx[b]<0||!save.meridianEdges.some(e=>(e[0]===idx[a]&&e[1]===idx[b])||(e[0]===idx[b]&&e[1]===idx[a]))).length;
