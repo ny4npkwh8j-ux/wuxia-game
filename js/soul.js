@@ -315,7 +315,21 @@ function renderVessel(){
  if(nx)h+='<div class="row"><button class="bigbtn secondary" '+((!can||qiHave()<nq)?'disabled':'')+' onclick="vesselAdvance(true)">Продвинуть за Ци: '+nx.label+' · '+fmt(nq)+' Ци</button></div>';
  const known=save.techniques.filter(t=>TECH_ZONES[t.type]&&!(e.techs||[]).includes(t.type)),cost=Math.round(soulMaxQi()*.1);
  if(can&&!e.animal)for(const t of known)h+='<div class="row"><button class="bigbtn secondary" '+(soulQiNow()-1<cost?'disabled':'')+' onclick="vesselTeach(\''+t.type+'\')">Открыть технику: '+techniqueName(t.type)+' · '+fmt(cost)+' Ци души</button></div>';
+ {const ci=vesselChanceInfo(e,nx);if(ci){const q=Math.ceil(ci.cost*Math.pow(SHARD_RATE,ci.tier-1));h+='<p class="mline sm">Шанс прорыва: <b>'+ci.cur+'%</b></p><div class="row"><button class="bigbtn secondary" '+((ci.cur>=ci.max||shBalance(ci.tier)<ci.cost)?'disabled':'')+' onclick="vesselChance(false)">Шанс +10% · '+fmt(ci.cost)+' ('+SH_NAME[ci.tier]+')</button></div><div class="row"><button class="bigbtn secondary" '+((ci.cur>=ci.max||qiHave()<q)?'disabled':'')+' onclick="vesselChance(true)">Шанс +10% · '+fmt(q)+' Ци</button></div>'}}
  box.innerHTML=h;
+}
+/* шанс прорыва тела: каждый шаг +10% за осколки (или Ци), цена растёт с номером шага; сбрасывается после успешного прорыва */
+function vesselChanceInfo(e,nx){
+ if(!nx||e.isBoss||e.animal)return null;const C=e.columns||0,step=Math.floor((e.chX||0)/10)+1;
+ if(nx.label.indexOf('колонна')===0){const base=Math.min(95,pillarChance(0)+10*(e.pity||0)),cost=Math.ceil((C===0?100:COL_SH/10)*step*soulDiscK()),tier=C===0?1:2;return{cur:Math.min(95,base+(e.chX||0)),cost,tier,max:95}}
+ if(nx.label==='формирование ядра'){const base=coreChanceFor(C,0,entTal(e))+10*(e.cpity||0),cost=Math.ceil(CORE_CHANCE_UNIT*step*soulDiscK()),tier=3;return{cur:Math.min(100,base+(e.chX||0)),cost,tier,max:100}}
+ return null;
+}
+function vesselChance(byQi){
+ const s=arenaState,P=s&&s.poss;if(!P||P.e.isBoss)return;const e=P.e,nx=vesselNext(e),ci=vesselChanceInfo(e,nx);if(!ci||ci.cur>=ci.max)return;
+ if(byQi){const q=Math.ceil(ci.cost*Math.pow(SHARD_RATE,ci.tier-1));if(qiHave()<q)return;save.soulQi=Math.max(1,soulQiNow()-q)}
+ else{if(shBalance(ci.tier)<ci.cost)return;shPay(ci.tier,ci.cost)}
+ e.chX=(e.chX||0)+10;toast('Шанс прорыва тела: '+Math.min(ci.max,ci.cur+10)+'%.');persist();renderVessel();
 }
 function vesselQiCost(nx){return Math.ceil(nx.cost*Math.pow(SHARD_RATE,nx.tier-1))}/* 1 осколок 1 этапа = 1 Ци, дальше ×SHARD_RATE */
 function vesselAdvance(byQi){

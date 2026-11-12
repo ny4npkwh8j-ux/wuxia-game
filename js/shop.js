@@ -42,6 +42,20 @@ function renderShopTech(box){
    rebuildTechButtons(true);persist();renderNpc()}]);
   shopCard(box,'📜 '+(own||made?sc.name:'Техника «'+sc.name+'»'),made?'создана':own?'описание есть':'не изучена','',btns);
  }
+ renderShopTechBasic(box);
+}
+/* базовые техники без свитка (строятся по расположению звёзд): продаются готовыми за осколки 2 этапа */
+const SHOP_TECH_BASIC=[{id:'qiSingle',a:5},{id:'dodge',a:8},{id:'shield',a:8},{id:'qiArea',a:10},{id:'heal',a:12}];
+function renderShopTechBasic(box){
+ const h=document.createElement('h4');h.textContent='Основные техники';box.appendChild(h);
+ for(const it of SHOP_TECH_BASIC){
+  const nm=techniqueName(it.id),made=save.techniques.some(t=>t.type===it.id);
+  shopCard(box,'📜 '+nm,made?'создана':'не создана','',[[(made?'Улучшить маршрут · ':'Готовая техника · ')+costText(2,it.a),canPay(2,it.a),()=>{
+   if(!findBestChain(it.id))return toast('Из твоих звёзд и меридиан пока нельзя собрать «'+nm+'». Добавь звёзд или меридианов.');
+   if(!shopPay(2,it.a))return;const r=autoFormTechnique(it.id);
+   toast(r.mode==='new'?'Техника «'+nm+'» установлена ('+r.n+' звёзд).':r.mode==='upgraded'?'Маршрут улучшен до '+r.n+' звёзд.':'Маршрут уже лучший ('+r.n+' звёзд) — осколки потрачены зря.');
+   rebuildTechButtons(true);persist();renderNpc()}]]);
+ }
 }
 function renderShopGear(box){
  for(const id in GEAR){const it=GEAR[id],k=it.tier===1?1:2,has=gearOwned(id);
