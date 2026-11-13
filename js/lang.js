@@ -50,7 +50,7 @@ function techPhrase(nodes){
  else if(Math.abs(dy)<Math.abs(dx)*.5)shape='slash';
  else shape='cone';
  if(n<2)shape='point';
- const type=typeof getTechniqueType==='function'?getTechniqueType(nodes):'unknown';
+ const type=typeof getTechniqueType==='function'?getTechniqueType(nodes,true):'unknown';
  let verb=LANG_VERB[type]||null,known=!!verb;
  if(!verb)verb=shape==='wall'?'Заслонить':shape==='ring'?'Охватить':shape==='sphere'?'Заслонить (сфера)':shape==='orbit'?'Закрутить':'Выпустить';
  const clamp=v=>Math.max(0,Math.min(1,v)),dirName=Math.abs(dy)>=Math.abs(dx)?(dy<0?'вперёд':'назад'):(dx>0?'вправо':'влево');

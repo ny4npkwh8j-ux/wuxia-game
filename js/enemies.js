@@ -143,7 +143,7 @@ function entFire(e,w){
  if(w.type==='stun'){
   s.qiEffects.push({type:'stun',x:e.x,y:e.y,life:0,duration:.95,radius:w.range,hostile:true});shake(8);
   /* оцепенение игрока: те же формулы силы, что и при оцепенении врагов; рывок (неуязвимость) спасает */
-  if(Math.hypot(s.px-e.x,s.py-e.y)<=w.range&&s.invuln<=0){takeDamage(10);stunPlayer(stunMaxDur(PATH_CAP)*M/(M+playerRefMult()))}
+  if(Math.hypot(s.px-e.x,s.py-e.y)<=w.range&&s.invuln<=0&&!wallAbsorb(e.x,e.y,10)){takeDamage(10);stunPlayer(stunMaxDur(PATH_CAP)*M/(M+playerRefMult()))}
   return;
  }
  const dmg=TECH_BASE[w.type==='single'?'qiSingle':'qiArea']*M*techVer(e);
@@ -151,9 +151,9 @@ function entFire(e,w){
   const cone=Math.PI/7;
   s.qiEffects.push({type:'single',x:e.x,y:e.y,ang:w.ang,life:0,duration:.38,range:w.range,cone,hostile:true});
   if(boss)for(let i=0;i<16;i++){const aa=w.ang+rnd(-cone,cone)*.9,sp=rnd(300,600);addPart({k:'spark',x:e.x+Math.cos(aa)*40,y:e.y+Math.sin(aa)*40,vx:Math.cos(aa)*sp,vy:Math.sin(aa)*sp,t:0,max:rnd(.25,.5),size:rnd(2,3.6),col:'#ff7a5a',drag:2.6})}
-  const dd=Math.hypot(s.px-e.x,s.py-e.y),ad=Math.atan2(s.py-e.y,s.px-e.x);if(dd<=w.range&&Math.abs(angDiff(ad,w.ang))<=cone)takeDamage(dmg);
+  const dd=Math.hypot(s.px-e.x,s.py-e.y),ad=Math.atan2(s.py-e.y,s.px-e.x);if(dd<=w.range&&Math.abs(angDiff(ad,w.ang))<=cone&&!wallAbsorb(e.x,e.y,dmg))takeDamage(dmg);
   entSplash(e,'single',w.range,w.ang,dmg,null,false);
- }else{s.qiEffects.push({type:'area',hostile:true,x:e.x,y:e.y,life:0,duration:.5,radius:w.range});if(Math.hypot(s.px-e.x,s.py-e.y)<=w.range)takeDamage(dmg);entSplash(e,'area',w.range,0,dmg,null,false)}
+ }else{s.qiEffects.push({type:'area',hostile:true,x:e.x,y:e.y,life:0,duration:.5,radius:w.range});if(Math.hypot(s.px-e.x,s.py-e.y)<=w.range&&!wallAbsorb(e.x,e.y,dmg))takeDamage(dmg);entSplash(e,'area',w.range,0,dmg,null,false)}
  shake(boss?9:5);
 }
 /* оцепенение игрока (от босса): нельзя двигаться и применять техники; после — 3 с иммунитета, чтобы не было вечного стана */
@@ -393,7 +393,7 @@ function entSplash(e,kind,range,ang,dmg,skip,playerToo){
   if(damageEnemy(x,dmg,'ent')){entKill(e,x);e.foeId=keep}
   else if(!x.animal&&x.foeId==null&&x.foeId!==e.id&&!isMate(e)){x.foeId=e.id}/* задетый отвечает обидчику */
  }
- if(playerToo&&!isMate(e)&&!(arenaState.invuln>0)&&entInShape(e,kind,range,ang,s.px,s.py))takeDamage(dmg);
+ if(playerToo&&!isMate(e)&&!(arenaState.invuln>0)&&entInShape(e,kind,range,ang,s.px,s.py)&&!wallAbsorb(e.x,e.y,dmg))takeDamage(dmg);
 }
 function entRisky(e,f,range){
  const s=arenaState;if(!s)return false;const my=entPow(e);let th=0;

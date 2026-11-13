@@ -122,6 +122,7 @@ function blocked(x,y,r,selfId){
  let ox=x,oy=y;const st=arenaState;
  if(selfId==='player'){ox=st.px;oy=st.py}else{const me=(st.bosses||[]).find(q=>q.id===selfId)||st.enemies.find(q=>q.id===selfId);if(me){ox=me.x;oy=me.y}}
  for(const sh of activeShields(selfId)){const nd=Math.hypot(x-sh.x,y-sh.y);if(nd<r+sh.r&&nd<Math.hypot(ox-sh.x,oy-sh.y)-1e-6)return true}
+ if(selfId!=='player'&&typeof wallBlocksMove==='function'&&wallBlocksMove(x,y,r,ox,oy))return true;
  return false;
 }
 function circleRect(x,y,r,o){const cx=Math.max(o.x-o.w/2,Math.min(x,o.x+o.w/2)),cy=Math.max(o.y-o.h/2,Math.min(y,o.y+o.h/2));return Math.hypot(x-cx,y-cy)<r}
@@ -224,6 +225,7 @@ function drawArena(time){
  drawNpcs(time);drawTradeHint(time);
  drawSoulBody(time);drawMobSouls(time);if(s.soulOut)drawSoulBall(time);else if(!s.poss)drawPlayer(time);
  drawDecoy(time);
+ if(typeof drawWalls==='function')drawWalls();
  for(const fx of s.qiEffects)drawQiFx(fx,time);
  for(const sl of s.slashes)drawSlash(sl);
  drawParts();drawFloats();
