@@ -1,7 +1,7 @@
 'use strict';
 /* ===== Писания: готовые «идеальные» узоры звёзд и меридиан. Отдельный предмет (не свиток техники), остаётся в инвентаре,
    можно продать/передать. Развитие с Писанием ставит звёзды и меридианы по узору со скидкой на их цену. ===== */
-const SCR_D=11;/* шаг решётки в пикселях */
+const SCR_D=12;/* шаг решётки в пикселях */
 const SCRIPTURES=[
  {r:1,name:'Свиток Первых Шагов',n:50,disc:.20,dens:0,   tier:1,price:150,  info:'Узор «Странник»: рывок и Удар Ци.'},
  {r:2,name:'Писание Горного Ветра',n:100,disc:.28,dens:.12,tier:1,price:2500, info:'Скелет тела: щит, рывок, удары Ци.'},
@@ -12,31 +12,40 @@ const SCRIPTURES=[
 const SCR_DROP=[.03,.012,.004,.0012,.0003];/* шанс с моба по рангу: чем выше ранг, тем реже */
 const SCR_CHEST=[.15,.05,.015,.004,.001];/* шанс в сундуке */
 function scrInfo(r){return SCRIPTURES[r-1]}
-let _scrLat=null;
-function scrLattice(){
- if(_scrLat)return _scrLat;
- const dx=SCR_D/210,dy=SCR_D*.866/520,pts=[];
- for(let r=0,y=-.5;y<=.5;r++,y=-.5+r*dy)for(let x=-.45+(r%2)*dx/2;x<=.45;x+=dx)if(inFormBody(x,y))pts.push([Math.round(x*1e4)/1e4,Math.round(y*1e4)/1e4]);
- /* «скелет»: сначала звёзды вдоль позвоночника, ног и рук — так даже малое Писание охватывает всё тело */
- const seg=[[0,-.46,0,.1],[-.08,.1,-.09,.48],[.08,.1,.09,.48],[-.18,-.26,-.42,.13],[.18,-.26,.42,.13]];
- const dist=p=>Math.min(...seg.map(s=>{const ax=s[0]*210,ay=s[1]*520,bx=s[2]*210,by=s[3]*520,px=p[0]*210,py=p[1]*520,vx=bx-ax,vy=by-ay,t=Math.max(0,Math.min(1,((px-ax)*vx+(py-ay)*vy)/(vx*vx+vy*vy)));return Math.hypot(px-ax-vx*t,py-ay-vy*t)}));
- /* поперечные «перекладины» (плечи, грудь вместе с предплечьями, таз) — для горизонтальных линий: стен, волн, широких форм; идут после основного скелета */
- const bars=[[-.2,-.27,.2,-.27],[-.42,-.12,.42,-.12],[-.18,.07,.18,.07]];
- const dist2=p=>Math.min(...bars.map(s=>{const ax=s[0]*210,ay=s[1]*520,bx=s[2]*210,by=s[3]*520,px=p[0]*210,py=p[1]*520,vx=bx-ax,vy=by-ay,t=Math.max(0,Math.min(1,((px-ax)*vx+(py-ay)*vy)/(vx*vx+vy*vy)));return Math.hypot(px-ax-vx*t,py-ay-vy*t)}));
- pts.forEach(p=>{const d1=dist(p),d2=dist2(p);p.push(d1<=4.5?0:d2<=4.5?1:2,d1)});
- pts.sort((a,b)=>a[2]-b[2]||a[3]-b[3]||Math.abs(a[1]-DANTIAN_Y)-Math.abs(b[1]-DANTIAN_Y)||a[0]-b[0]);
- window._scrG=[pts.filter(p=>p[2]===0).length,pts.filter(p=>p[2]===1).length];_scrLat=pts.map(p=>[p[0],p[1]]);return _scrLat;
+/* Узор строится ростом от Дань-тяня по гексагональной решётке: каждая новая звезда соседствует с уже поставленной, поэтому любой префикс
+   (малое Писание — начало большого) связный, а меридианы идут только между соседними звёздами. Сначала растёт «скелет», затем перекладины, затем утолщение. */
+let _scrB=null;const _scrPat={};
+function scrBuild(){
+ if(_scrB)return _scrB;
+ const rdy=typeof bodyMaskReady!=='undefined'&&bodyMaskReady,D=SCR_D,dx=D/210,dy=D*.866/520,P=[];
+ for(let r=0,y=-.5;y<=.5;r++,y=-.5+r*dy)for(let x=-.45+(r%2)*dx/2;x<=.45;x+=dx)if(inFormBody(x,y)&&(!rdy||bodyPointInside(x,y)))P.push([Math.round(x*1e4)/1e4,Math.round(y*1e4)/1e4]);
+ const N=P.length,PX=P.map(p=>[p[0]*210,p[1]*520]),adj=Array.from({length:N},()=>[]);
+ for(let i=0;i<N;i++)for(let j=i+1;j<N;j++)if(Math.hypot(PX[i][0]-PX[j][0],PX[i][1]-PX[j][1])<=D*1.25&&(!rdy||segmentInsideBody({x:P[i][0],y:P[i][1]},{x:P[j][0],y:P[j][1]}))){adj[i].push(j);adj[j].push(i)}
+ const segD=(p,segs)=>Math.min(...segs.map(s=>{const ax=s[0]*210,ay=s[1]*520,bx=s[2]*210,by=s[3]*520,vx=bx-ax,vy=by-ay,t=Math.max(0,Math.min(1,((p[0]-ax)*vx+(p[1]-ay)*vy)/(vx*vx+vy*vy)));return Math.hypot(p[0]-ax-vx*t,p[1]-ay-vy*t)}));
+ const skel=[[0,-.46,0,.1],[-.09,.1,.09,.1],[-.09,.1,-.09,.48],[.09,.1,.09,.48],[-.18,-.26,.18,-.26],[-.18,-.26,-.42,.13],[.18,-.26,.42,.13]],
+       bars=[[-.42,-.12,.42,-.12],[-.18,.07,.18,.07]];
+ let st=0,sd=1e9;for(let i=0;i<N;i++){const d=Math.hypot(P[i][0],(P[i][1]-DANTIAN_Y)*2.5);if(d<sd){sd=d;st=i}}
+ const hop=new Array(N).fill(1e9);hop[st]=0;{const q=[st];for(let h=0;h<q.length;h++)for(const j of adj[q[h]])if(hop[j]===1e9){hop[j]=hop[q[h]]+1;q.push(j)}}
+ const d1=PX.map(p=>segD(p,skel)),d2=PX.map(p=>segD(p,bars));
+ const pri=i=>d1[i]<=D*.45?hop[i]:d2[i]<=D*.45?1000+hop[i]:2000+d1[i]*4+hop[i];
+ const sel=new Array(N).fill(false),order=[st],par=[-1];sel[st]=true;
+ while(order.length<N){let b=-1,bp=1e18,bpar=-1;
+  for(let k=0;k<order.length;k++)for(const j of adj[order[k]]){if(sel[j])continue;const v=pri(j)+k*1e-4;if(v<bp){bp=v;b=j;bpar=k}}
+  if(b<0)break;sel[b]=true;order.push(b);par.push(bpar)}
+ const R={pts:order.map(i=>P[i]),par,D};
+ if(rdy)_scrB=R;else{for(const k in _scrPat)delete _scrPat[k];return R}
+ return R;
 }
-const _scrPat={};
+function scrLattice(){return scrBuild().pts}
+
 function scrHash(i,j){return (((i*73856093)^(j*19349663))>>>0)%1000/1000}
 function scrPattern(r){
  if(_scrPat[r])return _scrPat[r];
- const L=scrLattice(),inf=scrInfo(r),n=Math.min(inf.n,L.length),pts=L.slice(0,n),edges=[],has=new Set();
- const D=(i,j)=>Math.hypot((pts[i][0]-pts[j][0])*210,(pts[i][1]-pts[j][1])*520);
- for(let i=1;i<n;i++){let b=-1,bd=1e9;for(let j=0;j<i;j++){const d=D(i,j);if(d<bd){bd=d;b=j}}edges.push([b,i]);has.add(b+'_'+i)}
- if(inf.dens>0)for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){if(has.has(i+'_'+j)||D(i,j)>SCR_D*1.2)continue;if(scrHash(i,j)<inf.dens)edges.push([i,j])}
+ const B=scrBuild(),inf=scrInfo(r),n=Math.min(inf.n,B.pts.length),pts=B.pts.slice(0,n),edges=[],has=new Set();
+ for(let i=1;i<n;i++){edges.push([B.par[i],i]);has.add(B.par[i]+'_'+i)}
+ if(inf.dens>0)for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){if(has.has(i+'_'+j))continue;if(Math.hypot((pts[i][0]-pts[j][0])*210,(pts[i][1]-pts[j][1])*520)>B.D*1.25)continue;if(scrHash(i,j)<inf.dens)edges.push([i,j])}
  edges.sort((a,b)=>Math.max(a[0],a[1])-Math.max(b[0],b[1]));
- return _scrPat[r]={pts,edges};
+ const R={pts,edges,il:true};if(_scrB)_scrPat[r]=R;return R;
 }
 /* ---- инвентарь Писаний: save.scriptures — список рангов (повторы = несколько экземпляров) ---- */
 function scrList(){return save.scriptures=Array.isArray(save.scriptures)?save.scriptures:[]}

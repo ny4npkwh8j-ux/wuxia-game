@@ -28,18 +28,21 @@ function soulMemRun(dry,src,disc,tol){
  let addS=0,addE=0,stop=false;
  const idx=new Array(m.pts.length).fill(-1);
  m.pts.forEach((q,i)=>{const j=save.starPts.findIndex(p=>near(p,q));if(j>=0)idx[i]=j});
+  const doEdge=(a,b)=>{
+  const x=idx[a],y=idx[b];if(x==null||y==null||x<0||y<0)return true;
+  if(save.meridianEdges.some(e=>(e[0]===x&&e[1]===y)||(e[0]===y&&e[1]===x)))return true;
+  const p=save.starPts[x],q=save.starPts[y];if(typeof segmentInsideBody==='function'&&!segmentInsideBody(p,q))return true;
+  const cost=Math.max(1,Math.ceil(meridianCost()*dk));if(!canAfford(cost))return false;
+  spendStarCost(cost);save.meridianEdges.push([x,y]);save.meridians++;addE++;return true;
+ };
+ const il=!!m.il,byMax=il?m.pts.map(()=>[]):null;if(il)m.edges.forEach(e=>byMax[Math.max(e[0],e[1])].push(e));
  for(let i=0;i<m.pts.length&&!stop;i++){
-  if(idx[i]>=0)continue;const p={x:m.pts[i][0],y:m.pts[i][1]},cost=Math.max(1,Math.ceil(starCostAt(p)*dk));
-  if(!canAfford(cost)){stop=true;break}
-  spendStarCost(cost);save.stars++;soulStarStats(1);save.starPts.push(p);idx[i]=save.starPts.length-1;addS++;
+  if(idx[i]<0){const p={x:m.pts[i][0],y:m.pts[i][1]},cost=Math.max(1,Math.ceil(starCostAt(p)*dk));
+   if(!canAfford(cost)){stop=true;break}
+   spendStarCost(cost);save.stars++;soulStarStats(1);save.starPts.push(p);idx[i]=save.starPts.length-1;addS++}
+  if(il)for(const [a,b] of byMax[i])if(!doEdge(a,b)){stop=true;break}
  }
- for(const [a,b] of m.edges){
-  const x=idx[a],y=idx[b];if(x==null||y==null||x<0||y<0)continue;
-  if(save.meridianEdges.some(e=>(e[0]===x&&e[1]===y)||(e[0]===y&&e[1]===x)))continue;
-  const p=save.starPts[x],q=save.starPts[y];if(typeof segmentInsideBody==='function'&&!segmentInsideBody(p,q))continue;
-  const cost=Math.max(1,Math.ceil(meridianCost()*dk));if(!canAfford(cost))break;
-  spendStarCost(cost);save.meridianEdges.push([x,y]);save.meridians++;addE++;
- }
+ if(!il)for(const [a,b] of m.edges)if(!doEdge(a,b))break;
  const missS=idx.filter(v=>v<0).length,missE=m.edges.filter(([a,b])=>idx[a]<0||idx[b]<0||!save.meridianEdges.some(e=>(e[0]===idx[a]&&e[1]===idx[b])||(e[0]===idx[b]&&e[1]===idx[a]))).length;
  if(dry)Object.assign(save,bk);
  return{stars:addS,meridians:addE,missStars:missS,missEdges:missE};
@@ -62,7 +65,7 @@ function soulBodyDeath(s){
  soulMemUpdate();
  s.body={x:s.px,y:s.py,hp:0,maxHp:s.maxHp,dead:true,hit:0,ang:s.facing||0};s.soulOut=true;save.bodyLost=true;s.possCh=null;{const tk=soulTakeQi();save.soulQi=tk.soul;save.soulLent=0;save.qi=0}
  try{playerKilledByBoss(s)}catch(e){}
- s.hp=s.maxHp;s.shield=0;s.invuln=1.5;
+ s.hp=s.maxHp;s.shield=0;s.invuln=3;
  burst(s.px,s.py,30,'#ff5a5a',300,.9,3);toast('Основное тело погибло! Душа продолжает путь. Захвати новое тело — оно станет основным.');chron('Игрок потерял тело, душа продолжает');
  if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);persist();return true;
 }

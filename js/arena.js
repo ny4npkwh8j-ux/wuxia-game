@@ -60,10 +60,11 @@ function freshArenaField(){
 }
 /* тихое место для возрождения: из набора случайных точек берём ту, где рядом меньше всего мобов/боссов, вне препятствий, опасных зон и зон боссов */
 function quietSpot(s){
- let best=null;const foes=s.enemies.filter(e=>e.hp>0).concat(aliveBosses(s));
+ let best=null;const ox=s.px,oy=s.py;const foes=s.enemies.filter(e=>e.hp>0).concat(aliveBosses(s));
  for(let i=0;i<80;i++){
   const x=700+Math.random()*(s.world-1400),y=700+Math.random()*(s.world-1400);
   if(blocked(x,y,40,'player'))continue;
+  if(Math.hypot(x-ox,y-oy)<2500)continue;/* возрождение не рядом с местом гибели */
   if((s.hazards||[]).some(z=>Math.hypot(x-z.x,y-z.y)<z.r+60))continue;
   if(BOSS_HOMES.some(h=>Math.hypot(x-h[0],y-h[1])<BOSS_ZONE_R+400))continue;
   let n=0,md=1e9;for(const e of foes){const d=Math.hypot(e.x-x,e.y-y);if(d<1000)n++;if(d<md)md=d}
@@ -184,7 +185,9 @@ function arenaLoop(t){
  soulTick(dt);mobSoulTick(dt);
  updateFx(dt);emitFx(dt,m<=.08);
  if(s.hp<=0&&!(typeof soulBodyDeath==='function'&&soulBodyDeath(s))){playerKilledByBoss(s);save.qi=0;const soulMsg=typeof soulDeathRollback==='function'?soulDeathRollback():'';if(typeof soulRespawnEmpty==='function')soulRespawnEmpty();const lost=Math.floor(save.rewards*.3);save.rewards-=lost;if(lost>0)(s.loot=s.loot||[]).push({x:s.px,y:s.py,k:1,v:lost});const lostItem=playerGearDrop(s);/* карта постоянна: остаётся как есть, игрок возрождается там, где меньше всего мобов */
-  const q=quietSpot(s);s.px=s.camx=q.x;s.py=s.camy=q.y;s.hp=s.maxHp=save.health;s.shield=0;s.invuln=2;persist();saveArenaCheckpoint();stopArena();show('home');toast('Ты пал на арене. Вся Ци утрачена, потеряно '+fmt(lost)+' осколков души (они лежат на месте гибели). Ты возродишься в тихом месте карты.'+soulMsg+(lostItem?' Выпала вещь: '+GEAR[lostItem].name+'.':''));return}
+  /* душа вне тела / захваченное тело сбрасываются: иначе снимок брал позицию оставленного тела (в толпе врагов) вместо тихого места */
+  if(s.poss&&s.poss.e){s.poss.e.vessel=false;s.poss.e.foeId=null}s.poss=null;s.body=null;s.soulOut=false;if(hasSoul())save.soulQi=null;
+  const q=quietSpot(s);s.px=s.camx=q.x;s.py=s.camy=q.y;s.hp=s.maxHp=save.health;s.shield=0;s.invuln=4;persist();saveArenaCheckpoint();stopArena();show('home');toast('Ты пал на арене. Вся Ци утрачена, потеряно '+fmt(lost)+' осколков души (они лежат на месте гибели). Ты возродишься в тихом месте карты.'+soulMsg+(lostItem?' Выпала вещь: '+GEAR[lostItem].name+'.':''));return}
  updateArenaUI();drawArena(t/1000);raf=requestAnimationFrame(arenaLoop);
 }
 /* ---- arena UI ---- */
