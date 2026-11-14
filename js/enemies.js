@@ -212,7 +212,7 @@ function mobDrop(e){
  const bp=addBlueprint({type,n,tier,src:'mob'});
  cornerToast('📄 '+techniqueName(type)+' · '+n+' ★');floatText(e.x,e.y-52,'📄 '+techniqueName(type),'#e6d0ff',14);
 }
-function moveEnemy(e,dx,dy){let nx=Math.max(70,Math.min(arenaState.world-70,e.x+dx)),ny=Math.max(70,Math.min(arenaState.world-70,e.y+dy));if(!blocked(nx,e.y,e.r,e.id))e.x=nx;if(!blocked(e.x,ny,e.r,e.id))e.y=ny}
+function moveEnemy(e,dx,dy){if(e.slowT>0){e.slowT-=.016;dx*=.5;dy*=.5}let nx=Math.max(70,Math.min(arenaState.world-70,e.x+dx)),ny=Math.max(70,Math.min(arenaState.world-70,e.y+dy));if(!blocked(nx,e.y,e.r,e.id))e.x=nx;if(!blocked(e.x,ny,e.r,e.id))e.y=ny}
 function spawnEnemy(){
  if(!arenaState||arenaState.enemies.filter(e=>e.hp>0).length>=MOB_MAX)return;
  const side=Math.floor(Math.random()*4), margin=450;

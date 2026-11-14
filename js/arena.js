@@ -225,7 +225,7 @@ function drawArena(time){
  drawNpcs(time);drawTradeHint(time);
  drawSoulBody(time);drawMobSouls(time);if(s.soulOut)drawSoulBall(time);else if(!s.poss)drawPlayer(time);
  drawDecoy(time);
- if(typeof drawWalls==='function')drawWalls();
+ if(typeof drawWalls==='function')drawWalls();if(typeof drawSpells==='function')drawSpells(time);
  for(const fx of s.qiEffects)drawQiFx(fx,time);
  for(const sl of s.slashes)drawSlash(sl);
  drawParts();drawFloats();

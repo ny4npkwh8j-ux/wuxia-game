@@ -60,10 +60,10 @@ function getTechniqueType(nodes,noLang){
  if(hand)return (left&&right)?'qiArea':(isStraight(nodes)?'poison':'qiSingle');
  if(hasRing(nodes))return 'pull';
  if(hasEnclosingTriangle(nodes))return 'heal';
- if(!noLang&&nodes.length>=4&&typeof techPhrase==='function'){const ph=techPhrase(nodes);if(ph&&(ph.shape==='wall'||ph.shape==='beam'))return 'wall'}
+ if(!noLang&&nodes.length>=4&&typeof techPhrase==='function'){const ph=techPhrase(nodes);if(ph&&(ph.shape==='wall'||ph.shape==='beam'))return 'wall';if(ph&&ph.shape==='chain')return 'trap';if(ph&&(ph.shape==='sphere'||ph.shape==='orbit'))return 'zone'}
  return 'unknown';
 }
-function techniqueName(type){if(type==='wall')return 'Стена';if(SCROLLS[type]&&['blade','pull','repel','mirage','poison'].includes(type))return SCROLLS[type].name;return type==='heal'?'Лечение':type==='qiShield'?'Личный щит':type==='stun'?'Оцепенение':type==='dodge'?'Рывок':type==='shield'?'Щит':type==='qiSingle'?'Удар Ци · Одиночный':type==='qiArea'?'Удар Ци · По площади':'Неразгаданная техника'}
+function techniqueName(type){if(type==='wall')return 'Стена';if(type==='trap')return 'Ловушка';if(type==='zone')return 'Зона';if(SCROLLS[type]&&['blade','pull','repel','mirage','poison'].includes(type))return SCROLLS[type].name;return type==='heal'?'Лечение':type==='qiShield'?'Личный щит':type==='stun'?'Оцепенение':type==='dodge'?'Рывок':type==='shield'?'Щит':type==='qiSingle'?'Удар Ци · Одиночный':type==='qiArea'?'Удар Ци · По площади':'Неразгаданная техника'}
 function techniqueDescription(type,n){
  const t={type,nodes:{length:n}};
  if(type==='stun')return 'Зажми '+castTime(5).toFixed(1)+' с · радиус 500 · урон 10 · перезарядка '+AREA_CD.stun+' с · оглушение до '+stunMaxDur(n).toFixed(1)+' с (сила '+fmt(myMult(t))+' против силы цели) · Ци '+techCost(t)+' · минимум 20 ★.';
@@ -77,7 +77,7 @@ function techniqueDescription(type,n){
  return 'Нужна подходящая геометрия звёзд.';
 }
 /* какие зоны тела допустимы в маршруте техники (торс разрешён всегда как соединительная зона) */
-const TECH_ZONES={shield:{head:1},dodge:{leg:1},qiSingle:{hand:1},qiArea:{hand:1},stun:{head:1,leg:1},qiShield:{head:1,hand:1},heal:{},blade:{hand:1,leg:1},repel:{head:1,hand:1,leg:1},pull:{},mirage:{leg:1},poison:{hand:1},wall:{}};
+const TECH_ZONES={shield:{head:1},dodge:{leg:1},qiSingle:{hand:1},qiArea:{hand:1},stun:{head:1,leg:1},qiShield:{head:1,hand:1},heal:{},blade:{hand:1,leg:1},repel:{head:1,hand:1,leg:1},pull:{},mirage:{leg:1},poison:{hand:1},wall:{},trap:{},zone:{}};
 /* самый длинный допустимый маршрут по звёздам и меридианам игрока для типа техники (поиск в глубину с ограничением шагов) */
 function findBestChain(type,cap=Infinity){
  const zs=TECH_ZONES[type];if(!zs)return null;
@@ -116,7 +116,7 @@ function autoFormTechnique(type){
 function validateTechnique(nodes,dantian){
  if(!dantian)return{err:'Техника должна начинаться с Дан-тяня.'};
  const type=getTechniqueType(nodes);
- if(type==='unknown')return{err:'Не получается техника. Зоны: голова — Щит; ноги — Рывок (кольцо — Мираж); рука — Удар Ци (прямая линия — Отравление); обе руки — Волна; голова+ноги — Оцепенение; голова+руки — Личный щит; руки+ноги — Ци-клинок; всё тело — Отталкивание; торс: треугольник — Лечение, кольцо — Притяжение, прямая линия — Стена.'};
+ if(type==='unknown')return{err:'Не получается техника. Зоны: голова — Щит; ноги — Рывок (кольцо — Мираж); рука — Удар Ци (прямая линия — Отравление); обе руки — Волна; голова+ноги — Оцепенение; голова+руки — Личный щит; руки+ноги — Ци-клинок; всё тело — Отталкивание; торс: треугольник — Лечение, кольцо — Притяжение, прямая линия — Стена, зигзаг — Ловушка, клубок или спираль — Зона.'};
  const need=MIN_STARS[type];if(nodes.length<need)return{err:techniqueName(type)+': минимум '+need+' звёзд.'};
  const zc=zoneCounts(nodes);
  if(type==='dodge'&&(zc.leftLeg<1||zc.rightLeg<1))return{err:'Рывок: нужна хотя бы одна звезда на каждой ноге (сейчас '+zc.leftLeg+' и '+zc.rightLeg+').'};
@@ -150,7 +150,7 @@ function zoneStar(c,x,y,r,k,rot){
 }
 /* ===== scrolls list (generic) ===== */
 /* ===== technique buttons (vertical strip, right side, above the attack button) ===== */
-const TECH_ICON={qiSingle:'⚡',qiArea:'💥',shield:'🛡️',dodge:'➤',stun:'🌀',qiShield:'✨',heal:'✚',blade:'🗡️',pull:'🧲',repel:'💨',mirage:'👤',poison:'☠️',wall:'🧱'};
+const TECH_ICON={qiSingle:'⚡',qiArea:'💥',shield:'🛡️',dodge:'➤',stun:'🌀',qiShield:'✨',heal:'✚',blade:'🗡️',pull:'🧲',repel:'💨',mirage:'👤',poison:'☠️',wall:'🧱',trap:'🪤',zone:'🔮'};
 const TECH_SHORT={qiSingle:'УДАР',qiArea:'ВОЛНА',shield:'ЩИТ',dodge:'РЫВОК',stun:'СТАН',qiShield:'ЛИЧНЫЙ',heal:'ЛЕЧЕНИЕ',blade:'КЛИНОК',pull:'ПРИТЯЖ.',repel:'ОТТАЛК.',mirage:'МИРАЖ',poison:'ЯД'};
 let techSig='',techPage=0;
 /* веер вокруг кнопки АТАКА: три дуги (радиус, число слотов, размах в градусах от «вверх» до «влево») */
