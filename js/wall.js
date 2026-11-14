@@ -10,8 +10,8 @@ SCROLLS.wall={id:'wall',type:'wall',name:'Стена',from:'язык техни�
  effect:()=>'нажми: перед тобой встаёт стена поперёк прицела. Длина, прочность и время зависят от формы цепочки (дальность, плотность меридиан, звёзды Дыхания/Корня); твёрдость и время делят общий бюджет. Враги её не проходят, удары Ци по тебе она гасит.'};
 function wallParams(t){
  const ph=techPhrase(t.nodes);if(!ph)return null;const p=ph.params,tot=Math.max(1,p.hardness+p.duration),hard=p.hardness/tot,dur=p.duration/tot;
- const base=TECH_BASE.qiSingle*myMult(t);
- return{len:110+320*p.reach,hp:base*(4+10*hard),life:4+9*dur+(ph.n>=6?2:0),hard,dur};
+ const sq=spellQuality(t.nodes);spellReveal(t,sq);const base=TECH_BASE.qiSingle*myMult(t)*sq.q*(sq.prop==='iron'?1.4:1);
+ return{len:110+320*p.reach,hp:base*(4+10*hard),life:(4+9*dur+(ph.n>=6?2:0))*(sq.prop==='echo'?1.5:1),hard,dur};
 }
 function castWall(t){
  const s=arenaState,P=wallParams(t);if(!P)return;
