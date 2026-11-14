@@ -56,9 +56,9 @@ function techPhrase(nodes){
  const clamp=v=>Math.max(0,Math.min(1,v)),dirName=Math.abs(dy)>=Math.abs(dx)?(dy<0?'вперёд':'назад'):(dx>0?'вправо':'влево');
  const params={
   power:n,
-  hardness:clamp(.5*Math.min(1,cross/Math.max(1,n*.6))+.5*Math.min(1,sharp/Math.max(1,n-2)/Math.PI*2)),
-  duration:clamp((selfz+ground)/n*.8+Math.min(1,Math.abs(turn)/6.28)*.4),
-  reach:clamp(diag/260),
+  hardness:clamp(.5*Math.min(1,cross/Math.max(1,n*.6))+.2*Math.min(1,sharp/Math.max(1,n-2)/Math.PI*2)+.3*cnt('chest')/n),
+  duration:clamp((cnt('root')+ground*.7)/n*.9+Math.min(1,Math.abs(turn)/6.28)*.3),
+  reach:clamp(diag/(selfz>=n?150:260)),
   width:clamp(Math.min(bw,bh)/Math.max(1,Math.max(bw,bh)||1)),
   dir:dirName
  };

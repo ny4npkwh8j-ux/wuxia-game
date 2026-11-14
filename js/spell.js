@@ -30,13 +30,13 @@ function castTrap(t){
  const s=arenaState,P=spellParams(t);if(!P)return;
  /* повтор: длинная ломаная ставит ряд ловушек вперёд (1 на каждые 3 звезды сверх двух, до 3) */
  const rep=Math.max(1,Math.min(3,Math.floor((P.n-2)/3))),a=s.shootAng||0;
- for(let k=0;k<rep;k++)(s.traps=s.traps||[]).push({x:s.px+Math.cos(a)*90*k,y:s.py+Math.sin(a)*90*k,arm:.8,t:(8+14*P.dur)*(P.prop==='echo'?1.5:1),max:8+14*P.dur,r:60+80*P.reach,boom:110+110*P.reach,dmg:P.base*(1.2+2.5*P.hard),stun:.8+1.8*P.hard,prop:P.prop,twice:P.prop==='echo'});
+ for(let k=0;k<rep;k++)(s.traps=s.traps||[]).push({x:s.px+Math.cos(a)*90*k,y:s.py+Math.sin(a)*90*k,arm:.8,t:(8+14*P.dur)*(P.prop==='echo'?1.5:1),max:8+14*P.dur,r:60+80*P.reach,boom:110+110*P.reach,dmg:P.base*(.4+.5*P.hard),stun:.8+1.8*P.hard,prop:P.prop,twice:P.prop==='echo'});
  while(s.traps.length>6)s.traps.shift();
- burst(s.px,s.py,10,'#ffb36b',150,.4,2.4);toast('Ловушка ×'+rep+': урон '+fmt(P.base*(1.2+2.5*P.hard))+', оглушение '+(.8+1.8*P.hard).toFixed(1)+' с, ждёт '+(8+14*P.dur).toFixed(0)+' с');
+ burst(s.px,s.py,10,'#ffb36b',150,.4,2.4);toast('Ловушка ×'+rep+': урон '+fmt(P.base*(.4+.5*P.hard))+', оглушение '+(.8+1.8*P.hard).toFixed(1)+' с, ждёт '+(8+14*P.dur).toFixed(0)+' с');
 }
 function castZone(t){
  const s=arenaState,P=spellParams(t);if(!P)return;
- const life=(3+8*P.dur)*(P.prop==='echo'?1.5:1),R=110+250*P.reach,dps=P.base*(.25+.9*P.hard);
+ const life=(3+8*P.dur)*(P.prop==='echo'?1.5:1),R=110+250*P.reach,dps=P.base*(.12+.3*P.hard);
  (s.zones=s.zones||[]).push({x:s.px,y:s.py,t:life,max:life,r:R,dps,acc:0,prop:P.prop});
  if(s.zones.length>3)s.zones.shift();
  s.qiEffects.push({type:'ring',x:s.px,y:s.py,life:0,duration:.5,radius:R,col:'#c58cff'});
