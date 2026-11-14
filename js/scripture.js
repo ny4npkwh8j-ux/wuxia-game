@@ -3,10 +3,10 @@
    можно продать/передать. Развитие с Писанием ставит звёзды и меридианы по узору со скидкой на их цену. ===== */
 const SCR_D=12;/* шаг решётки в пикселях */
 const SCRIPTURES=[
- {r:1,name:'Свиток Первых Шагов',n:50,disc:.20,dens:0,   tier:1,price:150,  info:'Узор «Странник»: рывок и Удар Ци.'},
- {r:2,name:'Писание Горного Ветра',n:100,disc:.28,dens:.12,tier:1,price:2500, info:'Скелет тела: щит, рывок, удары Ци.'},
- {r:3,name:'Писание Лунного Круга',n:150,disc:.35,dens:.3, tier:2,price:600,  info:'Кольца и треугольники: Мираж, Притяжение, Лечение.'},
- {r:4,name:'Писание Девяти Небес',n:220,disc:.43,dens:.6, tier:3,price:900,  info:'Плотная сеть меридиан: почти любая техника.'},
+ {r:1,name:'Свиток Первых Шагов',n:50,disc:.20,dens:.6,  tier:1,price:150,  info:'Узор «Странник»: рывок и Удар Ци.'},
+ {r:2,name:'Писание Горного Ветра',n:100,disc:.28,dens:.85,tier:1,price:2500, info:'Скелет тела: щит, рывок, удары Ци.'},
+ {r:3,name:'Писание Лунного Круга',n:150,disc:.35,dens:1,  tier:2,price:600,  info:'Кольца и треугольники: Мираж, Притяжение, Лечение.'},
+ {r:4,name:'Писание Девяти Небес',n:220,disc:.43,dens:1,  tier:3,price:900,  info:'Плотная сеть меридиан: почти любая техника.'},
  {r:5,name:'Писание Небесного Дракона',n:300,disc:.50,dens:1,tier:3,price:9000,info:'Совершенный образ: любая техника на 100 звёзд, звезда вдвое дешевле.'}
 ];
 const SCR_DROP=[.03,.012,.004,.0012,.0003];/* шанс с моба по рангу: чем выше ранг, тем реже */
@@ -18,20 +18,28 @@ let _scrB=null;const _scrPat={};
 function scrBuild(){
  if(_scrB)return _scrB;
  const rdy=typeof bodyMaskReady!=='undefined'&&bodyMaskReady,D=SCR_D,dx=D/210,dy=D*.866/520,P=[];
- for(let r=0,y=-.5;y<=.5;r++,y=-.5+r*dy)for(let x=-.45+(r%2)*dx/2;x<=.45;x+=dx)if(inFormBody(x,y)&&(!rdy||bodyPointInside(x,y)))P.push([Math.round(x*1e4)/1e4,Math.round(y*1e4)/1e4]);
+ /* решётка симметрична относительно оси тела: чётные ряды содержат x=0, нечётные — пары ±dx/2; точка берётся, только если зеркальная ей тоже внутри тела */
+ const okp=(x,y)=>inFormBody(x,y)&&(!rdy||bodyPointInside(x,y));
+ for(let r=0,y=-.5;y<=.5;r++,y=-.5+r*dy){const off=(r%2)*dx/2;for(let k=0;;k++){const x=off+k*dx;if(x>.45)break;
+  if(!okp(x,y)||!okp(-x,y))continue;if(Math.hypot(x*210,(y-DANTIAN_Y)*520)<D*.55)continue;
+  const R=v=>Math.round(v*1e4)/1e4;P.push([R(x),R(y)]);if(x>1e-6)P.push([R(-x),R(y)])}}
  const N=P.length,PX=P.map(p=>[p[0]*210,p[1]*520]),adj=Array.from({length:N},()=>[]);
  for(let i=0;i<N;i++)for(let j=i+1;j<N;j++)if(Math.hypot(PX[i][0]-PX[j][0],PX[i][1]-PX[j][1])<=D*1.25&&(!rdy||segmentInsideBody({x:P[i][0],y:P[i][1]},{x:P[j][0],y:P[j][1]}))){adj[i].push(j);adj[j].push(i)}
  const segD=(p,segs)=>Math.min(...segs.map(s=>{const ax=s[0]*210,ay=s[1]*520,bx=s[2]*210,by=s[3]*520,vx=bx-ax,vy=by-ay,t=Math.max(0,Math.min(1,((p[0]-ax)*vx+(p[1]-ay)*vy)/(vx*vx+vy*vy)));return Math.hypot(p[0]-ax-vx*t,p[1]-ay-vy*t)}));
  const skel=[[0,-.46,0,.1],[-.09,.1,.09,.1],[-.09,.1,-.09,.48],[.09,.1,.09,.48],[-.18,-.26,.18,-.26],[-.18,-.26,-.42,.13],[.18,-.26,.42,.13]],
        bars=[[-.42,-.12,.42,-.12],[-.18,.07,.18,.07]];
- let st=0,sd=1e9;for(let i=0;i<N;i++){const d=Math.hypot(P[i][0],(P[i][1]-DANTIAN_Y)*2.5);if(d<sd){sd=d;st=i}}
+ const mir=P.map(p=>P.findIndex(q=>Math.abs(q[0]+p[0])<1e-6&&Math.abs(q[1]-p[1])<1e-6));
+ let st=-1,sd=1e9;for(let i=0;i<N;i++){if(Math.abs(P[i][0])>1e-6)continue;const d=Math.hypot(P[i][0],(P[i][1]-DANTIAN_Y)*2.5);if(d<sd){sd=d;st=i}}
+ if(st<0)st=0;
  const hop=new Array(N).fill(1e9);hop[st]=0;{const q=[st];for(let h=0;h<q.length;h++)for(const j of adj[q[h]])if(hop[j]===1e9){hop[j]=hop[q[h]]+1;q.push(j)}}
  const d1=PX.map(p=>segD(p,skel)),d2=PX.map(p=>segD(p,bars));
  const pri=i=>d1[i]<=D*.45?hop[i]:d2[i]<=D*.45?1000+hop[i]:2000+d1[i]*4+hop[i];
- const sel=new Array(N).fill(false),order=[st],par=[-1];sel[st]=true;
+ /* рост симметричный: вместе со звездой сразу ставится её зеркальная пара (родитель пары — зеркало родителя) */
+ const sel=new Array(N).fill(false),pos=new Array(N).fill(-1),order=[st],par=[-1];sel[st]=true;pos[st]=0;
  while(order.length<N){let b=-1,bp=1e18,bpar=-1;
-  for(let k=0;k<order.length;k++)for(const j of adj[order[k]]){if(sel[j])continue;const v=pri(j)+k*1e-4;if(v<bp){bp=v;b=j;bpar=k}}
-  if(b<0)break;sel[b]=true;order.push(b);par.push(bpar)}
+  for(let k=0;k<order.length;k++)for(const j of adj[order[k]]){if(sel[j])continue;const v=pri(j)+Math.abs(P[j][0])*1e-3+k*1e-6;if(v<bp){bp=v;b=j;bpar=k}}
+  if(b<0)break;sel[b]=true;pos[b]=order.length;order.push(b);par.push(bpar);
+  const m=mir[b];if(m>=0&&!sel[m]){const mp=mir[order[bpar]];if(mp>=0&&pos[mp]>=0){sel[m]=true;pos[m]=order.length;order.push(m);par.push(pos[mp])}}}
  const R={pts:order.map(i=>P[i]),par,D};
  if(rdy)_scrB=R;else{for(const k in _scrPat)delete _scrPat[k];return R}
  return R;
@@ -54,11 +62,11 @@ function scrGive(r){if(!scrInfo(r))return false;scrList().push(r);persist();retu
 function scrTake(r){const i=scrList().indexOf(r);if(i<0)return false;scrList().splice(i,1);persist();return true}
 function scrOwnedRanks(){return [...new Set(scrList())].sort((a,b)=>b-a)}
 /* ---- развитие по узору: звёзды и меридианы ставятся со скидкой, сколько хватает Ци и осколков ---- */
-function scrDry(r){const inf=scrInfo(r);return soulMemRun(true,scrPattern(r),inf.disc,8)}
+function scrDry(r){const inf=scrInfo(r);return soulMemRun(true,scrPattern(r),inf.disc,5.5)}
 function scrApply(r){
  const inf=scrInfo(r);if(!inf||!scrCount(r))return;
  if(starsLocked())return toast('Звёзды закрыты: колонны уже начаты.');
- const res=soulMemRun(false,scrPattern(r),inf.disc,8);
+ const res=soulMemRun(false,scrPattern(r),inf.disc,5.5);
  if(res.stars+res.meridians===0)return toast(res.missStars+res.missEdges===0?'Узор уже полностью расставлен.':'Не хватает Ци и осколков на следующую звезду.');
  try{soulMemUpdate()}catch(e){}persist();if(typeof rebuildTechButtons==='function')rebuildTechButtons(true);
  toast('Писание: расставлено '+res.stars+' ★ и '+res.meridians+' меридиан'+((res.missStars||res.missEdges)?' (дальше не хватило ресурсов)':' — узор завершён')+'.');
