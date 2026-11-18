@@ -18,7 +18,7 @@ function tech2Ready(t){
 function activateTech2(t){
  if(!t||!TECH2[t.type])return;
  if(!tech2Ready(t))return;
- ({blade:castBlade,pull:castPull,repel:castRepel,mirage:castMirage,poison:castPoison,wall:castWall,trap:castTrap,zone:castZone})[t.type](t);
+ ({blade:castBlade,pull:castPull,repel:castRepel,mirage:castMirage,poison:castPoison,wall:castWall,trap:castTrap,zone:castZone,mark:castMark,gust:castGust})[t.type](t);
 }
 /* Ци-клинок: на время обычный удар бьёт дальше, шире и сильнее */
 function castBlade(t){

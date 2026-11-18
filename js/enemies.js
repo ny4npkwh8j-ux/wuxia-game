@@ -97,11 +97,11 @@ function damageEnemy(e,damage,src,melee){
  if(src!=='ent'&&isMate(e))return false;/* своих по секте игрока удар не берёт */
  if(src!=='ent')provoke(e);
  if(melee)damage*=1-entArmorCut(e);
- if(e.hp<=0)return false;const raw=damage/entToughness(e)*(1-(e.dr||0));let dmg=raw;
+ if(e.hp<=0)return false;if(src!=='ent'&&e.mark)damage*=1+e.mark.amp;const raw=damage/entToughness(e)*(1-(e.dr||0));let dmg=raw;
  if(e.shield>0){const a=Math.min(e.shield,dmg);e.shield-=a;dmg-=a}
  if(dmg>0&&e.qiShieldOn&&e.qi>0){const a=Math.min(dmg,e.qi/QI_SHIELD_RATIO);e.qi=Math.max(0,e.qi-a*QI_SHIELD_RATIO);dmg-=a;e.qsFlash=1;if(e.qi<=0)e.qiShieldOn=false}
  if(dmg>0)e.hp=Math.max(0,e.hp-dmg);e.hit=.25;
- if(arenaState){floatText(e.x,e.y-(e.isBoss?66:30),fmt(Math.max(1,raw)),'#ffffff',raw>=30?18:14);burst(e.x,e.y,e.isBoss?7:5,'#ffe9a0',170,.35,2.2);if(e.hp<=0){spawnDeath(e);if(typeof mobSoulEscape==='function')mobSoulEscape(e)}}
+ if(arenaState){floatText(e.x,e.y-(e.isBoss?66:30),fmt(Math.max(1,raw)),'#ffffff',raw>=30?18:14);burst(e.x,e.y,e.isBoss?7:5,'#ffe9a0',170,.35,2.2);if(e.hp<=0){if(e.mark&&typeof spellMarkBoom==='function')spellMarkBoom(e);spawnDeath(e);if(typeof mobSoulEscape==='function')mobSoulEscape(e)}}
  return e.hp<=0;
 }
 /* ИИ противника (моб или босс): возвращает true, пока противник занят (замах) и не должен идти.

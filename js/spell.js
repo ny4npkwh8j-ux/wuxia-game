@@ -52,7 +52,7 @@ function spellBurnTick(dt){
 }
 function spellFoes(){const s=arenaState;return s.enemies.concat(aliveBosses(s)).filter(e=>e.hp>0&&!e.vessel&&!e.removed&&!isMate(e))}
 function spellTick(dt){
- const s=arenaState;if(!s)return;spellBurnTick(dt);
+ const s=arenaState;if(!s)return;spellBurnTick(dt);spellKickTick(dt);
  if(s.traps&&s.traps.length){
   for(const tr of s.traps){
    tr.t-=dt;if(tr.arm>0){tr.arm-=dt;continue}
@@ -81,5 +81,45 @@ function spellTick(dt){
 function drawSpells(time){
  const s=arenaState;if(!s)return;
  for(const z of s.zones||[]){const p=worldToScreen(z.x,z.y),f=Math.min(1,z.t/1);ax.save();ax.globalAlpha=.22*f;ax.fillStyle='#b070ff';ax.beginPath();ax.arc(p.x,p.y,z.r,0,7);ax.fill();ax.globalAlpha=.6*f;ax.strokeStyle='#d8b0ff';ax.lineWidth=2;ax.setLineDash([10,8]);ax.lineDashOffset=-time*20;ax.stroke();ax.restore()}
+ for(const e of s.enemies.concat(s.bosses||[])){if(!e.mark||e.hp<=0)continue;const p=worldToScreen(e.x,e.y);ax.save();ax.globalAlpha=.8;ax.strokeStyle='#ff6b6b';ax.lineWidth=2;ax.beginPath();ax.arc(p.x,p.y,(e.r||20)+8+2*Math.sin(time*6),0,7);ax.stroke();ax.beginPath();ax.moveTo(p.x-6,p.y-(e.r||20)-14);ax.lineTo(p.x+6,p.y-(e.r||20)-14);ax.lineTo(p.x,p.y-(e.r||20)-6);ax.closePath();ax.fillStyle='#ff6b6b';ax.fill();ax.restore()}
  for(const tr of s.traps||[]){const p=worldToScreen(tr.x,tr.y),a=tr.arm>0?.35:.55+.25*Math.sin(time*5);ax.save();ax.globalAlpha=a;ax.strokeStyle='#ffb36b';ax.lineWidth=2;ax.beginPath();ax.moveTo(p.x,p.y-12);ax.lineTo(p.x+12,p.y);ax.lineTo(p.x,p.y+12);ax.lineTo(p.x-12,p.y);ax.closePath();ax.stroke();ax.restore()}
+}
+
+/* ===== Патч 7: «Метка» (усиление + триггер) и «Порыв» (смещение) =====
+   Метка — торсовая цепочка-дуга по горизонтали (slash): помеченная цель получает от тебя на +15…50% больше урона; когда она гибнет,
+   метка «срабатывает»: взрыв по соседям, которые сами помечаются слабее (цепная реакция). Твёрдость — усиление и взрыв, время — срок метки.
+   Порыв — торсовая цепочка-конус (cone): враги в конусе перед тобой отбрасываются (цепочка идёт вверх) или притягиваются (вниз); твёрдость — дальность смещения,
+   время — срок замедления после. */
+Object.assign(TECH2,{mark:{icon:'🎯',short:'МЕТКА',cd:10,base:0},gust:{icon:'🌬️',short:'ПОРЫВ',cd:9,base:0}});
+CD_KEY.mark='cdMark';CD_KEY.gust='cdGust';
+SCROLLS.mark={id:'mark',type:'mark',name:'Метка',from:'язык техник',minStars:6,geo:'только торс: горизонтальная дуга звёзд',check:z=>z.hand===0&&z.leg===0&&z.head===0,
+ effect:()=>'нажми: ближайший враг помечается — твои удары по нему сильнее; когда он гибнет, метка взрывается и переходит на соседей. Твёрдость — усиление и взрыв, время — срок метки.'};
+SCROLLS.gust={id:'gust',type:'gust',name:'Порыв',from:'язык техник',minStars:6,geo:'только торс: цепочка-конус; вверх — отбросить, вниз — притянуть',check:z=>z.hand===0&&z.leg===0&&z.head===0,
+ effect:()=>'нажми: враги в конусе перед тобой смещаются (отбрасываются или притягиваются) и замедляются. Твёрдость — дальность смещения, время — срок замедления.'};
+function castMark(t){
+ const s=arenaState,P=spellParams(t);if(!P)return;
+ let best=null,bd=650;for(const e of spellFoes()){const d=Math.hypot(e.x-s.px,e.y-s.py);if(d<bd){bd=d;best=e}}
+ if(!best){s[CD_KEY.mark]=0;save.qi+=techCost(t);return toast('Нет цели в радиусе 650')}
+ const life=5+10*P.dur;best.mark={t:life,amp:.15+.35*P.hard,boom:P.base*(.6+1.2*P.hard),r:120+140*P.reach,prop:P.prop};
+ burst(best.x,best.y,12,'#ff6b6b',160,.5,2.6);toast('Метка: +'+Math.round(best.mark.amp*100)+'% урона на '+life.toFixed(0)+' с, взрыв '+fmt(best.mark.boom));
+}
+function spellMarkBoom(e){
+ const m=e.mark;if(!m||m.done)return;m.done=true;const s=arenaState;if(!s)return;
+ s.qiEffects.push({type:'area',x:e.x,y:e.y,life:0,duration:.5,radius:m.r});burst(e.x,e.y,18,'#ff6b6b',240,.6,3);
+ for(const o of spellFoes()){if(o===e||Math.hypot(o.x-e.x,o.y-e.y)>m.r)continue;
+  if(!o.mark)o.mark={t:3,amp:m.amp*.5,boom:m.boom*.5,r:m.r,prop:m.prop};
+  spellVamp(m.prop,m.boom);if(damageEnemy(o,m.boom))killReward(o)}
+}
+function castGust(t){
+ const s=arenaState,P=spellParams(t);if(!P)return;
+ const ph=techPhrase(t.nodes),pull=ph&&ph.params.dir==='назад',a=s.shootAng||0,R=260+300*P.reach,dist=80+260*P.hard,slow=2+4*P.dur;let n=0;
+ for(const e of spellFoes()){const dx=e.x-s.px,dy=e.y-s.py,d=Math.hypot(dx,dy);if(d>R||d<1)continue;
+  let da=Math.atan2(dy,dx)-a;while(da>Math.PI)da-=2*Math.PI;while(da<-Math.PI)da+=2*Math.PI;if(Math.abs(da)>.7)continue;
+  const sg=pull?-1:1;e.kick={vx:dx/d*sg*dist/.4,vy:dy/d*sg*dist/.4,t:.4};e.slowT=Math.max(e.slowT||0,slow);n++}
+ s.qiEffects.push({type:'ring',x:s.px+Math.cos(a)*60,y:s.py+Math.sin(a)*60,life:0,duration:.45,radius:R*.6,col:'#bfe8ff'});shake(4);
+ toast((pull?'Порыв-притяжение':'Порыв')+': сдвинуто '+n+', на '+Math.round(dist)+', замедление '+slow.toFixed(1)+' с');
+}
+function spellKickTick(dt){
+ for(const e of spellFoes()){const k=e.kick;if(!k)continue;moveEnemy(e,k.vx*dt,k.vy*dt);k.t-=dt;if(k.t<=0)e.kick=null}
+ for(const e of spellFoes()){if(e.mark){e.mark.t-=dt;if(e.mark.t<=0)e.mark=null}}
 }
