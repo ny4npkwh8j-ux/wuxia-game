@@ -59,6 +59,7 @@ function techPhrase(nodes){
   hardness:clamp(.5*Math.min(1,cross/Math.max(1,n*.6))+.2*Math.min(1,sharp/Math.max(1,n-2)/Math.PI*2)+.3*cnt('chest')/n),
   duration:clamp((cnt('root')+ground*.7)/n*.9+Math.min(1,Math.abs(turn)/6.28)*.3),
   reach:clamp(diag/(selfz>=n?150:260)),
+  dot:clamp(Math.abs(turn)/6.28),
   width:clamp(Math.min(bw,bh)/Math.max(1,Math.max(bw,bh)||1)),
   dir:dirName
  };
@@ -74,7 +75,7 @@ function techPhraseText(ph){
  if(!ph)return '';
  const pc=v=>Math.round(v*100)+'%',subs=Object.keys(ph.sub).map(k=>SUBZ[k].m+'×'+ph.sub[k]).join(' · ');
  return '<b>Фраза:</b> '+LANG_ANCHOR[ph.anchor]+' · '+LANG_SHAPE[ph.shape]+' · '+ph.verb+(ph.known?'':' <i>(пока без боевого действия)</i>')+
-  '<br>твёрдость '+pc(ph.params.hardness)+' · время '+pc(ph.params.duration)+' · дальность '+pc(ph.params.reach)+' · ширина '+pc(ph.params.width)+' · направление: '+ph.params.dir+
+  '<br>твёрдость '+pc(ph.params.hardness)+' · время '+pc(ph.params.duration)+' · дальность '+pc(ph.params.reach)+' · периодич. '+pc(ph.params.dot)+' · ширина '+pc(ph.params.width)+' · направление: '+ph.params.dir+
   '<br><span style="color:#8794ad">'+subs+(ph.notes.length?' · '+ph.notes.join('; '):'')+'</span>';
 }
 function renderPhrase(){
