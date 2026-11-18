@@ -12,12 +12,32 @@ function soulMemUpdate(){
 function soulStarStats(d){
  save.maxQi=Math.max(100,save.maxQi+STAR_STAT.qi*d);save.dantian=Math.max(0,save.dantian+STAR_STAT.dan*d);save.str=Math.max(1,save.str+STAR_STAT.str*d);save.spd=Math.max(1,save.spd+STAR_STAT.spd*d);save.health=Math.max(10,save.health+STAR_STAT.hp*d);
 }
+/* Колонны и ядро — часть ТЕЛА, а не души: при смене основного тела они заменяются колоннами/ядром нового тела (душа сохраняет только свои стадии).
+   Вклад стадии тела в Ци и здоровье снимается со старого тела и добавляется от нового; сам рост колонн/ядра нового тела дальше идёт обычными средствами. */
+function bodyStageGain(){
+ if(hasCore())return{qi:(save.coreCols||0)*(save.pillarQiBonus||0)*colQiMult(save.pillarCoef)+(save.coreDens||0)*coreDensQi(save.coreCoef),hp:save.coreCoef*(1+.1*(save.coreDens||0))};
+ const b=save.pillarBs&&save.pillarBs.length?save.pillarBs.reduce((a,v)=>a+v,0):(save.pillars||0)*(save.pillarQiBonus||0);return{qi:save.pillars>0?b:0,hp:1};
+}
+function bodyStageRemove(){const g=bodyStageGain();save.maxQi=Math.max(100,Math.round(save.maxQi-g.qi));save.health=Math.max(10,Math.round(save.health/(g.hp||1)))}
+function bodyStageApply(e){
+ const C=e?Math.max(0,Math.floor(e.core>0?(e.coreCols||e.columns||0):(e.columns||0))):0,tal=e&&C>0?entTal(e):0,per=C>0?talQi(tal):0;
+ save.pillars=0;save.pillarQs=[];save.pillarBs=[];save.pillarCoef=0;save.pillarQiBonus=0;save.pillarQuality='';save.coreCoef=0;save.coreDens=0;save.coreRank=0;save.coreCols=null;save.coreQuality='';save.coreDeposit=0;save.coreChanceExtra=0;save.pillarChanceExtra=0;save.pity=0;save.pityC=0;
+ if(e&&e.core>0&&C>0){
+  const dens=e.dens||0,rk=e.coreRank||coreRankLegacy(e.core),base=e.core/(1+.1*dens);
+  save.pillarCoef=tal;save.pillarQiBonus=per;save.pillarQuality=pillarQualityName(tal);
+  save.coreCoef=base;save.coreDens=dens;save.coreRank=rk;save.coreCols=C;save.coreQuality=coreQualityFor(C,tal,rk).name;save.coreQiV=2;
+ }else if(C>0){
+  save.pillars=C;save.pillarQs=new Array(C).fill(tal);save.pillarBs=new Array(C).fill(per);save.pillarStars=(e&&e.stars)||save.stars;pillarsRecalc();
+ }
+ save.stageLevel=hasSoul()?4:hasCore()?3:save.pillars>0?2:1;
+ const g=bodyStageGain();save.maxQi=Math.max(100,Math.round(save.maxQi+g.qi));save.health=Math.max(10,Math.round(save.health*g.hp));save.qi=Math.min(save.qi,save.maxQi);
+}
 /* тело (n звёзд, без меридианов) становится основным: расстановка берётся из памяти души */
 function soulBodyAdopt(n,e){
  soulMemUpdate();const mem=save.soulMem||{pts:[],edges:[]},pts=[];
  for(let i=0;i<n&&i<mem.pts.length;i++)pts.push({x:mem.pts[i][0],y:mem.pts[i][1]});
  if(pts.length<n&&typeof formPts==='function'){const extra=formPts((e&&e.pseed)||7,n);for(let i=pts.length;i<n&&i<extra.length;i++)pts.push({x:extra[i][0],y:extra[i][1]})}
- const k=pts.length;soulStarStats(k-(save.stars||0));
+ const k=pts.length;bodyStageRemove();soulStarStats(k-(save.stars||0));bodyStageApply(e);
  save.starPts=pts;const me=((e&&e.mer)||0)>0?mem.edges.filter(a=>a[0]<k&&a[1]<k).slice(0,e.mer).map(a=>[a[0],a[1]]):[];save.meridianEdges=me;save.stars=k;save.meridians=me.length;save.qi=Math.min(save.qi,save.maxQi);
 }
 /* достройка по памяти. dry=true — только расчёт (всё возвращается как было) */
